@@ -1,0 +1,4870 @@
+--[[
+=========================================================
+                    HELLO HUB UI LIBRARY
+                         v1.21.10
+=========================================================
+
+CORE
+- Window, Tab, Section, Label, Card, Button, Toggle,
+  Slider, Input, Dropdown, MultiDropdown, ColorPicker, Keybind
+
+SPECIAL COMPONENTS
+- InfoCard, ProfileCard, Status, FeatureCard,
+  SearchBox, CommandBox
+
+EFFECTS
+- Glow, Pulse, Shake, Rainbow, Fire / Ember
+
+WINDOW
+- Notify, Minimize, Hide / Show, Destroy, Resize,
+  Drag, Floating Button
+
+INFO CARD
+- Avatar, Display Name, Username, User ID,
+  Game, Place ID, Job ID, Version, FPS, Ping, Live Status
+
+=========================================================
+]]
+
+--=========================================================
+-- SERVICES
+--=========================================================
+local Players            = game:GetService("Players")
+local TweenService       = game:GetService("TweenService")
+local UserInputService   = game:GetService("UserInputService")
+local RunService         = game:GetService("RunService")
+local Stats              = game:GetService("Stats")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local LocalPlayer = Players.LocalPlayer
+
+--=========================================================
+-- HELLO HUB
+--=========================================================
+local HELLO = {}
+
+HELLO.Name    = "Hello Hub"
+HELLO.Version = "1.21.10"
+
+--=========================================================
+-- THEMES
+-- HELLO:SetTheme("halloween" | "grey" | "auto")
+-- เรียกก่อน CreateWindow
+-- "auto" = ธีม Halloween ช่วง 6-30 ตุลาคม นอกนั้นธีม Normal
+--=========================================================
+
+HELLO.Themes = {
+
+    Grey = {
+        IsHalloween = false,
+        Background  = Color3.fromRGB(46, 47, 52),
+        Sidebar     = Color3.fromRGB(38, 39, 44),
+        Card        = Color3.fromRGB(62, 63, 69),
+        CardHover   = Color3.fromRGB(77, 78, 85),
+        Primary     = Color3.fromRGB(178, 183, 192),
+        PrimaryDark = Color3.fromRGB(102, 106, 115),
+        Text        = Color3.fromRGB(240, 245, 250),
+        SubText     = Color3.fromRGB(155, 170, 188),
+        ToggleOff   = Color3.fromRGB(88, 90, 97),
+        Danger      = Color3.fromRGB(190, 65, 75),
+        Success     = Color3.fromRGB(75, 210, 125),
+        Warning     = Color3.fromRGB(255, 190, 70),
+        Stroke1     = Color3.fromRGB(92, 96, 104),
+        Stroke2     = Color3.fromRGB(190, 195, 203),
+        Stroke3     = Color3.fromRGB(112, 117, 125),
+        Sheen1      = Color3.fromRGB(255, 255, 255),
+        Sheen2      = Color3.fromRGB(196, 198, 205),
+        Sheen3      = Color3.fromRGB(236, 238, 242),
+        FloatBg     = Color3.fromRGB(24, 25, 28),
+        FloatEdge1  = Color3.fromRGB(150, 155, 163),
+        FloatEdge2  = Color3.fromRGB(235, 238, 243),
+        FxDark      = Color3.fromRGB(105, 109, 118),
+        FxMid       = Color3.fromRGB(150, 156, 165),
+        FxSilver    = Color3.fromRGB(185, 191, 200),
+        FxLight     = Color3.fromRGB(235, 238, 243),
+        FxWhite     = Color3.fromRGB(255, 255, 255),
+    },
+
+    Halloween = {
+        IsHalloween = true,
+        Background  = Color3.fromRGB(30, 20, 38),
+        Sidebar     = Color3.fromRGB(22, 14, 28),
+        Card        = Color3.fromRGB(46, 31, 58),
+        CardHover   = Color3.fromRGB(66, 44, 82),
+        Primary     = Color3.fromRGB(255, 140, 30),
+        PrimaryDark = Color3.fromRGB(150, 75, 15),
+        Text        = Color3.fromRGB(255, 240, 222),
+        SubText     = Color3.fromRGB(190, 160, 200),
+        ToggleOff   = Color3.fromRGB(80, 60, 95),
+        Danger      = Color3.fromRGB(205, 50, 60),
+        Success     = Color3.fromRGB(125, 215, 85),
+        Warning     = Color3.fromRGB(255, 205, 70),
+        Stroke1     = Color3.fromRGB(120, 50, 170),
+        Stroke2     = Color3.fromRGB(255, 140, 30),
+        Stroke3     = Color3.fromRGB(140, 60, 190),
+        Sheen1      = Color3.fromRGB(255, 215, 170),
+        Sheen2      = Color3.fromRGB(175, 120, 210),
+        Sheen3      = Color3.fromRGB(255, 190, 120),
+        FloatBg     = Color3.fromRGB(24, 12, 32),
+        FloatEdge1  = Color3.fromRGB(150, 70, 200),
+        FloatEdge2  = Color3.fromRGB(255, 170, 60),
+        FxDark      = Color3.fromRGB(95, 45, 140),
+        FxMid       = Color3.fromRGB(165, 95, 225),
+        FxSilver    = Color3.fromRGB(255, 125, 20),
+        FxLight     = Color3.fromRGB(255, 185, 80),
+        FxWhite     = Color3.fromRGB(255, 240, 210),
+    },
+
+}
+
+-- ธีมเสริมและค่าตั้งต้น
+local function CloneTheme(source, patch)
+    local result = {}
+    for key, value in pairs(source) do result[key] = value end
+    for key, value in pairs(patch or {}) do result[key] = value end
+    return result
+end
+
+HELLO.Themes.Normal = CloneTheme(HELLO.Themes.Grey, {
+    ThemeId="normal", Animation="clean", IsHalloween=false,
+    Background=Color3.fromRGB(17,18,22), Sidebar=Color3.fromRGB(11,12,16),
+    Card=Color3.fromRGB(27,29,34), CardHover=Color3.fromRGB(44,47,55),
+    Primary=Color3.fromRGB(198,203,212), PrimaryDark=Color3.fromRGB(105,110,120),
+    Text=Color3.fromRGB(247,248,250), SubText=Color3.fromRGB(168,173,182),
+    Stroke1=Color3.fromRGB(78,83,93), Stroke2=Color3.fromRGB(235,238,243),
+    Stroke3=Color3.fromRGB(135,141,151),
+    Sheen1=Color3.fromRGB(255,255,255), Sheen2=Color3.fromRGB(174,179,188),
+    Sheen3=Color3.fromRGB(236,238,242),
+    FloatBg=Color3.fromRGB(12,13,17),
+    FloatEdge1=Color3.fromRGB(126,132,143), FloatEdge2=Color3.fromRGB(246,247,250),
+    FxDark=Color3.fromRGB(65,69,78), FxMid=Color3.fromRGB(126,132,143),
+    FxSilver=Color3.fromRGB(191,197,207), FxLight=Color3.fromRGB(232,235,240),
+    FxWhite=Color3.fromRGB(255,255,255),
+})
+
+HELLO.Themes.Christmas = CloneTheme(HELLO.Themes.Grey, {
+    ThemeId="christmas", Animation="snow", IsHalloween=false,
+    Background=Color3.fromRGB(18,35,42), Sidebar=Color3.fromRGB(13,28,34),
+    Card=Color3.fromRGB(27,58,61), CardHover=Color3.fromRGB(39,83,80),
+    Primary=Color3.fromRGB(218,55,68), PrimaryDark=Color3.fromRGB(145,30,45),
+    Text=Color3.fromRGB(245,255,246), SubText=Color3.fromRGB(170,211,198),
+    Stroke1=Color3.fromRGB(25,125,95), Stroke2=Color3.fromRGB(235,70,80),
+    Stroke3=Color3.fromRGB(205,180,80),
+    Sheen1=Color3.fromRGB(255,245,205), Sheen2=Color3.fromRGB(205,60,75),
+    Sheen3=Color3.fromRGB(160,235,205),
+    FloatBg=Color3.fromRGB(10,28,29),
+    FloatEdge1=Color3.fromRGB(205,50,65), FloatEdge2=Color3.fromRGB(255,225,125),
+    FxDark=Color3.fromRGB(20,85,67), FxMid=Color3.fromRGB(80,175,130),
+    FxSilver=Color3.fromRGB(235,245,255), FxLight=Color3.fromRGB(255,245,210),
+    FxWhite=Color3.fromRGB(255,255,255),
+})
+
+HELLO.Themes.Valentine = CloneTheme(HELLO.Themes.Grey, {
+    ThemeId="valentine", Animation="hearts", IsHalloween=false,
+    Background=Color3.fromRGB(45,18,34), Sidebar=Color3.fromRGB(31,12,25),
+    Card=Color3.fromRGB(72,28,54), CardHover=Color3.fromRGB(100,38,72),
+    Primary=Color3.fromRGB(255,82,145), PrimaryDark=Color3.fromRGB(170,35,90),
+    Text=Color3.fromRGB(255,239,247), SubText=Color3.fromRGB(220,160,190),
+    Stroke1=Color3.fromRGB(175,45,105), Stroke2=Color3.fromRGB(255,115,175),
+    Stroke3=Color3.fromRGB(215,75,135),
+    Sheen1=Color3.fromRGB(255,190,220), Sheen2=Color3.fromRGB(220,70,140),
+    Sheen3=Color3.fromRGB(255,235,245),
+    FloatBg=Color3.fromRGB(30,9,23),
+    FloatEdge1=Color3.fromRGB(220,55,125), FloatEdge2=Color3.fromRGB(255,170,210),
+    FxDark=Color3.fromRGB(130,25,75), FxMid=Color3.fromRGB(230,70,145),
+    FxSilver=Color3.fromRGB(255,155,205), FxLight=Color3.fromRGB(255,110,175),
+    FxWhite=Color3.fromRGB(255,245,250),
+})
+
+HELLO.Themes.Summer = CloneTheme(HELLO.Themes.Grey, {
+    ThemeId="summer", Animation="bubbles", IsHalloween=false,
+    Background=Color3.fromRGB(12,47,64), Sidebar=Color3.fromRGB(8,33,49),
+    Card=Color3.fromRGB(19,78,91), CardHover=Color3.fromRGB(27,108,119),
+    Primary=Color3.fromRGB(255,194,62), PrimaryDark=Color3.fromRGB(190,112,25),
+    Text=Color3.fromRGB(239,255,255), SubText=Color3.fromRGB(143,211,220),
+    Stroke1=Color3.fromRGB(20,155,175), Stroke2=Color3.fromRGB(255,205,85),
+    Stroke3=Color3.fromRGB(50,205,195),
+    Sheen1=Color3.fromRGB(255,239,145), Sheen2=Color3.fromRGB(30,185,210),
+    Sheen3=Color3.fromRGB(210,255,240),
+    FloatBg=Color3.fromRGB(5,28,41),
+    FloatEdge1=Color3.fromRGB(35,190,210), FloatEdge2=Color3.fromRGB(255,220,100),
+    FxDark=Color3.fromRGB(15,105,130), FxMid=Color3.fromRGB(40,190,205),
+    FxSilver=Color3.fromRGB(155,245,235), FxLight=Color3.fromRGB(255,220,100),
+    FxWhite=Color3.fromRGB(245,255,255),
+})
+
+HELLO.ThemeAliases = {
+    grey="normal", default="normal", normal="normal",
+    halloween="halloween",
+    christmas="christmas", xmas="christmas",
+    valentine="valentine", valentines="valentine",
+    summer="summer",
+}
+
+HELLO.ThemeSettings = { Theme="halloween", Animation=true }
+
+HELLO.HalloweenSeason = { Month=10, FromDay=6, ToDay=30 }
+
+function HELLO:SetTheme(mode)
+    mode = string.lower(tostring(mode or self.ThemeSettings.Theme or "halloween"))
+    if mode == "auto" then
+        local ok, d = pcall(function() return os.date("*t") end)
+        local season = ok and type(d) == "table" and d.month == self.HalloweenSeason.Month
+            and d.day >= self.HalloweenSeason.FromDay and d.day <= self.HalloweenSeason.ToDay
+        mode = season and "halloween" or "normal"
+    end
+    mode = self.ThemeAliases[mode] or mode
+    local themeKey = mode:gsub("^%l", string.upper)
+    if not self.Themes[themeKey] then mode, themeKey = "halloween", "Halloween" end
+    self.ThemeMode, self.Theme = mode, self.Themes[themeKey]
+    self.ThemeSettings.Theme = mode
+    return self.Theme
+end
+
+HELLO:SetTheme("halloween")
+
+--=========================================================
+-- GLASS (ความโปร่งใสของพื้นหลัง/การ์ด/ปุ่ม)
+--=========================================================
+-- 0 = ทึบ, 1 = โปร่งใสสุด (ยิ่งสูงยิ่งโปร่ง)
+HELLO.Glass = {
+    Main    = 0.2,
+    Sidebar = 0.3,
+    Card    = 0.4,
+    Inner   = 0.45,
+}
+
+--=========================================================
+-- BACKGROUND (COVER IMAGE)
+--=========================================================
+-- วิธีใส่พื้นหลัง (เลือกอย่างใดอย่างหนึ่ง):
+--  1) Image = "rbxassetid://<ID>"  (ใช้ Asset ID ของคุณ)
+--  2) File  = "Hello_bg.jpg"        (วางไฟล์ใน workspace ของ executor)
+--  3) Url   = "ลิงก์ตรง"             (โหลดอัตโนมัติเป็น File ก่อนใช้)
+--=========================================================
+
+HELLO.LogoImage = "rbxassetid://<YOUR_LOGO_ID>"
+
+HELLO.Background = {
+    Enabled      = true,
+    Image        = "rbxassetid://<YOUR_BG_ID>",
+    File         = "Hello_bg.jpg",
+    Url          = "",
+    Transparency = 0.5,
+}
+
+local function ResolveBackground()
+    local cfg = HELLO.Background
+    if not cfg.Enabled then return nil end
+    if cfg.Image and cfg.Image ~= "" then return cfg.Image end
+
+    local getAsset = getcustomasset or getsynasset
+    if not (getAsset and isfile and writefile) then return nil end
+
+    pcall(function()
+        if cfg.Url ~= "" and not isfile(cfg.File) then
+            writefile(cfg.File, game:HttpGet(cfg.Url))
+        end
+    end)
+
+    local ok, asset = pcall(function()
+        if isfile(cfg.File) then
+            return getAsset(cfg.File)
+        end
+    end)
+
+    if ok and asset then return asset end
+    return nil
+end
+
+--=========================================================
+-- ASSET FIX (DECAL ID -> IMAGE ID)
+--=========================================================
+-- ถ้าใส่ ID ที่เป็น Decal จะได้ภาพเป็น Texture จริง
+-- ใช้ auto fix นี้ช่วยแก้ ถ้าโหลดรูปไม่ขึ้นให้ดู Console (F9)
+--=========================================================
+
+local function FixImage(imageObject, label)
+    task.spawn(function()
+        local original = imageObject.Image
+        if original == "" then return end
+
+        local ok, result = pcall(function()
+            return game:GetObjects(original)
+        end)
+
+        if ok and type(result) == "table" and result[1] then
+            local asset = result[1]
+            local texture
+            if asset:IsA("Decal") or asset:IsA("Texture") then
+                texture = asset.Texture
+            else
+                local found = asset:FindFirstChildWhichIsA("Decal", true)
+                if found then texture = found.Texture end
+            end
+            if texture and texture ~= "" then
+                imageObject.Image = texture
+            end
+        end
+
+        task.wait(5)
+        if imageObject.Parent and not imageObject.IsLoaded then
+            warn("[Hello Hub] รูป " .. tostring(label)
+                .. " โหลดไม่ได้ขึ้น: " .. tostring(imageObject.Image)
+                .. " (เช็กว่าเป็น Image ID ไม่ใช่ Decal / ผ่านการตรวจแล้ว / ตั้งสิทธิ์ใช้ได้)")
+        end
+    end)
+end
+
+--=========================================================
+-- ICONS
+--=========================================================
+-- ใส่ไอคอนได้ 3 แบบ:
+--  1) "rbxassetid://123"  หรือ URL ตรง -> ใช้รูปจริง
+--  2) ชื่อสั้น "settings", "home"           -> ดูใน HELLO.Icons ก่อน
+--     ถ้าไม่มีจะใช้สัญลักษณ์สำรอง (Glyph)
+--  3) HELLO:AddIcons({ settings = "rbxassetid://..." })
+--     ลงทะเบียนเอง
+--=========================================================
+
+HELLO.Icons = {}
+
+HELLO.IconGlyphs = {
+    settings = "\u{2699}",
+    setting  = "\u{2699}",
+    cog      = "\u{2699}",
+    home     = "\u{2302}",
+    house    = "\u{2302}",
+    main     = "\u{2302}",
+    star     = "\u{2605}",
+    info     = "\u{2139}",
+    user     = "\u{263B}",
+    users    = "\u{263B}",
+    player   = "\u{263B}",
+    sword    = "\u{2694}",
+    combat   = "\u{2694}",
+    zap      = "\u{26A1}",
+    bolt     = "\u{26A1}",
+    heart    = "\u{2665}",
+    eye      = "\u{25C9}",
+    visuals  = "\u{25C9}",
+    search   = "\u{2315}",
+    list     = "\u{2630}",
+    menu     = "\u{2630}",
+    misc     = "\u{25C8}",
+    shield   = "\u{26E8}",
+    bug      = "\u{2731}",
+    play     = "\u{25B6}",
+    bell     = "\u{266A}",
+    code     = "\u{276E}\u{276F}",
+    map      = "\u{25CE}",
+    target   = "\u{25CE}",
+    teleport = "\u{27A4}",
+    farm     = "\u{273F}",
+}
+
+-- สัญลักษณ์สำรอง (ใช้ตอนโหลด Lucide ไม่ได้)
+HELLO.IconGlyphs["skull"]          = "\u{2620}"
+HELLO.IconGlyphs["dog"]            = "\u{1F43A}"
+HELLO.IconGlyphs["paw-print"]      = "\u{1F43E}"
+HELLO.IconGlyphs["bird"]           = "\u{1F426}"
+HELLO.IconGlyphs["ghost"]          = "\u{1F47B}"
+HELLO.IconGlyphs["moon"]           = "\u{263E}"
+HELLO.IconGlyphs["triangle-alert"] = "\u{26A0}"
+HELLO.IconGlyphs["alert-triangle"] = "\u{26A0}"
+
+-- ไอคอนตกแต่งธีม Halloween (ชื่อ Lucide หรือ rbxassetid://... ก็ได้)
+HELLO.DecoIcons = {
+    Wolf   = "dog",          -- หมาป่าในอนิเมชันเปิดตัว
+    Paw    = "paw-print",    -- รอยเท้าที่หมาป่าวิ่งทิ้งไว้
+    Crow   = "bird",         -- ฝูงกาบินผ่าน
+    Header = "ghost",        -- ที่แถบหัว ข้างปุ่ม
+    Corner = "skull",        -- มุมซ้ายล่าง
+}
+
+function HELLO:AddIcons(iconTable)
+    for name, value in pairs(iconTable or {}) do
+        HELLO.Icons[string.lower(tostring(name))] = value
+    end
+end
+
+--=========================================================
+-- LUCIDE (ไอคอนจริงจากชุด "settings")
+--=========================================================
+-- ถ้าต้องการไอคอนสวยๆ ต้องโหลด Lucide
+-- ถ้าโหลดไม่ได้ (executor จำกัด) ให้ใช้สัญลักษณ์สำรองแทน
+-- ปิดได้ด้วย HELLO.UseLucide = false
+
+HELLO.UseLucide = true
+HELLO.LucideUrl  = "https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"
+
+HELLO.IconAliases = {
+    home     = "house",
+    main     = "house",
+    setting  = "settings",
+    cog      = "settings",
+    player   = "user",
+    visuals  = "eye",
+    combat   = "swords",
+    misc     = "shapes",
+    teleport = "map-pin",
+    farm     = "sprout",
+}
+
+HELLO.IconAliases["triangle-alert"] = "alert-triangle"
+
+local LucideModule = nil
+local LucideTried  = false
+
+local function GetLucide()
+    if LucideTried then return LucideModule end
+    LucideTried = true
+    if not HELLO.UseLucide then return nil end
+
+    local ok, result = pcall(function()
+        return loadstring(game:HttpGet(HELLO.LucideUrl))()
+    end)
+
+    if ok and type(result) == "table" and result.GetAsset then
+        LucideModule = result
+    else
+        warn("[Hello Hub] โหลด Lucide ไม่ได้ ใช้สัญลักษณ์สำรองแทน")
+    end
+    return LucideModule
+end
+
+local function GetLucideIcon(name)
+    local lucide = GetLucide()
+    if not lucide then return nil end
+    local candidates = { name, HELLO.IconAliases[name] }
+    for _, candidate in ipairs(candidates) do
+        local ok, asset = pcall(lucide.GetAsset, candidate)
+        if ok and asset and asset.Url then
+            return {
+                Image           = asset.Url,
+                ImageRectOffset = asset.ImageRectOffset,
+                ImageRectSize   = asset.ImageRectSize,
+            }
+        end
+    end
+    return nil
+end
+
+-- คืนค่า: "image", ตาราง หรือ "glyph", ข้อความ
+local function ResolveIcon(icon)
+    if icon == nil or icon == "" then return nil end
+
+    if type(icon) == "number" then
+        return "image", { Image = "rbxassetid://" .. tostring(icon) }
+    end
+
+    if type(icon) == "table" then
+        return "image", icon
+    end
+
+    icon = tostring(icon)
+
+    if icon:find("rbxassetid://", 1, true)
+        or icon:find("rbxthumb://", 1, true)
+        or icon:find("rbxasset://", 1, true)
+        or icon:match("^https?://") then
+        return "image", { Image = icon }
+    end
+
+    if icon:match("^%d+$") then
+        return "image", { Image = "rbxassetid://" .. icon }
+    end
+
+    local key = string.lower(icon)
+    key = key:gsub("^lucide:", "")
+
+    local registered = HELLO.Icons[key]
+    if registered then
+        if type(registered) == "table" then
+            return "image", registered
+        end
+        return "image", { Image = tostring(registered) }
+    end
+
+    local lucideIcon = GetLucideIcon(key)
+    if lucideIcon then return "image", lucideIcon end
+
+    return "glyph", HELLO.IconGlyphs[key] or "\u{25C8}"
+end
+
+--=========================================================
+-- CREATE
+--=========================================================
+local function Create(className, properties)
+    local object = Instance.new(className)
+    for property, value in pairs(properties or {}) do
+        pcall(function() object[property] = value end)
+    end
+
+    -- ทำให้พื้นหลัง/ของที่กำหนดสีเป็น Card โปร่งใสอัตโนมัติ
+    if properties
+        and properties.BackgroundTransparency == nil
+        and properties.Name ~= "Main"
+        and object:IsA("GuiObject") then
+        local color = properties.BackgroundColor3
+        if color == HELLO.Theme.Card then
+            object.BackgroundTransparency = HELLO.Glass.Card
+        elseif color == HELLO.Theme.Background then
+            object.BackgroundTransparency = HELLO.Glass.Inner
+        end
+    end
+    return object
+end
+
+--=========================================================
+-- CORNER
+--=========================================================
+HELLO.Corners = { Element = 6, Inner = 5 }
+
+--=========================================================
+-- FIELD LABEL HELPER
+--=========================================================
+local function AddFieldLabel(Frame, Name, Description)
+    local Title = Instance.new("TextLabel")
+    Title.Size                = UDim2.new(0.6, -14, 0, 16)
+    Title.Position            = UDim2.fromOffset(14, 5)
+    Title.BackgroundTransparency = 1
+    Title.Text                = Name or "Input"
+    Title.TextColor3          = HELLO.Theme.Text
+    Title.TextSize            = 11
+    Title.Font                = Enum.Font.GothamMedium
+    Title.TextXAlignment      = Enum.TextXAlignment.Left
+    Title.TextTruncate        = Enum.TextTruncate.AtEnd
+    Title.Parent              = Frame
+
+    if Description then
+        local Hint = Instance.new("TextLabel")
+        Hint.Size                = UDim2.new(0.4, -14, 0, 16)
+        Hint.Position            = UDim2.new(0.6, 0, 0, 5)
+        Hint.BackgroundTransparency = 1
+        Hint.Text                = Description
+        Hint.TextColor3          = HELLO.Theme.SubText
+        Hint.TextSize            = 10
+        Hint.Font                = Enum.Font.Gotham
+        Hint.TextXAlignment      = Enum.TextXAlignment.Right
+        Hint.TextTruncate        = Enum.TextTruncate.AtEnd
+        Hint.Parent              = Frame
+    end
+    return Title
+end
+
+local function AddCorner(object, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent       = object
+    return corner
+end
+
+--=========================================================
+-- STROKE
+--=========================================================
+local function AddStroke(object, color, transparency, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color        = color or HELLO.Theme.Primary
+    stroke.Transparency = transparency or 0
+    stroke.Thickness    = thickness or 1
+    stroke.Parent       = object
+    return stroke
+end
+
+--=========================================================
+-- CREATE ICON
+-- HELLO.CreateIcon("ghost", { Size, Position, AnchorPoint, Color, ZIndex })
+-- คืนค่า: object, kind ("image" = ไอคอนจริง, "glyph" = สัญลักษณ์สำรอง)
+--=========================================================
+function HELLO.CreateIcon(icon, props)
+    props = props or {}
+    local kind, data = ResolveIcon(icon)
+    if not kind then return nil end
+
+    local object
+    if kind == "image" then
+        object = Create("ImageLabel", {
+            Name                 = props.Name or "Icon",
+            AnchorPoint          = props.AnchorPoint,
+            Position             = props.Position,
+            Size                 = props.Size or UDim2.fromOffset(18, 18),
+            BackgroundTransparency = 1,
+            Image                = data.Image or "",
+            ImageRectOffset      = data.ImageRectOffset or Vector2.zero,
+            ImageRectSize        = data.ImageRectSize or Vector2.zero,
+            ImageColor3          = props.Color or HELLO.Theme.Text,
+            ImageTransparency    = props.Transparency or 0,
+            ScaleType            = Enum.ScaleType.Fit,
+            ZIndex               = props.ZIndex or 1,
+        })
+    else
+        object = Create("TextLabel", {
+            Name                 = props.Name or "Icon",
+            AnchorPoint          = props.AnchorPoint,
+            Position             = props.Position,
+            Size                 = props.Size or UDim2.fromOffset(18, 18),
+            BackgroundTransparency = 1,
+            Text                 = data,
+            TextColor3           = props.Color or HELLO.Theme.Text,
+            TextTransparency     = props.Transparency or 0,
+            TextSize             = props.TextSize or 16,
+            Font                 = Enum.Font.GothamBold,
+            ZIndex               = props.ZIndex or 1,
+        })
+    end
+    return object, kind
+end
+
+--=========================================================
+-- HALLOWEEN FX (เอฟเฟกต์ธีม Halloween)
+-- ปิดบางอัน: HELLO.HalloweenFX.Embers = false (ตั้งก่อน CreateWindow)
+--=========================================================
+HELLO.HalloweenFX = {
+    Tint         = true,   -- ไล่สีม่วง/ส้มพื้นหลัง (บนม่วง ล่างส้ม)
+    Web          = true,   -- ใยแมงมุมมุมขวาบน
+    HeaderLine   = true,   -- เส้นไฟวิ่งใต้แถบหัว
+    TitleShine   = true,   -- ชื่อหัวไล่เฉดวับๆ
+    Embers       = true,   -- ประกายไฟลอยขึ้น
+    Ghosts       = true,   -- ผีลอยผ่านหน้าต่างนานๆ ครั้ง
+    Moon         = true,   -- พระจันทร์เรืองแสงมุมขวาบน
+    Fog          = true,   -- หมอกลอยช้าๆ ด้านล่าง
+    Lightning    = true,   -- ฟ้าแลบวาบจางๆ นานๆ ครั้ง
+    BorderPulse  = true,   -- ขอบหน้าต่างหายใจ
+    Intro        = false,  -- ฉากเปิดตัวในหน้าต่างหลัก (ปิดไว้ เปิดได้)
+    ScreenIntro  = true,   -- อนิเมชันเต็มจอตอนรับ
+    ScreenIntroOnce = true,
+    ScreenIntroTitle = true,
+    -- HowlSoundId = "rbxassetid://<SOUND_ID>",  -- เสียงหอน (ไม่บังคับ)
+}
+
+function HELLO.BuildScreenIntro(ScreenGui, TitleText, SubtitleText)
+    local Theme = HELLO.Theme
+    local FX    = HELLO.HalloweenFX
+    if not ScreenGui then return end
+    if FX.ScreenIntroOnce and HELLO.ScreenIntroPlayed then return end
+    HELLO.ScreenIntroPlayed = true
+
+    local TweenService = game:GetService("TweenService")
+
+    local function Tw(object, time, props, style, direction)
+        TweenService:Create(object, TweenInfo.new(
+            time, style or Enum.EasingStyle.Quad,
+            direction or Enum.EasingDirection.Out
+        ), props):Play()
+    end
+
+    local function Round(object)
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0.5, 0)
+        corner.Parent = object
+    end
+
+    local Root = Create("Frame", {
+        Name = "HalloweenScreenIntro",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ZIndex = 200,
+    })
+    Root.Parent = ScreenGui
+
+    local function Alive() return Root:IsDescendantOf(game) end
+
+    local function ScreenSize()
+        local size = Root.AbsoluteSize
+        if size.X < 10 or size.Y < 10 then
+            local camera = workspace.CurrentCamera
+            return camera and camera.ViewportSize or Vector2.new(800, 450)
+        end
+        return size
+    end
+
+    task.delay(12, function()
+        if Root.Parent then Root:Destroy() end
+    end)
+
+    -- DIM (ทำจอืดลง) + ขอบจอ 4 ด้าน
+    local Dim = Create("Frame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.fromRGB(6, 2, 10),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 0,
+    })
+    Dim.Parent = Root
+
+    local Edges = {}
+
+    local function Edge(anchor, position, size, rotation)
+        local Frame = Create("Frame", {
+            AnchorPoint = anchor,
+            Position    = position,
+            Size        = size,
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = 1,
+        })
+        Frame.Parent = Root
+
+        local Grad = Instance.new("UIGradient")
+        Grad.Rotation = rotation
+        Grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,    Theme.Primary),
+            ColorSequenceKeypoint.new(0.14, Theme.Stroke1),
+            ColorSequenceKeypoint.new(1,    Color3.fromRGB(10, 5, 16)),
+        })
+        Grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,    0.3),
+            NumberSequenceKeypoint.new(0.22, 0.6),
+            NumberSequenceKeypoint.new(1,    1),
+        })
+        Grad.Parent = Frame
+        table.insert(Edges, Frame)
+    end
+
+    Edge(Vector2.new(0, 0), UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0.3, 0), 90)
+    Edge(Vector2.new(0, 1), UDim2.new(0, 0, 1, 0), UDim2.new(1, 0, 0.3, 0), 270)
+    Edge(Vector2.new(0, 0), UDim2.new(0, 0, 0, 0), UDim2.new(0.2, 0, 1, 0), 0)
+    Edge(Vector2.new(1, 0), UDim2.new(1, 0, 0, 0), UDim2.new(0.2, 0, 1, 0), 180)
+
+    -- MOON (พระจันทร์ดวงใหญ่ตรงกลางบน)
+    local MoonSize = math.clamp(
+        math.floor(math.min(ScreenSize().X, ScreenSize().Y) * 0.34),
+        110, 200
+    )
+
+    local Moon = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position    = UDim2.new(0.5, 0, 0.34, 0),
+        Size        = UDim2.fromOffset(0, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BackgroundTransparency = 0.12,
+        BorderSizePixel = 0,
+        ZIndex = 2,
+    })
+    Moon.Parent = Root
+    Round(Moon)
+
+    local MoonGrad = Instance.new("UIGradient")
+    MoonGrad.Rotation = 90
+    MoonGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.FxLight),
+        ColorSequenceKeypoint.new(1, Theme.FxSilver),
+    })
+    MoonGrad.Parent = Moon
+
+    local Halo = AddStroke(Moon, Theme.FxLight, 0.78, 20)
+
+    for _, Crater in ipairs({
+        { 0.2,  0.25, 0.2 },
+        { 0.55, 0.5,  0.15 },
+        { 0.3,  0.65, 0.12 },
+    }) do
+        local Hole = Create("Frame", {
+            Position = UDim2.fromScale(Crater[1], Crater[2]),
+            Size     = UDim2.fromScale(Crater[3], Crater[3]),
+            BackgroundColor3 = Theme.FxDark,
+            BackgroundTransparency = 0.8,
+            BorderSizePixel = 0,
+            ZIndex = 3,
+        })
+        Hole.Parent = Moon
+        Round(Hole)
+    end
+
+    -- LIGHTNING (ฟ้าแลบ: แสงวาบ + สายฟ้าซิกแซก)
+    local Flash = Create("Frame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.fromRGB(240, 230, 255),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 6,
+    })
+    Flash.Parent = Root
+
+    local function Lightning()
+        local Size = ScreenSize()
+        local Bolt = Create("Frame", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            ZIndex = 5,
+        })
+        Bolt.Parent = Root
+
+        local Previous = Vector2.new(
+            Size.X * (0.3 + math.random() * 0.4), 0
+        )
+        local Segments = 8
+        local Pieces   = {}
+
+        for _ = 1, Segments do
+            local NextPoint = Vector2.new(
+                Previous.X + math.random(-45, 45),
+                Previous.Y + Size.Y * 0.62 / Segments
+            )
+            local Delta  = NextPoint - Previous
+            local Middle = (Previous + NextPoint) / 2
+
+            local Piece = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.fromOffset(Middle.X, Middle.Y),
+                Size        = UDim2.fromOffset(Delta.Magnitude + 2, 3),
+                Rotation    = math.deg(math.atan2(Delta.Y, Delta.X)),
+                BackgroundColor3 = Color3.fromRGB(245, 235, 255),
+                BorderSizePixel = 0,
+            })
+            Piece.Parent = Bolt
+
+            table.insert(Pieces, {
+                Piece, AddStroke(Piece, Theme.FxMid, 0.45, 4),
+            })
+            Previous = NextPoint
+        end
+
+        Flash.BackgroundTransparency = 0.3
+        task.wait(0.06)
+        Tw(Flash, 0.15, { BackgroundTransparency = 1 })
+        task.wait(0.12)
+        Flash.BackgroundTransparency = 0.55
+        task.wait(0.04)
+        Tw(Flash, 0.3, { BackgroundTransparency = 1 })
+
+        for _, Item in ipairs(Pieces) do
+            Tw(Item[1], 0.35, { BackgroundTransparency = 1 })
+            Tw(Item[2], 0.35, { Transparency = 1 })
+        end
+        task.wait(0.4)
+        Bolt:Destroy()
+    end
+
+    -- CROWS (ฝูงกาบินผ่านพระจันทร์)
+    local function Crow(delay, y, size, duration)
+        task.delay(delay, function()
+            if not Alive() then return end
+            local Bird = HELLO.CreateIcon(
+                HELLO.DecoIcons.Crow or "bird",
+                {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(-0.08, 0, y, 0),
+                    Size        = UDim2.fromOffset(size, size),
+                    Color       = Theme.Text,
+                    Transparency = 0.15,
+                    TextSize    = math.floor(size * 0.8),
+                    ZIndex      = 3,
+                }
+            )
+            if not Bird then return end
+            Bird.Parent = Root
+
+            local Start  = os.clock()
+            local Conn
+            Conn = RunService.Heartbeat:Connect(function()
+                if not Alive() then Conn:Disconnect() return end
+                local Progress = (os.clock() - Start) / duration
+                if Progress >= 1 then
+                    Conn:Disconnect()
+                    Bird:Destroy()
+                    return
+                end
+                Bird.Position = UDim2.new(
+                    -0.08 + 1.2 * Progress, 0,
+                    y + math.sin(Progress * math.pi * 4) * 0.02, 0
+                )
+                Bird.Rotation = math.sin(Progress * math.pi * 8) * 10
+            end)
+        end)
+    end
+
+    -- EYES (ตาเรืองแสงในความมืด)
+    local function EyePair(x, y, delay)
+        task.delay(delay, function()
+            if not Alive() then return end
+            local Pair = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.new(x, 0, y, 0),
+                Size        = UDim2.fromOffset(40, 12),
+                BackgroundTransparency = 1,
+                ZIndex = 4,
+            })
+            Pair.Parent = Root
+
+            local Eyes = {}
+            for Index, Offset in ipairs({ -12, 12 }) do
+                local Eye = Create("Frame", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(0.5, Offset, 0.5, 0),
+                    Size        = UDim2.fromOffset(12, 4),
+                    Rotation    = Index == 1 and 14 or -14,
+                    BackgroundColor3 = Color3.fromRGB(255, 170, 40),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                })
+                Eye.Parent = Pair
+                AddCorner(Eye, 2)
+                local Glow = AddStroke(Eye, Color3.fromRGB(255, 120, 20), 1, 3)
+                Tw(Eye, 0.3, { BackgroundTransparency = 0 })
+                Tw(Glow, 0.3, { Transparency = 0.5 })
+                table.insert(Eyes, { Eye, Glow })
+            end
+
+            task.wait(0.9)
+            for _, Item in ipairs(Eyes) do
+                Item[1].Size = UDim2.fromOffset(12, 1)
+            end
+            task.wait(0.12)
+            for _, Item in ipairs(Eyes) do
+                Item[1].Size = UDim2.fromOffset(12, 4)
+            end
+            task.wait(0.6)
+            for _, Item in ipairs(Eyes) do
+                Tw(Item[1], 0.4, { BackgroundTransparency = 1 })
+                Tw(Item[2], 0.4, { Transparency = 1 })
+            end
+            task.wait(0.45)
+            Pair:Destroy()
+        end)
+    end
+
+    -- HOWL SOUND (ไม่บังคับ: FX.HowlSoundId)
+    local Howl
+    if FX.HowlSoundId then
+        Howl = Instance.new("Sound")
+        local Id = tostring(FX.HowlSoundId)
+        Howl.SoundId = tonumber(Id) and ("rbxassetid://" .. Id) or Id
+        Howl.Volume  = 0.6
+        Howl.Parent  = Root
+    end
+
+    -- TITLE (พิมพ์ชื่อทีละตัวอักษร + กระพริบ)
+    local TitleObjects = {}
+
+    local function ShowTitle()
+        if FX.ScreenIntroTitle == false then return end
+        task.spawn(function()
+            pcall(function()
+                local Text = tostring(TitleText or "HELLO")
+                local Label = Create("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(0.5, 0, 0.62, 0),
+                    Size        = UDim2.new(1, 0, 0, 56),
+                    BackgroundTransparency = 1,
+                    Text        = "",
+                    TextColor3  = Theme.Text,
+                    TextSize    = 44,
+                    Font        = Enum.Font.GothamBlack,
+                    ZIndex      = 8,
+                })
+                Label.Parent = Root
+
+                local LabelStroke = Instance.new("UIStroke")
+                LabelStroke.Color        = Theme.Primary
+                LabelStroke.Thickness    = 2.5
+                LabelStroke.Transparency = 0.45
+                LabelStroke.Parent       = Label
+
+                local Sub = Create("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(0.5, 0, 0.62, 40),
+                    Size        = UDim2.new(1, 0, 0, 20),
+                    BackgroundTransparency = 1,
+                    Text        = tostring(SubtitleText or ""),
+                    TextColor3  = Theme.Primary,
+                    TextSize    = 15,
+                    Font        = Enum.Font.GothamBold,
+                    TextTransparency = 1,
+                    ZIndex      = 8,
+                })
+                Sub.Parent = Root
+
+                TitleObjects = { Label, LabelStroke, Sub }
+
+                local Count = utf8.len(Text) or #Text
+                for Index = 1, Count do
+                    if not Alive() then return end
+                    local Cut = utf8.offset(Text, Index + 1)
+                    Label.Text = Cut and string.sub(Text, 1, Cut - 1) or Text
+                    task.wait(0.07)
+                end
+
+                Tw(Sub, 0.4, { TextTransparency = 0 })
+
+                for _ = 1, 2 do
+                    Label.TextTransparency = 0.6
+                    task.wait(0.05)
+                    Label.TextTransparency = 0
+                    task.wait(0.07)
+                end
+            end)
+        end)
+    end
+
+    -- WOLF (วิ่ง -> กระโดดข้ามพระจันทร์ -> วิ่งต่อ)
+    local function SpawnTrail(x, y, onGround)
+        if onGround then
+            local Paw, PawKind = HELLO.CreateIcon(
+                HELLO.DecoIcons.Paw or "paw-print",
+                {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(x, -34, y, -6),
+                    Size        = UDim2.fromOffset(16, 16),
+                    Color       = Theme.Primary,
+                    Transparency = 0.2,
+                    TextSize    = 14,
+                    ZIndex      = 4,
+                }
+            )
+            if Paw then
+                Paw.Rotation = 90
+                Paw.Parent   = Root
+                Tw(Paw, 1.2, {
+                    [PawKind == "image" and "ImageTransparency" or "TextTransparency"] = 1,
+                })
+                task.delay(1.3, function() Paw:Destroy() end)
+            end
+        else
+            local Ember = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.new(
+                    x, math.random(-12, 12),
+                    y, -40 + math.random(-10, 10)
+                ),
+                Size        = UDim2.fromOffset(4, 4),
+                BackgroundColor3 = Theme.Primary,
+                BackgroundTransparency = 0.1,
+                BorderSizePixel = 0,
+                ZIndex = 6,
+            })
+            Ember.Parent = Root
+            Round(Ember)
+            Tw(Ember, 0.7, {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(x, math.random(-20, 20), y, -70),
+            })
+            task.delay(0.75, function() Ember:Destroy() end)
+        end
+    end
+
+    local function WolfRun()
+        local Wolf = HELLO.CreateIcon(
+            HELLO.DecoIcons.Wolf or "dog",
+            {
+                AnchorPoint = Vector2.new(0.5, 1),
+                Position    = UDim2.new(-0.12, 0, 0.94, 0),
+                Size        = UDim2.fromOffset(96, 96),
+                Color       = Theme.FxWhite,
+                TextSize    = 72,
+                ZIndex      = 7,
+            }
+        )
+        if Wolf then Wolf.Parent = Root end
+
+        local RunIn, Leap, RunOut = 1.1, 1.0, 0.8
+        local Total     = RunIn + Leap + RunOut
+        local Elapsed   = 0
+        local Trail     = 0
+        local Finished  = false
+        local Pulsed    = false
+        local Titled    = false
+        local Conn
+
+        Conn = RunService.Heartbeat:Connect(function(dt)
+            if not Alive() then
+                Conn:Disconnect()
+                Finished = true
+                return
+            end
+            Elapsed = Elapsed + dt
+            Trail   = Trail   + dt
+
+            local X, Y, Rot, OnGround
+
+            if Elapsed < RunIn then
+                local U = Elapsed / RunIn
+                X = -0.12 + 0.46 * U
+                Y = 0.94 - math.abs(math.sin(U * math.pi * 5)) * 0.025
+                Rot = math.sin(U * math.pi * 5) * 6
+                OnGround = true
+            elseif Elapsed < RunIn + Leap then
+                local U = (Elapsed - RunIn) / Leap
+                X = 0.34 + 0.34 * U
+                Y = 0.94 - 0.62 * math.sin(U * math.pi)
+                Rot = -32 + 64 * U
+                OnGround = false
+
+                if U > 0.45 and not Pulsed then
+                    Pulsed = true
+                    Tw(Halo, 0.25, { Transparency = 0.4 })
+                    Tw(Moon, 0.25, { BackgroundTransparency = 0 })
+                    task.delay(0.3, function()
+                        Tw(Halo, 0.5, { Transparency = 0.78 })
+                        Tw(Moon, 0.5, { BackgroundTransparency = 0.12 })
+                    end)
+                    if Howl then pcall(function() Howl:Play() end) end
+                end
+            else
+                local U = math.min((Elapsed - RunIn - Leap) / RunOut, 1)
+                X = 0.68 + 0.46 * U
+                Y = 0.94 - math.abs(math.sin(U * math.pi * 4)) * 0.025
+                Rot = math.sin(U * math.pi * 4) * 6
+                OnGround = true
+            end
+
+            if Wolf then
+                Wolf.Position = UDim2.new(X, 0, Y, 0)
+                Wolf.Rotation = Rot
+            end
+
+            if Elapsed > RunIn + Leap and not Titled then
+                Titled = true
+                ShowTitle()
+            end
+
+            if Trail >= (OnGround and 0.14 or 0.05) then
+                Trail = 0
+                SpawnTrail(X, Y, OnGround)
+            end
+
+            if Elapsed >= Total then
+                Conn:Disconnect()
+                Finished = true
+            end
+        end)
+
+        while not Finished and Alive() do
+            task.wait()
+        end
+        if Wolf then Wolf:Destroy() end
+    end
+
+    -- TIMELINE
+    task.spawn(function()
+        pcall(function()
+            Tw(Dim, 0.5, { BackgroundTransparency = 0.45 })
+            for _, Frame in ipairs(Edges) do
+                Tw(Frame, 0.6, { BackgroundTransparency = 0 })
+            end
+            task.wait(0.55)
+
+            task.spawn(Lightning)
+            task.wait(0.15)
+
+            Tw(Moon, 0.9, {
+                Size = UDim2.fromOffset(MoonSize, MoonSize)
+            }, Enum.EasingStyle.Back)
+
+            Crow(0.0,  0.22, 26, 3.2)
+            Crow(0.25, 0.30, 20, 3.4)
+            Crow(0.45, 0.18, 22, 3.0)
+            Crow(0.7,  0.38, 16, 3.6)
+            Crow(0.9,  0.26, 18, 3.2)
+
+            EyePair(0.06, 0.45, 0.5)
+            EyePair(0.95, 0.6,  1.1)
+            EyePair(0.08, 0.78, 1.7)
+
+            task.wait(0.9)
+            WolfRun()
+
+            -- ฉากโชว์ชื่อ เสร็จแล้วค่อยๆ จางหายทั้งหมด
+            task.wait(1.1)
+            for _, Frame in ipairs(Edges) do
+                Tw(Frame, 0.8, { BackgroundTransparency = 1 })
+            end
+            Tw(Dim, 0.8, { BackgroundTransparency = 1 })
+            Tw(Moon, 0.7, {
+                Size = UDim2.fromOffset(0, 0)
+            }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+
+            if TitleObjects[1] then
+                Tw(TitleObjects[1], 0.6, { TextTransparency = 1 })
+                Tw(TitleObjects[2], 0.6, { Transparency = 1 })
+                Tw(TitleObjects[3], 0.6, { TextTransparency = 1 })
+            end
+            task.wait(0.9)
+        end)
+
+        if Root.Parent then Root:Destroy() end
+    end)
+end
+
+function HELLO.BuildSeasonFX(Window, Main, Header, Title)
+    if not HELLO.ThemeSettings.Animation then return end
+    if HELLO.Theme.IsHalloween then
+        HELLO.BuildHalloweenFX(Window, Main, Header, Title)
+        return
+    end
+
+    local Theme = HELLO.Theme
+    local mode  = Theme.Animation
+
+    local Root = Create("Frame", {
+        Name = "SeasonScreenIntro",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Theme.Background,
+        BackgroundTransparency = 0.12,
+        BorderSizePixel = 0,
+        ZIndex = 200,
+    })
+    Root.Parent = Main.Parent
+
+    local Dim = Create("Frame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Theme.Background,
+        BackgroundTransparency = 0.18,
+        BorderSizePixel = 0,
+        ZIndex = 201,
+    })
+    Dim.Parent = Root
+
+    local Accent = mode == "clean" and "✦"
+        or (mode == "snow" and "❄"
+        or (mode == "hearts" and "♥" or "☀"))
+    local accentColor = mode == "clean" and Theme.FxLight or Theme.Primary
+
+    local Icon = Create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position    = UDim2.fromScale(0.5, 0.46),
+        Size        = UDim2.fromOffset(0, 0),
+        BackgroundTransparency = 1,
+        Text = Accent,
+        TextColor3 = accentColor,
+        TextTransparency = 1,
+        TextSize = 48,
+        Font = Enum.Font.GothamBold,
+        ZIndex = 204,
+    })
+    Icon.Parent = Root
+
+    local Ring = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position    = UDim2.fromScale(0.5, 0.46),
+        Size        = UDim2.fromOffset(0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 203,
+    })
+    Ring.Parent = Root
+    AddCorner(Ring, 200)
+    AddStroke(Ring, accentColor, 0.18, 2)
+
+    local Line = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position    = UDim2.fromScale(0.5, 0.54),
+        Size        = UDim2.fromOffset(0, 2),
+        BackgroundColor3 = Theme.Stroke2,
+        BackgroundTransparency = 0.1,
+        BorderSizePixel = 0,
+        ZIndex = 204,
+    })
+    Line.Parent = Root
+
+    local Label = Create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position    = UDim2.fromScale(0.5, 0.57),
+        Size        = UDim2.new(0.8, 0, 0, 34),
+        BackgroundTransparency = 1,
+        Text        = Window.Title,
+        TextColor3  = Theme.Text,
+        TextTransparency = 1,
+        TextSize    = 24,
+        Font        = Enum.Font.GothamBold,
+        ZIndex      = 204,
+    })
+    Label.Parent = Root
+
+    local Sub = Create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position    = UDim2.fromScale(0.5, 0.64),
+        Size        = UDim2.new(0.8, 0, 0, 22),
+        BackgroundTransparency = 1,
+        Text        = Window.Subtitle,
+        TextColor3  = Theme.SubText,
+        TextTransparency = 1,
+        TextSize    = 13,
+        Font        = Enum.Font.Gotham,
+        ZIndex      = 204,
+    })
+    Sub.Parent = Root
+
+    -- แต่ละธีมมีลายเซ็นคนละแบบในฉากเปิด
+    if mode == "clean" then
+        for i = 1, 22 do
+            local star = Create("TextLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.fromScale(math.random(), math.random()),
+                Size        = UDim2.fromOffset(18, 18),
+                BackgroundTransparency = 1,
+                Text        = (i % 3 == 0 and "✦" or "."),
+                TextColor3  = Theme.FxLight,
+                TextTransparency = 1,
+                TextSize    = math.random(8, 18),
+                Font        = Enum.Font.GothamBold,
+                ZIndex      = 202,
+            })
+            star.Parent = Root
+            TweenService:Create(star, TweenInfo.new(
+                1.1 + math.random() * 1.2, Enum.EasingStyle.Sine
+            ), {
+                TextTransparency = 0.2,
+                Rotation = 180,
+            }):Play()
+        end
+    elseif mode == "snow" then
+        for i = 1, 26 do
+            local snow = Create("TextLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.new(math.random(), 0,
+                                        math.random(-20, 20) / 100, 0),
+                Size        = UDim2.fromOffset(20, 20),
+                BackgroundTransparency = 1,
+                Text        = "❄",
+                TextColor3  = (i % 4 == 0 and Theme.Stroke2 or Theme.FxWhite),
+                TextTransparency = 1,
+                TextSize    = math.random(10, 22),
+                Font        = Enum.Font.GothamBold,
+                ZIndex      = 202,
+            })
+            snow.Parent = Root
+            TweenService:Create(snow, TweenInfo.new(
+                1.5 + math.random() * 1.1, Enum.EasingStyle.Sine
+            ), {
+                Position        = UDim2.new(math.random(), 0, 1.1, 0),
+                TextTransparency = 0.12,
+                Rotation        = math.random(-60, 60),
+            }):Play()
+        end
+    elseif mode == "hearts" then
+        for i = 1, 16 do
+            local heart = Create("TextLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.fromScale(0.5, 0.5),
+                Size        = UDim2.fromOffset(24, 24),
+                BackgroundTransparency = 1,
+                Text        = (i % 3 == 0 and "✦" or "♥"),
+                TextColor3  = (i % 3 == 0 and Theme.FxWhite or Theme.Primary),
+                TextTransparency = 1,
+                TextSize    = math.random(14, 28),
+                Font        = Enum.Font.GothamBold,
+                ZIndex      = 202,
+            })
+            heart.Parent = Root
+            local angle  = (math.pi * 2 * i / 16)
+            local radius = 0.25 + math.random() * 0.22
+            TweenService:Create(heart, TweenInfo.new(
+                1.1, Enum.EasingStyle.Back, Enum.EasingDirection.Out
+            ), {
+                Position = UDim2.fromScale(
+                    0.5 + math.cos(angle) * radius,
+                    0.46 + math.sin(angle) * radius
+                ),
+                TextTransparency = 0.1,
+                Rotation = math.random(-30, 30),
+            }):Play()
+        end
+    else
+        local Sun = Create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.fromScale(0.5, 0.46),
+            Size        = UDim2.fromOffset(0, 0),
+            BackgroundColor3 = Theme.FxLight,
+            BackgroundTransparency = 0.2,
+            BorderSizePixel = 0,
+            ZIndex = 202,
+        })
+        Sun.Parent = Root
+        AddCorner(Sun, 200)
+        AddStroke(Sun, Theme.Primary, 0.2, 3)
+        for i = 1, 12 do
+            local ray = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.fromScale(0.5, 0.46),
+                Size        = UDim2.fromOffset(4, 0),
+                Rotation    = i * 30,
+                BackgroundColor3 = Theme.FxLight,
+                BackgroundTransparency = 0.25,
+                BorderSizePixel = 0,
+                ZIndex = 202,
+            })
+            ray.Parent = Root
+            TweenService:Create(ray, TweenInfo.new(0.9, Enum.EasingStyle.Back),
+                { Size = UDim2.fromOffset(4, 110) }):Play()
+        end
+    end
+
+    TweenService:Create(Icon, TweenInfo.new(
+        0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out
+    ), {
+        Size = UDim2.fromOffset(96, 96),
+        TextTransparency = 0,
+    }):Play()
+
+    TweenService:Create(Ring, TweenInfo.new(
+        0.85, Enum.EasingStyle.Back, Enum.EasingDirection.Out
+    ), { Size = UDim2.fromOffset(210, 210) }):Play()
+
+    TweenService:Create(Line, TweenInfo.new(0.8, Enum.EasingStyle.Quart),
+        { Size = UDim2.fromOffset(230, 2) }):Play()
+
+    TweenService:Create(Label, TweenInfo.new(0.55, Enum.EasingStyle.Quad),
+        { TextTransparency = 0 }):Play()
+
+    TweenService:Create(Sub, TweenInfo.new(0.75, Enum.EasingStyle.Quad),
+        { TextTransparency = 0 }):Play()
+
+    task.delay(1.45, function()
+        if Root.Parent then
+            TweenService:Create(Dim, TweenInfo.new(0.55),
+                { BackgroundTransparency = 1 }):Play()
+            TweenService:Create(Icon, TweenInfo.new(0.55), {
+                TextTransparency = 1,
+                Size = UDim2.fromOffset(160, 160),
+            }):Play()
+            TweenService:Create(Ring, TweenInfo.new(0.7),
+                { Size = UDim2.fromOffset(420, 420) }):Play()
+            TweenService:Create(Label, TweenInfo.new(0.35),
+                { TextTransparency = 1 }):Play()
+            TweenService:Create(Sub, TweenInfo.new(0.35),
+                { TextTransparency = 1 }):Play()
+            task.delay(0.75, function()
+                if Root.Parent then Root:Destroy() end
+            end)
+        end
+    end)
+
+    local Layer = Create("Frame", {
+        Name = "SeasonFX",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 25,
+    })
+    Layer.Parent = Main
+
+    local modeSymbol = mode == "clean" and "✦"
+        or (mode == "snow" and "❄"
+        or (mode == "hearts" and "♥" or "○"))
+
+    for i = 1, (mode == "snow" and 18 or 12) do
+        local p = Create("TextLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.new(
+                math.random(5, 95) / 100, 0,
+                math.random(0, 30) / 100, 0
+            ),
+            Size        = UDim2.fromOffset(22, 22),
+            BackgroundTransparency = 1,
+            Text        = modeSymbol,
+            TextColor3  = (mode == "snow" and Theme.FxWhite or Theme.Primary),
+            TextTransparency = 0.15,
+            TextSize    = math.random(10, 20),
+            Font        = Enum.Font.GothamBold,
+            ZIndex      = 28,
+        })
+        p.Parent = Layer
+        TweenService:Create(p, TweenInfo.new(
+            1.3 + math.random() * 1.2, Enum.EasingStyle.Sine
+        ), {
+            Position = UDim2.new(math.random(5, 95) / 100, 0, 1.15, 0),
+            TextTransparency = 1,
+            Rotation = math.random(-45, 45),
+        }):Play()
+    end
+
+    task.delay(3.2, function()
+        if Layer.Parent then Layer:Destroy() end
+    end)
+end
+
+function HELLO.BuildHalloweenFX(Window, Main, Header, Title)
+    local Theme = HELLO.Theme
+    local FX    = HELLO.HalloweenFX
+    if not Theme.IsHalloween then return end
+
+    -- อนิเมชันเต็มจอตอนรับ (ขอบจอ + พระจันทร์ + หมาป่า)
+    if FX.ScreenIntro then
+        HELLO.BuildScreenIntro(Main.Parent, Window.Title, Window.Subtitle)
+    end
+
+    -- ชั้นเอฟเฟกต์
+    local Layer = Create("Frame", {
+        Name = "HalloweenFX",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 25,
+    })
+    Layer.Parent = Main
+
+    -- TINT (เฉดสีซ้อนพื้นหลัง)
+    if FX.Tint then
+        local Tint = Create("Frame", {
+            Name = "HalloweenTint",
+            Size = UDim2.fromScale(1, 1),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundTransparency = 0,
+            BorderSizePixel = 0,
+            ZIndex = 0,
+        })
+        Tint.Parent = Main
+        AddCorner(Tint, 16)
+
+        local Grad = Instance.new("UIGradient")
+        Grad.Rotation = 90
+        Grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,    Theme.Stroke1),
+            ColorSequenceKeypoint.new(0.55, Theme.Background),
+            ColorSequenceKeypoint.new(1,    Theme.Stroke2),
+        })
+        Grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,    0.84),
+            NumberSequenceKeypoint.new(0.55, 1),
+            NumberSequenceKeypoint.new(1,    0.82),
+        })
+        Grad.Parent = Tint
+    end
+
+    -- COBWEB (ใยแมงมุมมุมขวาบน)
+    if FX.Web then
+        local Size = 58
+        local Web = Create("Frame", {
+            Name = "Cobweb",
+            Size = UDim2.fromOffset(Size, Size),
+            BackgroundTransparency = 1,
+            ClipsDescendants = true,
+            ZIndex = 3,
+        })
+        Web.Parent = Layer
+
+        local Length = Size * 1.5
+        for _, Angle in ipairs({ 0, 22.5, 45, 67.5, 90 }) do
+            local Rad = math.rad(Angle)
+            local Line = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = UDim2.fromOffset(
+                    math.cos(Rad) * Length / 2,
+                    math.sin(Rad) * Length / 2
+                ),
+                Size = UDim2.fromOffset(Length, 1),
+                Rotation = Angle,
+                BackgroundColor3 = Theme.Text,
+                BackgroundTransparency = 0.78,
+                BorderSizePixel = 0,
+            })
+            Line.Parent = Web
+        end
+        for _, Fraction in ipairs({ 0.32, 0.6, 0.9 }) do
+            local Radius = Size * Fraction
+            local Ring = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position    = UDim2.fromOffset(0, 0),
+                Size        = UDim2.fromOffset(Radius * 2, Radius * 2),
+                BackgroundTransparency = 1,
+            })
+            Ring.Parent = Web
+            AddCorner(Ring, Radius)
+            AddStroke(Ring, Theme.Text, 0.8, 1)
+        end
+    end
+
+    -- HEADER LINE (เส้นไฟวิ่งใต้แถบหัว)
+    local HeaderGrad
+    if FX.HeaderLine then
+        local Line = Create("Frame", {
+            Name = "HeaderLine",
+            AnchorPoint = Vector2.new(0, 1),
+            Position    = UDim2.new(0, 0, 1, 0),
+            Size        = UDim2.new(1, 0, 0, 2),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BorderSizePixel = 0,
+            ZIndex = 4,
+        })
+        Line.Parent = Header
+
+        HeaderGrad = Instance.new("UIGradient")
+        HeaderGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Theme.Stroke1),
+            ColorSequenceKeypoint.new(0.5, Theme.Stroke2),
+            ColorSequenceKeypoint.new(1,   Theme.Stroke1),
+        })
+        HeaderGrad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,   0.88),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1,   0.88),
+        })
+        HeaderGrad.Parent = Line
+    end
+
+    -- TITLE SHINE (ชื่อหัวไล่เฉดวับๆ)
+    local TitleGrad
+    if FX.TitleShine and Title then
+        TitleGrad = Instance.new("UIGradient")
+        TitleGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Theme.Primary),
+            ColorSequenceKeypoint.new(0.5, Theme.Text),
+            ColorSequenceKeypoint.new(1,   Theme.Primary),
+        })
+        TitleGrad.Parent = Title
+    end
+
+    -- EMBERS (ประกายไฟลอยขึ้น)
+    local Embers = {}
+    if FX.Embers then
+        local Colors = { Theme.Primary, Theme.FxLight, Theme.FxMid, Theme.FxWhite }
+        for _ = 1, 12 do
+            local Dot = math.random(2, 3)
+            local Frame = Create("Frame", {
+                Size = UDim2.fromOffset(Dot, Dot),
+                BackgroundColor3 = Colors[math.random(#Colors)],
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                ZIndex = 1,
+            })
+            Frame.Parent = Layer
+            AddCorner(Frame, 3)
+            table.insert(Embers, {
+                Frame    = Frame,
+                X        = 0.06 + math.random() * 0.88,
+                Speed    = 0.04 + math.random() * 0.06,
+                Offset   = math.random(),
+                Sway     = 3 + math.random() * 6,
+                SwayRate = 0.8 + math.random() * 1.4,
+                Phase    = math.random() * math.pi * 2,
+            })
+        end
+    end
+
+    -- PRO FX: MOON / FOG / LIGHTNING / BORDER PULSE / INTRO
+    local function Tw(object, time, props, style)
+        game:GetService("TweenService"):Create(
+            object,
+            TweenInfo.new(
+                time,
+                style or Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            props
+        ):Play()
+    end
+
+    -- พระจันทร์ (อยู่หลังเนื้อหา มองผ่านช่องว่าง)
+    local MoonStroke
+    if FX.Moon then
+        local Moon = Create("Frame", {
+            Name = "HalloweenMoon",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.new(1, -78, 0, 34),
+            Size        = UDim2.fromOffset(86, 86),
+            BackgroundColor3 = Theme.FxLight,
+            BackgroundTransparency = 0.86,
+            BorderSizePixel = 0,
+            ZIndex = 0,
+        })
+        Moon.Parent = Main
+        AddCorner(Moon, 43)
+        MoonStroke = AddStroke(Moon, Theme.FxLight, 0.8, 6)
+
+        for _, Crater in ipairs({
+            { 18, 20, 16 },
+            { 48, 40, 12 },
+            { 30, 56, 9 },
+        }) do
+            local Hole = Create("Frame", {
+                Position = UDim2.fromOffset(Crater[1], Crater[2]),
+                Size     = UDim2.fromOffset(Crater[3], Crater[3]),
+                BackgroundColor3 = Theme.FxDark,
+                BackgroundTransparency = 0.82,
+                BorderSizePixel = 0,
+                ZIndex = 0,
+            })
+            Hole.Parent = Moon
+            AddCorner(Hole, Crater[3])
+        end
+    end
+
+    -- หมอกลอยช้าๆ ด้านล่าง
+    local Fog = {}
+    if FX.Fog then
+        for _ = 1, 5 do
+            local Width  = math.random(170, 240)
+            local Height = math.random(46, 70)
+            local Blob = Create("Frame", {
+                AnchorPoint = Vector2.new(0, 1),
+                Size        = UDim2.fromOffset(Width, Height),
+                BackgroundColor3 = Theme.FxWhite,
+                BackgroundTransparency = 0.93 + math.random() * 0.04,
+                BorderSizePixel = 0,
+                ZIndex = 0,
+            })
+            Blob.Parent = Main
+            AddCorner(Blob, math.floor(Height / 2))
+            table.insert(Fog, {
+                Frame  = Blob,
+                Speed  = 0.012 + math.random() * 0.02,
+                Offset = math.random(),
+                Y      = -math.random() * 14,
+            })
+        end
+    end
+
+    -- ขอบหน้าต่างหายใจ
+    local MainStroke = FX.BorderPulse
+        and Main:FindFirstChildOfClass("UIStroke") or nil
+
+    -- ฟ้าแลบ (วาบจางๆ 2-3 ครั้ง ทุก 20-40 วิ)
+    if FX.Lightning then
+        local Flash = Create("Frame", {
+            Name = "HalloweenFlash",
+            Size = UDim2.fromScale(1, 1),
+            BackgroundColor3 = Color3.fromRGB(235, 220, 255),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = 40,
+        })
+        Flash.Parent = Layer
+        AddCorner(Flash, 16)
+
+        task.spawn(function()
+            task.wait(12 + math.random() * 10)
+            while not Window.Destroyed do
+                for _, Strength in ipairs({ 0.84, 0.93, 0.8 }) do
+                    Flash.BackgroundTransparency = Strength
+                    task.wait(0.05)
+                    Tw(Flash, 0.12, { BackgroundTransparency = 1 })
+                    task.wait(0.1)
+                end
+                task.wait(20 + math.random() * 20)
+            end
+        end)
+    end
+
+    -- ฉากเปิดตัว (ไอคอน + ชื่อ แล้วจางหาย)
+    if FX.Intro then
+        task.spawn(function()
+            pcall(function()
+                local Intro = Create("Frame", {
+                    Name = "HalloweenIntro",
+                    Size = UDim2.fromScale(1, 1),
+                    BackgroundColor3 = Theme.Sidebar,
+                    BackgroundTransparency = 0,
+                    BorderSizePixel = 0,
+                    ZIndex = 90,
+                })
+                Intro.Parent = Layer
+                AddCorner(Intro, 16)
+
+                local Icon, Kind = HELLO.CreateIcon(
+                    HELLO.DecoIcons.Corner or "skull",
+                    {
+                        AnchorPoint = Vector2.new(0.5, 0.5),
+                        Position    = UDim2.new(0.5, 0, 0.5, -14),
+                        Size        = UDim2.fromOffset(52, 52),
+                        Color       = Theme.Primary,
+                        TextSize    = 44,
+                        ZIndex      = 91,
+                    }
+                )
+                local IconScale = Instance.new("UIScale")
+                IconScale.Scale = 0.4
+                if Icon then
+                    Icon.Parent = Intro
+                    IconScale.Parent = Icon
+                end
+
+                local Name = Create("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position    = UDim2.new(0.5, 0, 0.5, 34),
+                    Size        = UDim2.new(1, 0, 0, 20),
+                    BackgroundTransparency = 1,
+                    Text = tostring(Window.Title or "HELLO"),
+                    TextColor3 = Theme.Text,
+                    TextSize = 15,
+                    Font = Enum.Font.GothamBold,
+                    TextTransparency = 1,
+                    ZIndex = 91,
+                })
+                Name.Parent = Intro
+
+                Tw(IconScale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+                Tw(Name, 0.3, { TextTransparency = 0 })
+                task.wait(0.85)
+
+                Tw(Intro, 0.4, { BackgroundTransparency = 1 })
+                Tw(Name, 0.3, { TextTransparency = 1 })
+                if Icon then
+                    Tw(Icon, 0.3, {
+                        [Kind == "image" and "ImageTransparency" or "TextTransparency"] = 1,
+                    })
+                end
+                task.wait(0.45)
+                Intro:Destroy()
+            end)
+        end)
+
+        -- กันค้าง: ถ้ามีอะไรพัง ฉากเปิดตัวจะถูกเคลียร์ใน 3 วิ
+        task.delay(3, function()
+            local Stuck = Layer:FindFirstChild("HalloweenIntro")
+            if Stuck then Stuck:Destroy() end
+        end)
+    end
+
+    -- ANIMATION LOOP
+    local Clock     = 0
+    local NextGhost = 5 + math.random() * 5
+    local Ghosts    = {}
+    local Conn
+
+    Conn = RunService.Heartbeat:Connect(function(dt)
+        if Window.Destroyed then Conn:Disconnect() return end
+        Clock = Clock + dt
+
+        if HeaderGrad then
+            HeaderGrad.Offset = Vector2.new((Clock * 0.35) % 2 - 1, 0)
+        end
+        if TitleGrad then
+            TitleGrad.Offset = Vector2.new((Clock * 0.5) % 2 - 1, 0)
+        end
+        if MainStroke then
+            MainStroke.Thickness = 1.7 + 0.9 * (0.5 + 0.5 * math.sin(Clock * 1.8))
+        end
+        if MoonStroke then
+            MoonStroke.Transparency = 0.8 + 0.12 * math.sin(Clock * 1.2)
+        end
+
+        for _, Cloud in ipairs(Fog) do
+            local Progress = (Clock * Cloud.Speed + Cloud.Offset) % 1
+            Cloud.Frame.Position = UDim2.new(
+                -0.25 + 1.5 * Progress, 0,
+                1, Cloud.Y
+            )
+        end
+
+        for _, Ember in ipairs(Embers) do
+            local Fraction = (Clock * Ember.Speed + Ember.Offset) % 1
+            Ember.Frame.Position = UDim2.new(
+                Ember.X,
+                math.sin(Clock * Ember.SwayRate + Ember.Phase) * Ember.Sway,
+                1 - Fraction,
+                0
+            )
+            Ember.Frame.BackgroundTransparency =
+                0.5 + 0.45 * math.abs(Fraction * 2 - 1)
+        end
+
+        -- ผีลอยผ่านนานๆ ครั้ง
+        if FX.Ghosts and Clock >= NextGhost then
+            NextGhost = Clock + 9 + math.random() * 7
+            local Icon, Kind = HELLO.CreateIcon(
+                HELLO.DecoIcons.Wisp or "ghost",
+                {
+                    Name        = "Wisp",
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Size        = UDim2.fromOffset(22, 22),
+                    Color       = Theme.Text,
+                    Transparency = 1,
+                    TextSize    = 18,
+                    ZIndex      = 2,
+                }
+            )
+            if Icon then
+                Icon.Parent = Layer
+                table.insert(Ghosts, {
+                    Object   = Icon,
+                    Kind     = Kind,
+                    Born     = Clock,
+                    Duration = 8 + math.random() * 3,
+                    Direction = math.random() < 0.5 and 1 or -1,
+                    Y        = 0.25 + math.random() * 0.5,
+                })
+            end
+        end
+
+        for i = #Ghosts, 1, -1 do
+            local Ghost = Ghosts[i]
+            local Progress = (Clock - Ghost.Born) / Ghost.Duration
+            if Progress >= 1 then
+                Ghost.Object:Destroy()
+                table.remove(Ghosts, i)
+            else
+                local X = Ghost.Direction == 1
+                    and (-0.05 + Progress * 1.1)
+                    or  (1.05 - Progress * 1.1)
+                Ghost.Object.Position = UDim2.new(
+                    X, 0,
+                    Ghost.Y, math.sin(Progress * 12) * 8
+                )
+                Ghost.Object.Rotation = math.sin(Progress * 9) * 8
+                local Fade = 1 - 0.45 * math.sin(Progress * math.pi)
+                if Ghost.Kind == "image" then
+                    Ghost.Object.ImageTransparency = Fade
+                else
+                    Ghost.Object.TextTransparency = Fade
+                end
+            end
+        end
+    end)
+end
+
+--=========================================================
+-- TWEEN
+--=========================================================
+local function PlayTween(object, time, properties, style, direction)
+    local tween = TweenService:Create(
+        object,
+        TweenInfo.new(
+            time or 0.25,
+            style or Enum.EasingStyle.Quad,
+            direction or Enum.EasingDirection.Out
+        ),
+        properties
+    )
+    tween:Play()
+    return tween
+end
+
+--=========================================================
+-- SPACE EFFECT (เอฟเฟกต์อวกาศรอบปุ่มลอย)
+-- ปิดได้ด้วย HELLO.SpaceEffect = false ก่อนสร้าง Window
+--=========================================================
+HELLO.SpaceEffect = true
+
+function HELLO.BuildSpaceEffect(FloatButton, Window)
+    local function Alive()
+        return FloatButton.Parent ~= nil and not Window.Destroyed
+    end
+
+    local Dark   = HELLO.Theme.FxDark
+    local Silver = HELLO.Theme.FxSilver
+    local Light  = HELLO.Theme.FxLight
+    local Mid    = HELLO.Theme.FxMid
+    local White  = HELLO.Theme.FxWhite
+
+    local FX = Create("Frame", {
+        Name = "SpaceFX",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ZIndex = 5,
+    })
+    FX.Parent = FloatButton
+
+    -- NEBULA RING (วงเนบิวลาหมุน)
+    local function NebulaRing(pad, thickness, transparency, speed, reverse)
+        local Ring = Create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.fromScale(0.5, 0.5),
+            Size        = UDim2.new(1, pad, 1, pad),
+            BackgroundTransparency = 1,
+            ZIndex = 4,
+        })
+        Ring.Parent = FX
+        AddCorner(Ring, 12 + pad / 2)
+
+        local Stroke = AddStroke(Ring, White, transparency, thickness)
+        local Grad = Instance.new("UIGradient")
+        Grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,    Dark),
+            ColorSequenceKeypoint.new(0.35, Light),
+            ColorSequenceKeypoint.new(0.7,  Silver),
+            ColorSequenceKeypoint.new(1,    Dark),
+        })
+        Grad.Parent = Stroke
+
+        task.spawn(function()
+            while Alive() do
+                Grad.Rotation = reverse and 360 or 0
+                local Spin = TweenService:Create(
+                    Grad,
+                    TweenInfo.new(speed, Enum.EasingStyle.Linear),
+                    { Rotation = reverse and 0 or 360 }
+                )
+                Spin:Play()
+                task.wait(speed)
+            end
+        end)
+        return Stroke
+    end
+
+    local Glow = NebulaRing(16, 6, 0.8, 7, false)
+    NebulaRing(9, 1.5, 0.25, 5, true)
+
+    task.spawn(function()
+        while Alive() do
+            PlayTween(Glow, 1.6, { Transparency = 0.55 },
+                Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            task.wait(1.6)
+            PlayTween(Glow, 1.6, { Transparency = 0.88 },
+                Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            task.wait(1.6)
+        end
+    end)
+
+    -- TWINKLING STARS (ดาวกะพริบ)
+    local StarColors = { White, Silver, Mid, White }
+    for _ = 1, 14 do
+        local Angle  = math.random() * math.pi * 2
+        local Radius = math.random(46, 62)
+        local Size   = math.random(2, 3)
+        local Star = Create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.new(
+                0.5, math.cos(Angle) * Radius,
+                0.5, math.sin(Angle) * Radius
+            ),
+            Size = UDim2.fromOffset(Size, Size),
+            BackgroundColor3 = StarColors[math.random(#StarColors)],
+            BackgroundTransparency = 0.9,
+            BorderSizePixel = 0,
+            ZIndex = 6,
+        })
+        Star.Parent = FX
+        AddCorner(Star, 3)
+
+        task.spawn(function()
+            task.wait(math.random() * 2)
+            while Alive() do
+                local D = 0.6 + math.random() * 1.2
+                PlayTween(Star, D, { BackgroundTransparency = 0.05 },
+                    Enum.EasingStyle.Sine)
+                task.wait(D)
+                PlayTween(Star, D, { BackgroundTransparency = 0.92 },
+                    Enum.EasingStyle.Sine)
+                task.wait(D)
+            end
+        end)
+    end
+
+    -- ORBITING PLANETS (ดาวเคราะห์โคจร + หางจาง)
+    local Orbiters = {
+        { Radius = 46, Size = 7, Speed = 1.1,  Phase = 0,   Color = Light  },
+        { Radius = 54, Size = 5, Speed = -0.75, Phase = 2.1, Color = Silver },
+        { Radius = 62, Size = 4, Speed = 0.5,  Phase = 4.2, Color = Mid    },
+    }
+    local Tilt = math.rad(-20)
+
+    for _, Orbiter in ipairs(Orbiters) do
+        Orbiter.Dots = {}
+        for k = 1, 4 do
+            local Dot = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Size = UDim2.fromOffset(
+                    Orbiter.Size * (1 - (k - 1) * 0.2),
+                    Orbiter.Size * (1 - (k - 1) * 0.2)
+                ),
+                BackgroundColor3 = Orbiter.Color,
+                BackgroundTransparency = (k - 1) * 0.22,
+                BorderSizePixel = 0,
+                ZIndex = 7,
+            })
+            Dot.Parent = FX
+            AddCorner(Dot, 10)
+            if k == 1 then
+                AddStroke(Dot, Orbiter.Color, 0.55, 2)
+            end
+            Orbiter.Dots[k] = Dot
+        end
+    end
+
+    local Clock = 0
+    local Conn
+    Conn = RunService.Heartbeat:Connect(function(dt)
+        if not Alive() then Conn:Disconnect() return end
+        Clock = Clock + dt
+
+        for _, Orbiter in ipairs(Orbiters) do
+            local Dir = Orbiter.Speed > 0 and 1 or -1
+            for k, Dot in ipairs(Orbiter.Dots) do
+                local A = Orbiter.Phase + Clock * Orbiter.Speed
+                    - (k - 1) * 0.16 * Dir
+                local X = math.cos(A) * Orbiter.Radius
+                local Y = math.sin(A) * Orbiter.Radius * 0.8
+                local RX = X * math.cos(Tilt) - Y * math.sin(Tilt)
+                local RY = X * math.sin(Tilt) + Y * math.cos(Tilt)
+                Dot.Position = UDim2.new(0.5, RX, 0.5, RY)
+                local Depth = 1 + 0.25 * math.sin(A)
+                local S = Orbiter.Size * (1 - (k - 1) * 0.2) * Depth
+                Dot.Size = UDim2.fromOffset(S, S)
+            end
+        end
+    end)
+
+    -- SHOOTING STAR (ดาวตกเฉียดขอบปุ่ม)
+    task.spawn(function()
+        while Alive() do
+            task.wait(math.random(3, 6))
+            if not Alive() then break end
+            local YOffset = math.random(-6, 6)
+
+            if HELLO.Theme.IsHalloween then
+                -- ค้างคาวบินผ่านแทนดาวตก
+                local Bat = Create("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Size        = UDim2.fromOffset(20, 20),
+                    Position    = UDim2.new(0.5, 72, 0.5, -54 + YOffset),
+                    BackgroundTransparency = 1,
+                    Text        = "\u{1F987}",
+                    TextSize    = 16,
+                    TextColor3  = White,
+                    ZIndex      = 8,
+                })
+                Bat.Parent = FX
+                PlayTween(Bat, 1.3, {
+                    Position = UDim2.new(0.5, -72, 0.5, -38 + YOffset),
+                    TextTransparency = 1,
+                }, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+                task.delay(1.35, function() Bat:Destroy() end)
+                continue
+            end
+
+            local Streak = Create("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Size        = UDim2.fromOffset(28, 2),
+                Position    = UDim2.new(0.5, 72, 0.5, -62 + YOffset),
+                Rotation    = -9,
+                BackgroundColor3 = White,
+                BackgroundTransparency = 0,
+                BorderSizePixel = 0,
+                ZIndex = 8,
+            })
+            Streak.Parent = FX
+
+            local Grad = Instance.new("UIGradient")
+            Grad.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1),
+            })
+            Grad.Parent = Streak
+
+            PlayTween(Streak, 0.8, {
+                Position = UDim2.new(0.5, -72, 0.5, -40 + YOffset),
+                BackgroundTransparency = 1,
+            }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+            task.delay(0.85, function() Streak:Destroy() end)
+        end
+    end)
+end
+
+--=========================================================
+-- GUI PARENT
+--=========================================================
+local function GetParent()
+    if typeof(gethui) == "function" then
+        local success, result = pcall(gethui)
+        if success and result then return result end
+    end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+--=========================================================
+-- UTILITY
+--=========================================================
+local function GetPing()
+    local success, result = pcall(function()
+        return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+    end)
+    if success and result then return result end
+
+    local success2, result2 = pcall(function()
+        local text = Stats.Network.ServerStatsItem["Data Ping"]:GetValueString()
+        return tonumber(string.match(text, "%d+"))
+    end)
+    if success2 and result2 then return result2 end
+    return 0
+end
+
+local function GetGameName()
+    local gameName = game.Name
+    task.spawn(function()
+        local success, info = pcall(function()
+            return MarketplaceService:GetProductInfo(game.PlaceId)
+        end)
+        if success and info and info.Name then
+            gameName = info.Name
+        end
+    end)
+    return gameName
+end
+
+--=========================================================
+-- EFFECTS
+--=========================================================
+HELLO.Effects = {}
+
+--=========================================================
+-- GLOW
+--=========================================================
+function HELLO.Effects:Glow(Object, Color)
+    if not Object or not Object.Parent then return end
+    Color = Color or HELLO.Theme.Primary
+
+    local Stroke = Object:FindFirstChild("HELLO_Glow")
+    if not Stroke then
+        Stroke = Instance.new("UIStroke")
+        Stroke.Name         = "HELLO_Glow"
+        Stroke.Thickness    = 1
+        Stroke.Transparency = 0.8
+        Stroke.Color        = Color
+        Stroke.Parent       = Object
+    end
+
+    PlayTween(Stroke, 0.25, { Transparency = 0.12, Thickness = 2 })
+    return Stroke
+end
+
+--=========================================================
+-- PULSE
+--=========================================================
+function HELLO.Effects:Pulse(Object)
+    if not Object then return end
+    local Scale = Object:FindFirstChild("HELLO_PulseScale")
+    if not Scale then
+        Scale = Instance.new("UIScale")
+        Scale.Name   = "HELLO_PulseScale"
+        Scale.Scale  = 1
+        Scale.Parent = Object
+    end
+
+    task.spawn(function()
+        while Object.Parent do
+            local Tween1 = PlayTween(Scale, 0.7, { Scale = 1.025 },
+                Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            Tween1.Completed:Wait()
+            if not Object.Parent then break end
+            local Tween2 = PlayTween(Scale, 0.7, { Scale = 1 },
+                Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            Tween2.Completed:Wait()
+        end
+    end)
+end
+
+--=========================================================
+-- SHAKE
+--=========================================================
+function HELLO.Effects:Shake(Object, Strength)
+    if not Object then return end
+    Strength = Strength or 4
+    local Original = Object.Position
+    task.spawn(function()
+        for i = 1, 8 do
+            if not Object.Parent then return end
+            local X = math.random(-Strength, Strength)
+            local Y = math.random(-Strength, Strength)
+            Object.Position = UDim2.new(
+                Original.X.Scale, Original.X.Offset + X,
+                Original.Y.Scale, Original.Y.Offset + Y
+            )
+            task.wait(0.035)
+        end
+        if Object.Parent then Object.Position = Original end
+    end)
+end
+
+--=========================================================
+-- RAINBOW
+--=========================================================
+function HELLO.Effects:Rainbow(Object)
+    if not Object then return end
+    local Gradient = Object:FindFirstChild("HELLO_Rainbow")
+    if not Gradient then
+        Gradient = Instance.new("UIGradient")
+        Gradient.Name = "HELLO_Rainbow"
+        Gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.fromRGB(255, 70, 70)),
+            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 210, 70)),
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(80, 255, 120)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(80, 180, 255)),
+            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(170, 90, 255)),
+            ColorSequenceKeypoint.new(1,   Color3.fromRGB(255, 80, 180)),
+        })
+        Gradient.Parent = Object
+    end
+    task.spawn(function()
+        while Object.Parent do
+            Gradient.Rotation = (Gradient.Rotation + 2) % 360
+            task.wait(0.03)
+        end
+    end)
+    return Gradient
+end
+
+--=========================================================
+-- FIRE / EMBER
+--=========================================================
+function HELLO.Effects:Fire(Container)
+    if not Container then return end
+    local Holder = Container:FindFirstChild("HELLO_Fire")
+    if Holder then return Holder end
+
+    Holder = Create("Frame", {
+        Name = "HELLO_Fire",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 5,
+    })
+    Holder.Parent = Container
+
+    task.spawn(function()
+        while Holder.Parent do
+            local Ember = Create("Frame", {
+                Size = UDim2.fromOffset(
+                    math.random(3, 7), math.random(3, 7)
+                ),
+                Position = UDim2.new(
+                    math.random(5, 95) / 100, 0, 1, 0
+                ),
+                BackgroundColor3 = Color3.fromRGB(
+                    255, math.random(80, 190), math.random(20, 70)
+                ),
+                BackgroundTransparency = 0.15,
+                BorderSizePixel = 0,
+                ZIndex = 6,
+            })
+            Ember.Parent = Holder
+            AddCorner(Ember, 20)
+
+            local Rise = PlayTween(Ember,
+                math.random(12, 22) / 10,
+                {
+                    Position = UDim2.new(Ember.Position.X.Scale, 0, -0.15, 0),
+                    BackgroundTransparency = 1,
+                    Size = UDim2.fromOffset(1, 1),
+                },
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            )
+            Rise.Completed:Connect(function()
+                if Ember then Ember:Destroy() end
+            end)
+            task.wait(math.random(10, 24) / 100)
+        end
+    end)
+    return Holder
+end
+
+--=========================================================
+-- CREATE WINDOW
+--=========================================================
+function HELLO:CreateWindow(config)
+    config = config or {}
+
+    if config.Theme then HELLO:SetTheme(config.Theme) end
+    if config.ThemeAnimation ~= nil then
+        HELLO.ThemeSettings.Animation = config.ThemeAnimation ~= false
+    end
+
+    local Window = {}
+
+    Window.Title    = config.Title    or "Hello Hub"
+    Window.Subtitle = config.Subtitle or "Custom Library"
+    Window.Size     = config.Size     or Vector2.new(700, 440)
+    Window.MinSize  = config.MinSize  or Vector2.new(560, 360)
+    Window.MaxSize  = config.MaxSize  or Vector2.new(1000, 650)
+    Window.LastSize = Vector2.new(Window.Size.X, Window.Size.Y)
+
+    Window.Tabs       = {}
+    Window.IsMinimized = false
+    Window.IsHidden    = false
+    Window.Destroyed   = false
+
+    -- SCREEN GUI
+    local ScreenGui = Create("ScreenGui", {
+        Name = "HELLO_UI_" .. tostring(math.random(10000, 99999)),
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    ScreenGui.Parent = GetParent()
+    Window.ScreenGui = ScreenGui
+
+    -- MAIN
+    local Main = Create("Frame", {
+        Name = "Main",
+        Size = UDim2.fromOffset(Window.Size.X, Window.Size.Y),
+        Position = UDim2.new(
+            0.5, -Window.Size.X / 2,
+            0.5, -Window.Size.Y / 2
+        ),
+        BackgroundColor3 = HELLO.Theme.Background,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+    })
+    Main.Parent = ScreenGui
+    AddCorner(Main, 16)
+    Window.Main = Main
+
+    -- แสงเงาเฉียง (ให้ดูเป็นแก้ว)
+    local MainSheen = Instance.new("UIGradient")
+    MainSheen.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,    HELLO.Theme.Sheen1),
+        ColorSequenceKeypoint.new(0.45, HELLO.Theme.Sheen2),
+        ColorSequenceKeypoint.new(1,    HELLO.Theme.Sheen3),
+    })
+    MainSheen.Rotation = 35
+    MainSheen.Parent   = Main
+
+    -- BACKGROUND IMAGE
+    local BgImage = Create("ImageLabel", {
+        Name = "BackgroundImage",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        Image = ResolveBackground() or "",
+        ImageTransparency = HELLO.Background.Transparency,
+        ScaleType = Enum.ScaleType.Crop,
+        ZIndex = 0,
+        Visible = ResolveBackground() ~= nil,
+    })
+    BgImage.Parent = Main
+    AddCorner(BgImage, 16)
+    Window.BgImage = BgImage
+
+    -- THEME-AWARE BACKGROUND SPARKLE / LIGHT SWEEP
+    local BackgroundFX = Create("Frame", {
+        Name = "HELLO_BackgroundFX",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Active = false,
+        ZIndex = 0,
+    })
+    BackgroundFX.Parent = Main
+    Window.BackgroundFX = BackgroundFX
+
+    local SparkleItems = {}
+    local SparkleColors = {
+        HELLO.Theme.FxWhite,
+        HELLO.Theme.FxLight,
+        HELLO.Theme.FxSilver,
+    }
+    for index = 1, 16 do
+        local sparkle = Create("TextLabel", {
+            Name = "Sparkle_" .. index,
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.fromScale(
+                math.random(4, 96) / 100,
+                math.random(8, 94) / 100
+            ),
+            Size = UDim2.fromOffset(
+                math.random(7, 13), math.random(7, 13)
+            ),
+            BackgroundTransparency = 1,
+            Text        = (index % 3 == 0) and "✧" or "✦",
+            TextColor3  = SparkleColors[math.random(1, #SparkleColors)],
+            TextTransparency = 0.78,
+            TextSize    = math.random(8, 14),
+            Font        = Enum.Font.GothamBold,
+            ZIndex      = 0,
+        })
+        sparkle.Parent = BackgroundFX
+        table.insert(SparkleItems, {
+            Object       = sparkle,
+            Phase        = math.random() * math.pi * 2,
+            Rate         = 0.7 + math.random() * 1.4,
+            BaseRotation = math.random(-20, 20),
+        })
+    end
+
+    local LightSweep = Create("Frame", {
+        Name = "HELLO_LightSweep",
+        Position = UDim2.new(-0.55, 0, -0.18, 0),
+        Size     = UDim2.new(0.38, 0, 1.36, 0),
+        Rotation = 17,
+        BackgroundColor3 = HELLO.Theme.FxWhite,
+        BackgroundTransparency = 0.72,
+        BorderSizePixel = 0,
+        ZIndex = 0,
+    })
+    LightSweep.Parent = BackgroundFX
+
+    local SweepGradient = Instance.new("UIGradient")
+    SweepGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   HELLO.Theme.FxWhite),
+        ColorSequenceKeypoint.new(0.5, HELLO.Theme.FxLight),
+        ColorSequenceKeypoint.new(1,   HELLO.Theme.FxWhite),
+    })
+    SweepGradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,   1),
+        NumberSequenceKeypoint.new(0.5, 0.72),
+        NumberSequenceKeypoint.new(1,   1),
+    })
+    SweepGradient.Parent = LightSweep
+
+    local SparkleConnection
+    SparkleConnection = RunService.RenderStepped:Connect(function()
+        if Window.Destroyed or not Main.Parent or not BackgroundFX.Parent then
+            if SparkleConnection then SparkleConnection:Disconnect() end
+            return
+        end
+        if not Main.Visible then return end
+        local now = os.clock()
+        for _, item in ipairs(SparkleItems) do
+            local object = item.Object
+            if object.Parent then
+                local pulse = (math.sin(now * item.Rate + item.Phase) + 1) * 0.5
+                object.TextTransparency = 0.45 + pulse * 0.48
+                object.Rotation = item.BaseRotation
+                    + math.sin(now * item.Rate * 0.45 + item.Phase) * 16
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while BackgroundFX.Parent and Main.Parent and not Window.Destroyed do
+            LightSweep.Position = UDim2.new(-0.55, 0, -0.18, 0)
+            local sweepTween = TweenService:Create(
+                LightSweep,
+                TweenInfo.new(7, Enum.EasingStyle.Linear),
+                { Position = UDim2.new(1.2, 0, -0.18, 0) }
+            )
+            sweepTween:Play()
+            sweepTween.Completed:Wait()
+            if BackgroundFX.Parent and not Window.Destroyed then
+                task.wait(0.75)
+            end
+        end
+    end)
+
+    FixImage(BgImage, "พื้นหลัง")
+
+    -- HIDE SCALE
+    local HideScale = Instance.new("UIScale")
+    HideScale.Name   = "HideScale"
+    HideScale.Scale  = 1
+    HideScale.Parent = Main
+    Window.HideScale = HideScale
+
+    -- BORDER
+    local MainStroke = AddStroke(Main,
+        Color3.fromRGB(255, 255, 255), 0.05, 1.7)
+
+    local BorderGradient = Instance.new("UIGradient")
+    BorderGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   HELLO.Theme.Stroke1),
+        ColorSequenceKeypoint.new(0.5, HELLO.Theme.Stroke2),
+        ColorSequenceKeypoint.new(1,   HELLO.Theme.Stroke3),
+    })
+    BorderGradient.Offset = Vector2.new(-1, 0)
+    BorderGradient.Parent = MainStroke
+
+    task.spawn(function()
+        while Main.Parent and not Window.Destroyed do
+            BorderGradient.Offset = Vector2.new(-1, 0)
+            local Animation = TweenService:Create(
+                BorderGradient,
+                TweenInfo.new(3.5, Enum.EasingStyle.Linear),
+                { Offset = Vector2.new(1, 0) }
+            )
+            Animation:Play()
+            Animation.Completed:Wait()
+        end
+    end)
+
+    -- HEADER
+    local Header = Create("Frame", {
+        Name = "Header",
+        Size = UDim2.new(1, 0, 0, 58),
+        BackgroundTransparency = 1,
+        Active = true,
+    })
+    Header.Parent = Main
+
+    -- LOGO
+    local Logo = Create("Frame", {
+        Size = UDim2.fromOffset(36, 36),
+        Position = UDim2.fromOffset(12, 11),
+        BackgroundTransparency = 1,
+    })
+    Logo.Parent = Header
+    AddCorner(Logo, 10)
+
+    local LogoImage = Create("ImageLabel", {
+        Name = "LogoImage",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        Image = HELLO.LogoImage,
+        ScaleType = Enum.ScaleType.Fit,
+    })
+    LogoImage.Parent = Logo
+    FixImage(LogoImage, "โลโก้")
+
+    -- TITLE
+    local Title = Create("TextLabel", {
+        Size = UDim2.new(1, -180, 0, 24),
+        Position = UDim2.fromOffset(58, 7),
+        BackgroundTransparency = 1,
+        Text = (HELLO.Theme.IsHalloween and "\u{1F383} " or "") .. Window.Title,
+        TextColor3 = HELLO.Theme.Text,
+        TextSize = 17,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    Title.Parent = Header
+
+    -- SUBTITLE
+    local Subtitle = Create("TextLabel", {
+        Size = UDim2.new(1, -180, 0, 20),
+        Position = UDim2.fromOffset(58, 31),
+        BackgroundTransparency = 1,
+        Text = Window.Subtitle,
+        TextColor3 = HELLO.Theme.SubText,
+        TextSize = 11,
+        Font = Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    Subtitle.Parent = Header
+
+    -- MINIMIZE
+    local MinimizeButton = Create("TextButton", {
+        Size = UDim2.fromOffset(36, 36),
+        Position = UDim2.new(1, -90, 0, 11),
+        BackgroundColor3 = HELLO.Theme.Card,
+        Text = "-",
+        TextColor3 = HELLO.Theme.Text,
+        TextSize = 20,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+    })
+    MinimizeButton.Parent = Header
+    AddCorner(MinimizeButton, 10)
+    Window.MinimizeButton = MinimizeButton
+
+    -- CLOSE
+    local CloseButton = Create("TextButton", {
+        Size = UDim2.fromOffset(36, 36),
+        Position = UDim2.new(1, -48, 0, 11),
+        BackgroundColor3 = HELLO.Theme.Card,
+        Text = "\u{D7}",
+        TextColor3 = HELLO.Theme.Text,
+        TextSize = 22,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+    })
+    CloseButton.Parent = Header
+    AddCorner(CloseButton, 10)
+    Window.CloseButton = CloseButton
+
+    -- DECORATIONS (ไอคอนตกแต่ง 2 ที่ เฉพาะธีม Halloween)
+    --   ใช้ไอคอน Lucide จริง (ghost / skull) ถ้าโหลดไม่ได้ใช้สัญลักษณ์สำรอง
+    --   เปลี่ยนที่ HELLO.DecoIcons = { Header = "...", Corner = "..." }
+    do
+        local Deco = HELLO.DecoIcons
+        if HELLO.Theme.Animation == "clean"  then Deco = { Header = "moon",  Corner = "star"  } end
+        if HELLO.Theme.Animation == "snow"   then Deco = { Header = "bell",  Corner = "star"  } end
+        if HELLO.Theme.Animation == "hearts" then Deco = { Header = "heart", Corner = "heart" } end
+        if HELLO.Theme.Animation == "bubbles" then Deco = { Header = "zap",  Corner = "eye"   } end
+
+        local HeaderIcon, HeaderKind = HELLO.CreateIcon(
+            Deco.Header,
+            {
+                Name = "DecoHeaderIcon",
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position    = UDim2.new(1, -98, 0.5, 0),
+                Size        = UDim2.fromOffset(22, 22),
+                Color       = HELLO.Theme.Text,
+                TextSize    = 18,
+                ZIndex      = 6,
+            }
+        )
+
+        local CornerIcon, CornerKind = HELLO.CreateIcon(
+            Deco.Corner,
+            {
+                Name = "DecoCornerIcon",
+                AnchorPoint = Vector2.new(0, 1),
+                Position    = UDim2.new(0, 10, 1, -8),
+                Size        = UDim2.fromOffset(20, 20),
+                Color       = HELLO.Theme.Primary,
+                TextSize    = 16,
+                ZIndex      = 30,
+            }
+        )
+
+        if HeaderIcon then HeaderIcon.Parent = Header end
+        if CornerIcon then CornerIcon.Parent = Main end
+
+        local DecoClock = 0
+        local DecoConn
+        DecoConn = RunService.Heartbeat:Connect(function(dt)
+            if Window.Destroyed then DecoConn:Disconnect() return end
+            DecoClock = DecoClock + dt
+
+            -- ไอคอนแถบหัว: ลอยขึ้นลง + เอียงเบาๆ
+            if HeaderIcon then
+                HeaderIcon.Position = UDim2.new(
+                    1, -98,
+                    0.5, math.sin(DecoClock * 3) * 2
+                )
+                HeaderIcon.Rotation = math.sin(DecoClock * 2.2) * 10
+            end
+
+            -- ไอคอนมุมล่าง: ลอยขึ้นลง + จางเข้าออก
+            if CornerIcon then
+                CornerIcon.Position = UDim2.new(
+                    0, 10,
+                    1, -8 + math.sin(DecoClock * 1.6) * 3
+                )
+                local fade = 0.3 + 0.2 * math.sin(DecoClock * 1.3)
+                if CornerKind == "image" then
+                    CornerIcon.ImageTransparency = fade
+                else
+                    CornerIcon.TextTransparency = fade
+                end
+            end
+        end)
+    end
+
+    -- HALLOWEEN FX
+    HELLO.BuildSeasonFX(Window, Main, Header, Title)
+
+    -- HOVER
+    CloseButton.MouseEnter:Connect(function()
+        PlayTween(CloseButton, 0.15, { BackgroundColor3 = HELLO.Theme.Danger })
+    end)
+    CloseButton.MouseLeave:Connect(function()
+        PlayTween(CloseButton, 0.15, { BackgroundColor3 = HELLO.Theme.Card })
+    end)
+    MinimizeButton.MouseEnter:Connect(function()
+        PlayTween(MinimizeButton, 0.15, { BackgroundColor3 = HELLO.Theme.CardHover })
+    end)
+    MinimizeButton.MouseLeave:Connect(function()
+        PlayTween(MinimizeButton, 0.15, { BackgroundColor3 = HELLO.Theme.Card })
+    end)
+
+    -- DRAG
+    local dragging    = false
+    local dragStart
+    local startPosition
+
+    Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging      = true
+            dragStart     = input.Position
+            startPosition = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(
+                startPosition.X.Scale, startPosition.X.Offset + delta.X,
+                startPosition.Y.Scale, startPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    -- SIDEBAR
+    local Sidebar = Create("Frame", {
+        Name = "Sidebar",
+        Size = UDim2.new(0, 190, 1, -58),
+        Position = UDim2.fromOffset(0, 58),
+        BackgroundColor3 = HELLO.Theme.Sidebar,
+        BackgroundTransparency = HELLO.Glass.Sidebar,
+        BorderSizePixel = 0,
+    })
+    Sidebar.Parent = Main
+
+    -- PROFILE
+    local Profile = Create("Frame", {
+        Size = UDim2.new(1, -20, 0, 76),
+        Position = UDim2.fromOffset(10, 10),
+        BackgroundColor3 = HELLO.Theme.Card,
+    })
+    Profile.Parent = Sidebar
+    AddCorner(Profile, 10)
+
+    -- AVATAR
+    local Avatar = Create("ImageLabel", {
+        Size = UDim2.fromOffset(46, 46),
+        Position = UDim2.fromOffset(10, 15),
+        BackgroundTransparency = 1,
+        Image = "rbxthumb://type=AvatarHeadShot&id="
+            .. LocalPlayer.UserId .. "&w=150&h=150",
+    })
+    Avatar.Parent = Profile
+    AddCorner(Avatar, 10)
+
+    -- DISPLAY NAME
+    local DisplayName = Create("TextLabel", {
+        Size = UDim2.new(1, -70, 0, 21),
+        Position = UDim2.fromOffset(64, 11),
+        BackgroundTransparency = 1,
+        Text = LocalPlayer.DisplayName,
+        TextColor3 = HELLO.Theme.Text,
+        TextSize = 13,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    DisplayName.Parent = Profile
+
+    -- USERNAME
+    local Username = Create("TextLabel", {
+        Size = UDim2.new(1, -70, 0, 20),
+        Position = UDim2.fromOffset(64, 34),
+        BackgroundTransparency = 1,
+        Text = "@" .. LocalPlayer.Name,
+        TextColor3 = HELLO.Theme.SubText,
+        TextSize = 10,
+        Font = Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    Username.Parent = Profile
+
+    -- TAB HOLDER
+    local TabHolder = Create("ScrollingFrame", {
+        Name = "TabHolder",
+        Size = UDim2.new(1, -20, 1, -105),
+        Position = UDim2.fromOffset(10, 96),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = HELLO.Theme.Primary,
+        CanvasSize = UDim2.new(),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    })
+    TabHolder.Parent = Sidebar
+
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.Padding = UDim.new(0, 5)
+    TabLayout.Parent  = TabHolder
+
+    -- CONTENT
+    local Content = Create("Frame", {
+        Name = "Content",
+        Size = UDim2.new(1, -190, 1, -58),
+        Position = UDim2.new(0, 190, 0, 58),
+        BackgroundTransparency = 1,
+    })
+    Content.Parent = Main
+    Window.Content = Content
+
+    -- RESIZE
+    local ResizeHandle = Create("TextButton", {
+        Size = UDim2.fromOffset(28, 28),
+        Position = UDim2.new(1, -28, 1, -28),
+        BackgroundTransparency = 1,
+        Text = "\u{231F}",
+        TextColor3 = HELLO.Theme.SubText,
+        TextSize = 22,
+        Font = Enum.Font.GothamBold,
+        AutoButtonColor = false,
+        ZIndex = 100,
+    })
+    ResizeHandle.Parent = Main
+
+    local resizing    = false
+    local resizeStart
+    local startSize
+
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            resizing    = true
+            resizeStart = input.Position
+            startSize   = Main.AbsoluteSize
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not resizing then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - resizeStart
+            local width  = math.clamp(
+                startSize.X + delta.X,
+                Window.MinSize.X, Window.MaxSize.X
+            )
+            local height = math.clamp(
+                startSize.Y + delta.Y,
+                Window.MinSize.Y, Window.MaxSize.Y
+            )
+            Main.Size = UDim2.fromOffset(width, height)
+            Window.LastSize = Vector2.new(width, height)
+        end
+    end)
+
+    -- NOTIFICATION HOLDER
+    local NotificationHolder = Create("Frame", {
+        Size = UDim2.fromOffset(300, 500),
+        Position = UDim2.new(1, -315, 0, 15),
+        BackgroundTransparency = 1,
+    })
+    NotificationHolder.Parent = ScreenGui
+
+    local NotificationLayout = Instance.new("UIListLayout")
+    NotificationLayout.Padding = UDim.new(0, 8)
+    NotificationLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    NotificationLayout.VerticalAlignment   = Enum.VerticalAlignment.Top
+    NotificationLayout.Parent = NotificationHolder
+
+    -- NOTIFY
+    function Window:Notify(config)
+        config = config or {}
+
+        local Notification = Create("Frame", {
+            Size = UDim2.fromOffset(280, 72),
+            BackgroundColor3 = HELLO.Theme.Card,
+        })
+        Notification.Parent = NotificationHolder
+        AddCorner(Notification, 10)
+        AddStroke(Notification, HELLO.Theme.Primary, 0.45, 1)
+
+        local NTitle = Create("TextLabel", {
+            Size = UDim2.new(1, -20, 0, 22),
+            Position = UDim2.fromOffset(10, 7),
+            BackgroundTransparency = 1,
+            Text = config.Title or "Hello Hub",
+            TextColor3 = HELLO.Theme.Text,
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        })
+        NTitle.Parent = Notification
+
+        local NContent = Create("TextLabel", {
+            Size = UDim2.new(1, -20, 0, 35),
+            Position = UDim2.fromOffset(10, 31),
+            BackgroundTransparency = 1,
+            Text = config.Content or "",
+            TextColor3 = HELLO.Theme.SubText,
+            TextSize = 11,
+            Font = Enum.Font.Gotham,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
+        })
+        NContent.Parent = Notification
+
+        -- Halloween: ไอคอน + แถบสีข้างซ้าย + แถบนับถอยหลัง
+        -- config.Type = "success" | "warning" | "error" (ไม่ใส่ = ผี/สีส้ม)
+        if HELLO.Theme.IsHalloween then
+            local NKind = string.lower(tostring(config.Type or ""))
+            local Pick = ({
+                success = { "sparkles",       HELLO.Theme.Success },
+                warning = { "triangle-alert", HELLO.Theme.Warning },
+                error   = { "skull",          HELLO.Theme.Danger  },
+            })[NKind] or { "ghost", HELLO.Theme.Primary }
+
+            local NBar = Create("Frame", {
+                Size = UDim2.new(0, 3, 1, -16),
+                Position = UDim2.fromOffset(0, 8),
+                BackgroundColor3 = Pick[2],
+                BackgroundTransparency = 0,
+                BorderSizePixel = 0,
+            })
+            NBar.Parent = Notification
+            AddCorner(NBar, 2)
+
+            local NIcon = HELLO.CreateIcon(
+                Pick[1],
+                {
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Position    = UDim2.new(0, 14, 0.5, 0),
+                    Size        = UDim2.fromOffset(22, 22),
+                    Color       = Pick[2],
+                    TextSize    = 18,
+                }
+            )
+            if NIcon then NIcon.Parent = Notification end
+
+            NTitle.Position = UDim2.fromOffset(46, 7)
+            NTitle.Size     = UDim2.new(1, -56, 0, 22)
+            NContent.Position = UDim2.fromOffset(46, 31)
+            NContent.Size     = UDim2.new(1, -56, 0, 33)
+
+            local NTrack = Create("Frame", {
+                Position = UDim2.new(0, 46, 1, -5),
+                Size     = UDim2.new(1, -56, 0, 2),
+                BackgroundColor3 = Pick[2],
+                BackgroundTransparency = 0.35,
+                BorderSizePixel = 0,
+            })
+            NTrack.Parent = Notification
+            AddCorner(NTrack, 1)
+
+            PlayTween(NTrack, config.Duration or 3,
+                { Size = UDim2.new(0, 0, 0, 2) },
+                Enum.EasingStyle.Linear)
+        end
+
+        Notification.Position = UDim2.new(1, 40, 0, 0)
+        PlayTween(Notification, 0.35,
+            { Position = UDim2.new(0, 0, 0, 0) },
+            Enum.EasingStyle.Quint)
+
+        task.delay(config.Duration or 3, function()
+            if not Notification.Parent then return end
+            local Out = PlayTween(Notification, 0.3, {
+                Position = UDim2.new(1, 40, 0, 0),
+                BackgroundTransparency = 1,
+            })
+            Out.Completed:Wait()
+            Notification:Destroy()
+        end)
+
+        return Notification
+    end
+
+    -- MINIMIZE
+    function Window:Minimize(state)
+        if Window.Destroyed or Window.IsHidden then return end
+        if state == nil then state = not Window.IsMinimized end
+        Window.IsMinimized = state
+
+        if state then
+            Window.LastSize = Vector2.new(
+                Main.AbsoluteSize.X, Main.AbsoluteSize.Y
+            )
+            PlayTween(Main, 0.3,
+                { Size = UDim2.fromOffset(Window.LastSize.X, 58) },
+                Enum.EasingStyle.Quart, Enum.EasingDirection.InOut)
+            MinimizeButton.Text = "+"
+        else
+            PlayTween(Main, 0.35,
+                { Size = UDim2.fromOffset(Window.LastSize.X, Window.LastSize.Y) },
+                Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+            MinimizeButton.Text = "-"
+        end
+    end
+
+    -- HIDE
+    function Window:Hide()
+        if Window.Destroyed or Window.IsHidden then return end
+        Window.IsHidden = true
+        Window.LastSize = Vector2.new(
+            Main.AbsoluteSize.X, Main.AbsoluteSize.Y
+        )
+        Window.LastPosition = Main.Position
+        Main.Active = false
+
+        PlayTween(BgImage, 0.32, { ImageTransparency = 1 })
+        PlayTween(HideScale, 0.32, { Scale = 0.82 },
+            Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        PlayTween(Main, 0.32, {
+            Position = UDim2.new(
+                Window.LastPosition.X.Scale,
+                Window.LastPosition.X.Offset,
+                Window.LastPosition.Y.Scale,
+                Window.LastPosition.Y.Offset + 20
+            ),
+            BackgroundTransparency = 1,
+        }, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+
+        task.delay(0.33, function()
+            if Window.IsHidden and not Window.Destroyed then
+                Main.Visible = false
+            end
+        end)
+    end
+
+    -- SHOW
+    function Window:Show()
+        if Window.Destroyed or not Window.IsHidden then return end
+        Window.IsHidden = false
+        Main.Visible = true
+
+        local Position = Window.LastPosition or Main.Position
+        Main.Position = UDim2.new(
+            Position.X.Scale, Position.X.Offset,
+            Position.Y.Scale, Position.Y.Offset + 20
+        )
+        HideScale.Scale = 0.82
+        Main.BackgroundTransparency = 1
+        BgImage.ImageTransparency = 1
+
+        PlayTween(BgImage, 0.4, {
+            ImageTransparency = HELLO.Background.Transparency
+        })
+        Main.Active = true
+        PlayTween(HideScale, 0.4, { Scale = 1 },
+            Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        PlayTween(Main, 0.4, {
+            Position = Position,
+            BackgroundTransparency = HELLO.Glass.Main,
+        }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end
+
+    -- TOGGLE VISIBILITY
+    function Window:ToggleVisibility()
+        if Window.Destroyed then return end
+        if Window.IsHidden then Window:Show() else Window:Hide() end
+    end
+
+    -- SET SIZE
+    function Window:SetSize(width, height)
+        if Window.Destroyed then return end
+        width  = math.clamp(width,  Window.MinSize.X, Window.MaxSize.X)
+        height = math.clamp(height, Window.MinSize.Y, Window.MaxSize.Y)
+        Window.Size     = Vector2.new(width, height)
+        Window.LastSize = Vector2.new(width, height)
+        PlayTween(Main, 0.25, { Size = UDim2.fromOffset(width, height) })
+    end
+
+    -- DESTROY
+    function Window:Destroy()
+        if Window.Destroyed then return end
+        Window.Destroyed = true
+
+        if FloatScale then
+            PlayTween(FloatScale, 0.2, { Scale = 0 },
+                Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        end
+        PlayTween(BgImage, 0.3, { ImageTransparency = 1 })
+
+        local tween = PlayTween(Main, 0.3, {
+            Size = UDim2.fromOffset(
+                Main.AbsoluteSize.X * 0.8,
+                Main.AbsoluteSize.Y * 0.8
+            ),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(
+                Main.Position.X.Scale,
+                Main.Position.X.Offset,
+                Main.Position.Y.Scale,
+                Main.Position.Y.Offset + 20
+            ),
+        }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+
+        tween.Completed:Connect(function()
+            if ScreenGui then ScreenGui:Destroy() end
+            if FloatGui  then FloatGui:Destroy()  end
+        end)
+    end
+
+    -- CONFIRM DIALOG (กล่องยืนยัน)
+    -- Window:Confirm({
+    --     Title, Text, ConfirmText, CancelText,
+    --     Icon = "skull" (ชื่อ Lucide หรือ rbxassetid://...),
+    --     OnConfirm = function() end,
+    --     OnCancel = function() end,
+    -- })
+    Window.ConfirmOnClose = true
+
+    function Window:Confirm(config)
+        config = config or {}
+        if Window.Destroyed or Window.ConfirmOpen then return end
+        Window.ConfirmOpen = true
+
+        local Overlay = Create("Frame", {
+            Name = "ConfirmOverlay",
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            ZIndex = 100,
+        })
+        Overlay.Parent = ScreenGui
+
+        -- พื้นมืดกั้นคลิกทะลุ
+        local Blocker = Create("TextButton", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundColor3 = Color3.new(0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "",
+            AutoButtonColor = false,
+            ZIndex = 1,
+        })
+        Blocker.Parent = Overlay
+
+        local Dialog = Create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position    = UDim2.fromScale(0.5, 0.5),
+            Size        = UDim2.fromOffset(280, 172),
+            BackgroundColor3 = HELLO.Theme.Card,
+            BackgroundTransparency = 0.02,
+            BorderSizePixel = 0,
+            ZIndex = 2,
+        })
+        Dialog.Parent = Overlay
+        AddCorner(Dialog, 16)
+        AddStroke(Dialog, HELLO.Theme.Primary, 0.35, 1.5)
+
+        local DialogScale = Instance.new("UIScale")
+        DialogScale.Scale  = 0.85
+        DialogScale.Parent = Dialog
+
+        local function Label(props)
+            props.BackgroundTransparency = 1
+            props.TextXAlignment = Enum.TextXAlignment.Center
+            local label = Create("TextLabel", props)
+            label.Parent = Dialog
+            return label
+        end
+
+        local DialogIcon = HELLO.CreateIcon(
+            config.Icon or (HELLO.Theme.IsHalloween and "skull" or "triangle-alert"),
+            {
+                Name = "DialogIcon",
+                AnchorPoint = Vector2.new(0.5, 0),
+                Position    = UDim2.new(0.5, 0, 0, 12),
+                Size        = UDim2.fromOffset(32, 32),
+                Color = HELLO.Theme.IsHalloween
+                    and HELLO.Theme.Primary or HELLO.Theme.Warning,
+                TextSize    = 28,
+                ZIndex      = 3,
+            }
+        )
+        if DialogIcon then DialogIcon.Parent = Dialog end
+
+        Label({
+            Position = UDim2.fromOffset(0, 48),
+            Size = UDim2.new(1, 0, 0, 22),
+            Text = config.Title or "ปิด UI?",
+            TextSize = 15,
+            Font = Enum.Font.GothamBold,
+            TextColor3 = HELLO.Theme.Text,
+        })
+
+        Label({
+            Position = UDim2.fromOffset(16, 72),
+            Size = UDim2.new(1, -32, 0, 36),
+            Text = config.Text or "",
+            TextSize = 12,
+            Font = Enum.Font.Gotham,
+            TextColor3 = HELLO.Theme.SubText,
+            TextWrapped = true,
+        })
+
+        local function CloseDialog(callback)
+            PlayTween(Blocker, 0.15, { BackgroundTransparency = 1 })
+            PlayTween(DialogScale, 0.15, { Scale = 0.85 },
+                Enum.EasingStyle.Back, Enum.EasingDirection.In)
+            task.delay(0.17, function()
+                Overlay:Destroy()
+                Window.ConfirmOpen = false
+                if callback and not Window.Destroyed then
+                    pcall(callback)
+                end
+            end)
+        end
+
+        local function MakeButton(text, color, x, callback)
+            local button = Create("TextButton", {
+                Position = UDim2.fromOffset(x, 122),
+                Size     = UDim2.fromOffset(118, 34),
+                BackgroundColor3 = color,
+                BackgroundTransparency = 0,
+                Text = text,
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextSize = 13,
+                Font = Enum.Font.GothamBold,
+                AutoButtonColor = false,
+                BorderSizePixel = 0,
+                ZIndex = 3,
+            })
+            button.Parent = Dialog
+            AddCorner(button, 10)
+
+            local hover = color:Lerp(Color3.new(1, 1, 1), 0.15)
+            button.MouseEnter:Connect(function()
+                PlayTween(button, 0.12, { BackgroundColor3 = hover })
+            end)
+            button.MouseLeave:Connect(function()
+                PlayTween(button, 0.12, { BackgroundColor3 = color })
+            end)
+            button.Activated:Connect(function()
+                CloseDialog(callback)
+            end)
+            return button
+        end
+
+        MakeButton(
+            config.CancelText  or "ยกเลิก",
+            HELLO.Theme.CardHover, 14,
+            config.OnCancel
+        )
+        MakeButton(
+            config.ConfirmText or "OK",
+            HELLO.Theme.Danger, 148,
+            config.OnConfirm
+        )
+
+        -- เงาเข้ม
+        PlayTween(Blocker, 0.2, { BackgroundTransparency = 0.45 })
+        PlayTween(DialogScale, 0.25, { Scale = 1 },
+            Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    end
+
+    -- BUTTON EVENTS
+    MinimizeButton.Activated:Connect(function()
+        if Window.IsHidden then return end
+        Window:Minimize(not Window.IsMinimized)
+    end)
+
+    CloseButton.Activated:Connect(function()
+        if Window.ConfirmOnClose == false then
+            Window:Destroy()
+            return
+        end
+        Window:Confirm({
+            Title = "ปิด UI?",
+            Text = "จะลบ UI ออกหรือไม่?",
+            ConfirmText = "ลบออก",
+            CancelText = "ยกเลิก",
+            OnConfirm = function() Window:Destroy() end,
+        })
+    end)
+
+    -- TAB
+    function Window:Tab(config, icon)
+        if type(config) == "table" then
+            return Window:CreateTab(
+                config.Title or config.Name or "Tab",
+                config.Icon or icon
+            )
+        end
+        return Window:CreateTab(config, icon)
+    end
+
+    -- CREATE TAB
+    function Window:CreateTab(name, icon)
+        local Tab = {}
+        Tab.Name = name or "Tab"
+        Tab.Icon = icon
+        Tab.Elements = {}
+        table.insert(Window.Tabs, Tab)
+
+        -- TAB BUTTON
+        local TabButton = Create("TextButton", {
+            Size = UDim2.new(1, 0, 0, 36),
+            BackgroundColor3 = HELLO.Theme.Sidebar,
+            BackgroundTransparency = 1,
+            Text = Tab.Name,
+            TextColor3 = HELLO.Theme.SubText,
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            AutoButtonColor = false,
+        })
+        TabButton.Parent = TabHolder
+        AddCorner(TabButton, 8)
+
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 12)
+        padding.Parent = TabButton
+
+        -- TAB ICON
+        local IconObject
+        local iconKind, iconData = ResolveIcon(Tab.Icon)
+        if iconKind then
+            padding.PaddingLeft = UDim.new(0, 38)
+            if iconKind == "image" then
+                IconObject = Create("ImageLabel", {
+                    Size = UDim2.fromOffset(18, 18),
+                    Position = UDim2.new(0, -26, 0.5, -9),
+                    BackgroundTransparency = 1,
+                    Image = iconData.Image or "",
+                    ImageRectOffset = iconData.ImageRectOffset or Vector2.zero,
+                    ImageRectSize   = iconData.ImageRectSize   or Vector2.zero,
+                    ImageColor3 = HELLO.Theme.SubText,
+                    ScaleType   = Enum.ScaleType.Fit,
+                })
+            else
+                IconObject = Create("TextLabel", {
+                    Size = UDim2.fromOffset(18, 18),
+                    Position = UDim2.new(0, -26, 0.5, -9),
+                    BackgroundTransparency = 1,
+                    Text = iconData,
+                    TextColor3 = HELLO.Theme.SubText,
+                    TextSize   = 16,
+                    Font       = Enum.Font.GothamBold,
+                })
+            end
+            IconObject.Parent = TabButton
+        end
+
+        local function SetIconColor(tab, color)
+            local obj = tab.IconObject
+            if not obj then return end
+            if obj:IsA("ImageLabel") then
+                PlayTween(obj, 0.15, { ImageColor3 = color })
+            else
+                PlayTween(obj, 0.15, { TextColor3 = color })
+            end
+        end
+        Tab.IconObject = IconObject
+
+        -- HALLOWEEN TAB ACCENT (แถบส้ม + ขอบเรืองแสงของแท็บที่เลือก)
+        do
+            if HELLO.Theme.IsHalloween then
+                local PadLeft = iconKind and 38 or 12
+                local Accent = Create("Frame", {
+                    Name = "TabAccent",
+                    Position = UDim2.new(0, -PadLeft + 3, 0.5, -9),
+                    Size = UDim2.fromOffset(3, 18),
+                    BackgroundColor3 = HELLO.Theme.Primary,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                })
+                Accent.Parent = TabButton
+                AddCorner(Accent, 2)
+
+                local Glow = AddStroke(TabButton, HELLO.Theme.Primary, 1, 1.5)
+                Glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+                Tab.Accent = Accent
+                Tab.Glow   = Glow
+            end
+        end
+
+        -- PAGE
+        local Page = Create("ScrollingFrame", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 2,
+            ScrollBarImageColor3 = HELLO.Theme.Primary,
+            CanvasSize = UDim2.new(),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            Visible = false,
+        })
+        Page.Parent = Content
+
+        local PagePadding = Instance.new("UIPadding")
+        PagePadding.PaddingTop    = UDim.new(0, 12)
+        PagePadding.PaddingBottom = UDim.new(0, 12)
+        PagePadding.PaddingLeft   = UDim.new(0, 12)
+        PagePadding.PaddingRight  = UDim.new(0, 12)
+        PagePadding.Parent = Page
+
+        local PageLayout = Instance.new("UIListLayout")
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.Parent  = Page
+
+        Tab.Button = TabButton
+        Tab.Page   = Page
+
+        -- SELECT
+        function Tab:Select()
+            for _, other in ipairs(Window.Tabs) do
+                if other.Button then
+                    PlayTween(other.Button, 0.15, {
+                        BackgroundTransparency = 1,
+                        TextColor3 = HELLO.Theme.SubText,
+                    })
+                end
+                SetIconColor(other, HELLO.Theme.SubText)
+                if other.Accent then
+                    PlayTween(other.Accent, 0.15,
+                        { BackgroundTransparency = 1 })
+                end
+                if other.Glow then
+                    PlayTween(other.Glow, 0.15, { Transparency = 1 })
+                end
+                if other.Page then
+                    other.Page.Visible = false
+                end
+            end
+
+            SetIconColor(Tab, HELLO.Theme.Text)
+            if Tab.Accent then
+                PlayTween(Tab.Accent, 0.2,
+                    { BackgroundTransparency = 0 })
+            end
+            if Tab.Glow then
+                PlayTween(Tab.Glow, 0.2, { Transparency = 0.55 })
+            end
+            PlayTween(TabButton, 0.15, {
+                BackgroundColor3 = HELLO.Theme.PrimaryDark,
+                BackgroundTransparency = 0.15,
+                TextColor3 = HELLO.Theme.Text,
+            })
+            Page.Visible = true
+        end
+
+        TabButton.Activated:Connect(function() Tab:Select() end)
+
+        -- SECTION
+        function Tab:CreateSection(text)
+            local Section = Create("TextLabel", {
+                Size = UDim2.new(1, 0, 0, 26),
+                BackgroundTransparency = 1,
+                Text = text or "Section",
+                TextColor3 = HELLO.Theme.Primary,
+                TextSize = 12,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Section.Parent = Page
+            return Section
+        end
+
+        -- LABEL
+        function Tab:CreateLabel(text)
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, 0, 0, 30),
+                BackgroundTransparency = 1,
+                Text = text or "",
+                TextColor3 = HELLO.Theme.SubText,
+                TextSize = 12,
+                Font = Enum.Font.Gotham,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = Page
+            return Label
+        end
+
+        -- CARD
+        function Tab:CreateCard(config)
+            config = config or {}
+            local Card = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, config.Height or 80),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Card.Parent = Page
+            AddCorner(Card, HELLO.Corners.Element)
+            AddStroke(Card, HELLO.Theme.Primary, 0.8, 1)
+            return Card
+        end
+
+        -- BUTTON
+        -- Config:
+        --   Icon / Image = Lucide icon, glyph, asset ID, หรือ image URL
+        --   Description = บรรทัดที่สอง (ไม่บังคับ)
+        --   Arrow = แสดงลูกศรด้านขวา (default true)
+        function Tab:CreateButton(config)
+            config = config or {}
+            local iconValue = config.Icon or config.Image or config.IconName
+            local description = config.Description or config.Subtitle
+            local hasDescription = description ~= nil and tostring(description) ~= ""
+            local showArrow = config.Arrow ~= false
+            local height = config.Height or (hasDescription and 62 or 50)
+            local textX = iconValue and 46 or 14
+            local rightReserve = showArrow and 48 or 14
+
+            local ButtonFrame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, height),
+                BackgroundColor3 = HELLO.Theme.Card,
+                ClipsDescendants = true,
+            })
+            ButtonFrame.Parent = Page
+            AddCorner(ButtonFrame, HELLO.Corners.Element)
+            AddStroke(ButtonFrame, HELLO.Theme.Primary, 0.88, 1)
+
+            local Button = Create("TextButton", {
+                Name = "ActionButton",
+                Size = UDim2.fromScale(1, 1),
+                BackgroundTransparency = 1,
+                Text = "",
+                AutoButtonColor = false,
+                ZIndex = 2,
+            })
+            Button.Parent = ButtonFrame
+
+            if iconValue ~= nil and iconValue ~= "" then
+                local Icon = HELLO.CreateIcon(iconValue, {
+                    Name = "ButtonIcon",
+                    Size = UDim2.fromOffset(
+                        config.IconSize or 20,
+                        config.IconSize or 20
+                    ),
+                    Position = UDim2.new(0, 14, 0.5, 0),
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Color = config.IconColor or Color3.new(1, 1, 1),
+                    ZIndex = 4,
+                })
+                if Icon then Icon.Parent = Button end
+            end
+
+            if hasDescription then
+                local Title = Create("TextLabel", {
+                    Name = "ButtonTitle",
+                    Position = UDim2.new(0, textX, 0, 8),
+                    Size = UDim2.new(1, -(textX + rightReserve), 0, 21),
+                    BackgroundTransparency = 1,
+                    Text = tostring(config.Name or "Button"),
+                    TextColor3 = config.TextColor or HELLO.Theme.Text,
+                    TextSize = config.TextSize or 13,
+                    Font = Enum.Font.GothamSemibold,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 4,
+                })
+                Title.Parent = Button
+
+                local Detail = Create("TextLabel", {
+                    Name = "ButtonDescription",
+                    Position = UDim2.new(0, textX, 0, 31),
+                    Size = UDim2.new(1, -(textX + rightReserve), 0, 18),
+                    BackgroundTransparency = 1,
+                    Text = tostring(description),
+                    TextColor3 = config.DescriptionColor or HELLO.Theme.SubText,
+                    TextSize = config.DescriptionTextSize or 11,
+                    Font = Enum.Font.Gotham,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 4,
+                })
+                Detail.Parent = Button
+            else
+                local Title = Create("TextLabel", {
+                    Name = "ButtonTitle",
+                    Position = UDim2.new(0, textX, 0, 0),
+                    Size = UDim2.new(1, -(textX + rightReserve), 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = tostring(config.Name or "Button"),
+                    TextColor3 = config.TextColor or HELLO.Theme.Text,
+                    TextSize = config.TextSize or 13,
+                    Font = Enum.Font.GothamSemibold,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 4,
+                })
+                Title.Parent = Button
+            end
+
+            if showArrow then
+                local ArrowBadge = Create("Frame", {
+                    Name = "ClickIndicator",
+                    Size = UDim2.fromOffset(28, 28),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BackgroundTransparency = 0.9,
+                    ZIndex = 3,
+                })
+                ArrowBadge.Parent = Button
+                AddCorner(ArrowBadge, 14)
+
+                local Arrow = Create("TextLabel", {
+                    Name = "ClickArrow",
+                    Size = UDim2.fromScale(1, 1),
+                    BackgroundTransparency = 1,
+                    Text = tostring(config.ArrowText or "›"),
+                    TextColor3 = config.ArrowColor or Color3.new(1, 1, 1),
+                    TextSize = config.ArrowTextSize or 24,
+                    Font = Enum.Font.GothamMedium,
+                    TextXAlignment = Enum.TextXAlignment.Center,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    ZIndex = 4,
+                })
+                Arrow.Parent = ArrowBadge
+            end
+
+            Button.Activated:Connect(function()
+                if config.Callback then
+                    task.spawn(config.Callback)
+                end
+            end)
+            Button.MouseEnter:Connect(function()
+                PlayTween(ButtonFrame, 0.15, {
+                    BackgroundColor3 = HELLO.Theme.CardHover,
+                })
+            end)
+            Button.MouseLeave:Connect(function()
+                PlayTween(ButtonFrame, 0.15, {
+                    BackgroundColor3 = HELLO.Theme.Card,
+                })
+            end)
+
+            return ButtonFrame
+        end
+
+        -- TOGGLE
+        function Tab:CreateToggle(config)
+            config = config or {}
+            local state = config.Default or false
+            local iconValue = config.Icon or config.Image or config.IconName
+            local description = config.Description or config.Subtitle
+            local hasDescription = description ~= nil and tostring(description) ~= ""
+            local height = config.Height or (hasDescription and 62 or 50)
+            local textX = iconValue and 46 or 14
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, height),
+                BackgroundColor3 = HELLO.Theme.Card,
+                ClipsDescendants = true,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+            AddStroke(Frame, HELLO.Theme.Primary, 0.9, 1)
+
+            if iconValue ~= nil and iconValue ~= "" then
+                local Icon = HELLO.CreateIcon(iconValue, {
+                    Name = "ToggleIcon",
+                    Size = UDim2.fromOffset(
+                        config.IconSize or 20,
+                        config.IconSize or 20
+                    ),
+                    Position = UDim2.new(0, 14, 0.5, 0),
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Color = config.IconColor or Color3.new(1, 1, 1),
+                    ZIndex = 3,
+                })
+                if Icon then Icon.Parent = Frame end
+            end
+
+            local labelRightReserve = 80
+            if hasDescription then
+                local Label = Create("TextLabel", {
+                    Name = "ToggleTitle",
+                    Position = UDim2.new(0, textX, 0, 7),
+                    Size = UDim2.new(1, -(textX + labelRightReserve), 0, 22),
+                    BackgroundTransparency = 1,
+                    Text = tostring(config.Name or "Toggle"),
+                    TextColor3 = config.TextColor or HELLO.Theme.Text,
+                    TextSize = config.TextSize or 13,
+                    Font = Enum.Font.GothamSemibold,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 3,
+                })
+                Label.Parent = Frame
+
+                local Detail = Create("TextLabel", {
+                    Name = "ToggleDescription",
+                    Position = UDim2.new(0, textX, 0, 31),
+                    Size = UDim2.new(1, -(textX + labelRightReserve), 0, 17),
+                    BackgroundTransparency = 1,
+                    Text = tostring(description),
+                    TextColor3 = config.DescriptionColor or HELLO.Theme.SubText,
+                    TextSize = config.DescriptionTextSize or 11,
+                    Font = Enum.Font.Gotham,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 3,
+                })
+                Detail.Parent = Frame
+            else
+                local Label = Create("TextLabel", {
+                    Name = "ToggleTitle",
+                    Position = UDim2.new(0, textX, 0, 0),
+                    Size = UDim2.new(1, -(textX + labelRightReserve), 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = tostring(config.Name or "Toggle"),
+                    TextColor3 = config.TextColor or HELLO.Theme.Text,
+                    TextSize = config.TextSize or 13,
+                    Font = Enum.Font.GothamSemibold,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 3,
+                })
+                Label.Parent = Frame
+            end
+
+            local Toggle = Create("TextButton", {
+                Name = "Switch",
+                Size = UDim2.fromOffset(44, 24),
+                Position = UDim2.new(1, -14, 0.5, 0),
+                AnchorPoint = Vector2.new(1, 0.5),
+                BackgroundColor3 = state
+                    and HELLO.Theme.Primary or HELLO.Theme.ToggleOff,
+                Text = "",
+                AutoButtonColor = false,
+                ZIndex = 3,
+            })
+            Toggle.Parent = Frame
+            AddCorner(Toggle, 12)
+
+            local Circle = Create("Frame", {
+                Size = UDim2.fromOffset(18, 18),
+                Position = state
+                    and UDim2.new(1, -21, 0.5, -9)
+                    or  UDim2.new(0, 3, 0.5, -9),
+                BackgroundColor3 = Color3.new(1, 1, 1),
+                ZIndex = 4,
+            })
+            Circle.Parent = Toggle
+            AddCorner(Circle, 20)
+
+            local function Update()
+                PlayTween(Toggle, 0.18, {
+                    BackgroundColor3 = state
+                        and HELLO.Theme.Primary or HELLO.Theme.ToggleOff,
+                })
+                PlayTween(Circle, 0.18, {
+                    Position = state
+                        and UDim2.new(1, -21, 0.5, -9)
+                        or  UDim2.new(0, 3, 0.5, -9),
+                })
+                if config.Callback then
+                    task.spawn(config.Callback, state)
+                end
+            end
+
+            Toggle.Activated:Connect(function()
+                state = not state
+                Update()
+            end)
+
+            return {
+                Set = function(_, value)
+                    state = value and true or false
+                    Update()
+                end,
+                Get = function() return state end,
+            }
+        end
+
+        -- SLIDER
+        function Tab:CreateSlider(config)
+            config = config or {}
+            local min   = config.Min or 0
+            local max   = config.Max or 100
+            local value = math.clamp(config.Default or min, min, max)
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 65),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, -80, 0, 24),
+                Position = UDim2.fromOffset(14, 5),
+                BackgroundTransparency = 1,
+                Text = config.Name or "Slider",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = Frame
+
+            local ValueLabel = Create("TextLabel", {
+                Size = UDim2.fromOffset(60, 24),
+                Position = UDim2.new(1, -72, 0, 5),
+                BackgroundTransparency = 1,
+                Text = tostring(value),
+                TextColor3 = HELLO.Theme.Primary,
+                TextSize = 12,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Right,
+            })
+            ValueLabel.Parent = Frame
+
+            local Bar = Create("Frame", {
+                Size = UDim2.new(1, -28, 0, 6),
+                Position = UDim2.fromOffset(14, 43),
+                BackgroundColor3 = HELLO.Theme.ToggleOff,
+            })
+            Bar.Parent = Frame
+            AddCorner(Bar, 6)
+
+            local Fill = Create("Frame", {
+                Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
+                BackgroundColor3 = HELLO.Theme.Primary,
+            })
+            Fill.Parent = Bar
+            AddCorner(Fill, 6)
+
+            local Hitbox = Create("TextButton", {
+                Size = UDim2.new(1, 0, 0, 24),
+                Position = UDim2.new(0, 0, 0.5, -12),
+                BackgroundTransparency = 1,
+                Text = "",
+                AutoButtonColor = false,
+            })
+            Hitbox.Parent = Bar
+
+            local sliding = false
+            local function SetValue(newValue)
+                value = math.clamp(newValue, min, max)
+                local percent = (value - min) / (max - min)
+                Fill.Size = UDim2.new(percent, 0, 1, 0)
+                ValueLabel.Text = tostring(math.floor(value))
+                if config.Callback then
+                    task.spawn(config.Callback, value)
+                end
+            end
+
+            Hitbox.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    sliding = true
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    sliding = false
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if not sliding then return end
+                if input.UserInputType == Enum.UserInputType.MouseMovement
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    local percent = math.clamp(
+                        (input.Position.X - Bar.AbsolutePosition.X)
+                        / Bar.AbsoluteSize.X,
+                        0, 1
+                    )
+                    SetValue(min + (max - min) * percent)
+                end
+            end)
+
+            return {
+                Set = function(_, newValue) SetValue(newValue) end,
+                Get = function() return value end,
+            }
+        end
+
+        -- INPUT
+        function Tab:CreateInput(config)
+            config = config or {}
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 70),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            AddFieldLabel(Frame, config.Name, config.Description)
+
+            local Input = Create("TextBox", {
+                Size = UDim2.new(1, -28, 1, -32),
+                Position = UDim2.fromOffset(14, 26),
+                BackgroundColor3 = HELLO.Theme.Background,
+                Text = config.Default or "",
+                PlaceholderText = config.Placeholder or "Enter text...",
+                PlaceholderColor3 = HELLO.Theme.SubText,
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.Gotham,
+                ClearTextOnFocus = false,
+            })
+            Input.Parent = Frame
+            AddCorner(Input, HELLO.Corners.Inner)
+
+            Input.FocusLost:Connect(function()
+                if config.Callback then
+                    task.spawn(config.Callback, Input.Text)
+                end
+            end)
+            return Input
+        end
+
+        -- DROPDOWN
+        function Tab:CreateDropdown(config)
+            config = config or {}
+            local options  = config.Options or {}
+            local selected = config.Default or options[1] or "Select"
+            local open     = false
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 48),
+                BackgroundColor3 = HELLO.Theme.Card,
+                ClipsDescendants = true,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            local Button = Create("TextButton", {
+                Size = UDim2.new(1, -20, 0, 48),
+                Position = UDim2.fromOffset(10, 0),
+                BackgroundTransparency = 1,
+                Text = tostring(selected) .. "  \u{25BC}",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                AutoButtonColor = false,
+            })
+            Button.Parent = Frame
+
+            local OptionButtons = {}
+            local function Refresh()
+                Button.Text = tostring(selected) .. "  "
+                    .. (open and "\u{25B2}" or "\u{25BC}")
+            end
+
+            for index, option in ipairs(options) do
+                local Option = Create("TextButton", {
+                    Name = "Option_" .. index,
+                    Size = UDim2.new(1, -20, 0, 30),
+                    Position = UDim2.fromOffset(10, 48 + (index - 1) * 34),
+                    BackgroundColor3 = HELLO.Theme.Background,
+                    Text = tostring(option),
+                    TextColor3 = HELLO.Theme.SubText,
+                    TextSize = 11,
+                    Font = Enum.Font.Gotham,
+                    AutoButtonColor = false,
+                    Visible = false,
+                })
+                Option.Parent = Frame
+                AddCorner(Option, HELLO.Corners.Inner)
+                OptionButtons[index] = Option
+
+                Option.Activated:Connect(function()
+                    selected = option
+                    open = false
+                    for _, item in ipairs(OptionButtons) do
+                        item.Visible = false
+                    end
+                    PlayTween(Frame, 0.2, { Size = UDim2.new(1, 0, 0, 48) })
+                    Refresh()
+                    if config.Callback then
+                        task.spawn(config.Callback, selected)
+                    end
+                end)
+            end
+
+            Button.Activated:Connect(function()
+                open = not open
+                for _, item in ipairs(OptionButtons) do
+                    item.Visible = open
+                end
+                local height = open and (48 + #options * 34) or 48
+                PlayTween(Frame, 0.2, { Size = UDim2.new(1, 0, 0, height) })
+                Refresh()
+            end)
+
+            return {
+                Set = function(_, value)
+                    selected = value
+                    Refresh()
+                end,
+                Get = function() return selected end,
+            }
+        end
+
+        -- MULTI DROPDOWN
+        function Tab:CreateMultiDropdown(config)
+            config = config or {}
+            local options  = config.Options or {}
+            local selected = {}
+            for _, value in ipairs(config.Default or {}) do
+                selected[value] = true
+            end
+            local open = false
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 48),
+                BackgroundColor3 = HELLO.Theme.Card,
+                ClipsDescendants = true,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            local Button = Create("TextButton", {
+                Size = UDim2.new(1, -20, 0, 48),
+                Position = UDim2.fromOffset(10, 0),
+                BackgroundTransparency = 1,
+                Text = "Selected: 0  \u{25BC}",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                AutoButtonColor = false,
+            })
+            Button.Parent = Frame
+
+            local OptionButtons = {}
+            local function Refresh()
+                local count = 0
+                for _, state in pairs(selected) do
+                    if state then count += 1 end
+                end
+                Button.Text = "Selected: " .. count .. "  "
+                    .. (open and "\u{25B2}" or "\u{25BC}")
+            end
+
+            for index, option in ipairs(options) do
+                local Option = Create("TextButton", {
+                    Name = "Multi_" .. index,
+                    Size = UDim2.new(1, -20, 0, 30),
+                    Position = UDim2.fromOffset(10, 48 + (index - 1) * 34),
+                    BackgroundColor3 = HELLO.Theme.Background,
+                    Text = tostring(option),
+                    TextColor3 = HELLO.Theme.SubText,
+                    TextSize = 11,
+                    Font = Enum.Font.Gotham,
+                    AutoButtonColor = false,
+                    Visible = false,
+                })
+                Option.Parent = Frame
+                AddCorner(Option, HELLO.Corners.Inner)
+                OptionButtons[index] = Option
+
+                Option.Activated:Connect(function()
+                    selected[option] = not selected[option]
+                    Option.Text = selected[option]
+                        and ("\u{2713} " .. tostring(option))
+                        or  tostring(option)
+                    Refresh()
+
+                    if config.Callback then
+                        local result = {}
+                        for value, state in pairs(selected) do
+                            if state then table.insert(result, value) end
+                        end
+                        task.spawn(config.Callback, result)
+                    end
+                end)
+            end
+
+            Button.Activated:Connect(function()
+                open = not open
+                for _, item in ipairs(OptionButtons) do
+                    item.Visible = open
+                end
+                local height = open and (48 + #options * 34) or 48
+                PlayTween(Frame, 0.2, { Size = UDim2.new(1, 0, 0, height) })
+                Refresh()
+            end)
+
+            Refresh()
+
+            return {
+                Get = function()
+                    local result = {}
+                    for value, state in pairs(selected) do
+                        if state then table.insert(result, value) end
+                    end
+                    return result
+                end,
+            }
+        end
+
+        -- COLOR PICKER
+        function Tab:CreateColorPicker(config)
+            config = config or {}
+            local value = config.Default or HELLO.Theme.Primary
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 48),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, -70, 1, 0),
+                Position = UDim2.fromOffset(14, 0),
+                BackgroundTransparency = 1,
+                Text = config.Name or "Color",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = Frame
+
+            local ColorButton = Create("TextButton", {
+                Size = UDim2.fromOffset(38, 28),
+                Position = UDim2.new(1, -50, 0.5, -14),
+                BackgroundColor3 = value,
+                Text = "",
+                AutoButtonColor = false,
+            })
+            ColorButton.Parent = Frame
+            AddCorner(ColorButton, HELLO.Corners.Inner)
+
+            return {
+                Set = function(_, color)
+                    if typeof(color) ~= "Color3" then return end
+                    value = color
+                    ColorButton.BackgroundColor3 = color
+                    if config.Callback then
+                        task.spawn(config.Callback, color)
+                    end
+                end,
+                Get = function() return value end,
+            }
+        end
+
+        -- KEYBIND
+        function Tab:CreateKeybind(config)
+            config = config or {}
+            local key = config.Default or Enum.KeyCode.RightShift
+            local listening = false
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 48),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, -110, 1, 0),
+                Position = UDim2.fromOffset(14, 0),
+                BackgroundTransparency = 1,
+                Text = config.Name or "Keybind",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = Frame
+
+            local KeyButton = Create("TextButton", {
+                Size = UDim2.fromOffset(80, 30),
+                Position = UDim2.new(1, -90, 0.5, -15),
+                BackgroundColor3 = HELLO.Theme.Background,
+                Text = key.Name,
+                TextColor3 = HELLO.Theme.Primary,
+                TextSize = 11,
+                Font = Enum.Font.GothamBold,
+                AutoButtonColor = false,
+            })
+            KeyButton.Parent = Frame
+            AddCorner(KeyButton, HELLO.Corners.Inner)
+
+            KeyButton.Activated:Connect(function()
+                listening = true
+                KeyButton.Text = "Press Key..."
+            end)
+
+            UserInputService.InputBegan:Connect(function(input, processed)
+                if listening then
+                    if input.KeyCode ~= Enum.KeyCode.Unknown then
+                        key = input.KeyCode
+                        KeyButton.Text = key.Name
+                        listening = false
+                    end
+                    return
+                end
+                if processed then return end
+                if input.KeyCode == key then
+                    if config.Callback then
+                        task.spawn(config.Callback, key)
+                    end
+                end
+            end)
+
+            return {
+                Set = function(_, newKey)
+                    if typeof(newKey) == "EnumItem" then
+                        key = newKey
+                        KeyButton.Text = key.Name
+                    end
+                end,
+                Get = function() return key end,
+            }
+        end
+
+        -- STATUS
+        function Tab:CreateStatus(config)
+            config = config or {}
+            local StatusFrame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 46),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            StatusFrame.Parent = Page
+            AddCorner(StatusFrame, HELLO.Corners.Element)
+
+            local Dot = Create("Frame", {
+                Size = UDim2.fromOffset(10, 10),
+                Position = UDim2.fromOffset(15, 18),
+                BackgroundColor3 = config.Color or HELLO.Theme.Success,
+            })
+            Dot.Parent = StatusFrame
+            AddCorner(Dot, 20)
+
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, -45, 1, 0),
+                Position = UDim2.fromOffset(35, 0),
+                BackgroundTransparency = 1,
+                Text = config.Text or "Online",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = StatusFrame
+
+            task.spawn(function()
+                while StatusFrame.Parent do
+                    PlayTween(Dot, 0.6,
+                        { Size = UDim2.fromOffset(13, 13) }).Completed:Wait()
+                    PlayTween(Dot, 0.6,
+                        { Size = UDim2.fromOffset(10, 10) }).Completed:Wait()
+                end
+            end)
+
+            return {
+                Set = function(_, text, color)
+                    Label.Text = text or Label.Text
+                    if color then Dot.BackgroundColor3 = color end
+                end,
+                Get = function() return Label.Text end,
+            }
+        end
+
+        -- FEATURE CARD
+        function Tab:CreateFeatureCard(config)
+            config = config or {}
+            local Card = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, config.Height or 82),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Card.Parent = Page
+            AddCorner(Card, HELLO.Corners.Element)
+
+            local Stroke = AddStroke(Card,
+                config.Color or HELLO.Theme.Primary, 0.55, 1)
+
+            local Icon = Create("TextLabel", {
+                Size = UDim2.fromOffset(46, 46),
+                Position = UDim2.fromOffset(12, 18),
+                BackgroundColor3 = config.Color or HELLO.Theme.PrimaryDark,
+                Text = config.Icon or "\u{2605}",
+                TextColor3 = Color3.new(1, 1, 1),
+                TextSize = 20,
+                Font = Enum.Font.GothamBold,
+            })
+            Icon.Parent = Card
+            AddCorner(Icon, HELLO.Corners.Inner)
+
+            local TitleLabel = Create("TextLabel", {
+                Size = UDim2.new(1, -80, 0, 24),
+                Position = UDim2.fromOffset(70, 12),
+                BackgroundTransparency = 1,
+                Text = config.Title or "Feature",
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 13,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            TitleLabel.Parent = Card
+
+            local Description = Create("TextLabel", {
+                Size = UDim2.new(1, -80, 0, 34),
+                Position = UDim2.fromOffset(70, 36),
+                BackgroundTransparency = 1,
+                Text = config.Description or "",
+                TextColor3 = HELLO.Theme.SubText,
+                TextSize = 10,
+                Font = Enum.Font.Gotham,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Top,
+            })
+            Description.Parent = Card
+
+            if config.Glow ~= false then
+                HELLO.Effects:Glow(Card, config.Color or HELLO.Theme.Primary)
+            end
+
+            return {
+                Frame = Card,
+                SetTitle = function(_, text) TitleLabel.Text = text end,
+                SetDescription = function(_, text) Description.Text = text end,
+            }
+        end
+
+        -- PROFILE CARD
+        function Tab:CreateProfileCard(config)
+            config = config or {}
+            config.Height = config.Height or 150
+            return Tab:CreateInfoCard(config)
+        end
+
+        -- INFO CARD
+        function Tab:CreateInfoCard(config)
+            config = config or {}
+            local Height = config.Height or 185
+
+            local Card = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, Height),
+                BackgroundColor3 = HELLO.Theme.Card,
+                ClipsDescendants = true,
+            })
+            Card.Parent = Page
+            AddCorner(Card, HELLO.Corners.Element)
+
+            local Stroke = AddStroke(Card, HELLO.Theme.Primary, 0.3, 1.3)
+
+            local TopGradient = Instance.new("UIGradient")
+            TopGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0,   HELLO.Theme.PrimaryDark),
+                ColorSequenceKeypoint.new(0.5, HELLO.Theme.Primary),
+                ColorSequenceKeypoint.new(1,   HELLO.Theme.PrimaryDark),
+            })
+            TopGradient.Rotation = 0
+            TopGradient.Parent   = Stroke
+
+            local AvatarFrame = Create("Frame", {
+                Size = UDim2.fromOffset(78, 78),
+                Position = UDim2.fromOffset(14, 14),
+                BackgroundColor3 = HELLO.Theme.Background,
+            })
+            AvatarFrame.Parent = Card
+            AddCorner(AvatarFrame, 14)
+            AddStroke(AvatarFrame, HELLO.Theme.Primary, 0.1, 1.5)
+
+            local BigAvatar = Create("ImageLabel", {
+                Size = UDim2.new(1, -6, 1, -6),
+                Position = UDim2.fromOffset(3, 3),
+                BackgroundTransparency = 1,
+                Image = "rbxthumb://type=AvatarHeadShot&id="
+                    .. LocalPlayer.UserId .. "&w=180&h=180",
+            })
+            BigAvatar.Parent = AvatarFrame
+            AddCorner(BigAvatar, 12)
+
+            local NameLabel = Create("TextLabel", {
+                Size = UDim2.new(1, -115, 0, 24),
+                Position = UDim2.fromOffset(105, 16),
+                BackgroundTransparency = 1,
+                Text = LocalPlayer.DisplayName,
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 15,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+            })
+            NameLabel.Parent = Card
+
+            local UserLabel = Create("TextLabel", {
+                Size = UDim2.new(1, -115, 0, 20),
+                Position = UDim2.fromOffset(105, 40),
+                BackgroundTransparency = 1,
+                Text = "@" .. LocalPlayer.Name,
+                TextColor3 = HELLO.Theme.SubText,
+                TextSize = 10,
+                Font = Enum.Font.Gotham,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+            })
+            UserLabel.Parent = Card
+
+            local LiveDot = Create("Frame", {
+                Size = UDim2.fromOffset(8, 8),
+                Position = UDim2.fromOffset(106, 68),
+                BackgroundColor3 = HELLO.Theme.Success,
+            })
+            LiveDot.Parent = Card
+            AddCorner(LiveDot, 20)
+
+            local LiveText = Create("TextLabel", {
+                Size = UDim2.new(1, -125, 0, 18),
+                Position = UDim2.fromOffset(120, 63),
+                BackgroundTransparency = 1,
+                Text = "HELLO ONLINE",
+                TextColor3 = HELLO.Theme.Success,
+                TextSize = 9,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            LiveText.Parent = Card
+
+            local Divider = Create("Frame", {
+                Size = UDim2.new(1, -28, 0, 1),
+                Position = UDim2.fromOffset(14, 101),
+                BackgroundColor3 = HELLO.Theme.ToggleOff,
+                BackgroundTransparency = 0.4,
+                BorderSizePixel = 0,
+            })
+            Divider.Parent = Card
+
+            local InfoLabel = Create("TextLabel", {
+                Size = UDim2.new(1, -28, 0, 48),
+                Position = UDim2.fromOffset(14, 108),
+                BackgroundTransparency = 1,
+                Text = "",
+                TextColor3 = HELLO.Theme.SubText,
+                TextSize = 9,
+                Font = Enum.Font.Gotham,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Top,
+            })
+            InfoLabel.Parent = Card
+
+            local Performance = Create("TextLabel", {
+                Size = UDim2.new(1, -28, 0, 20),
+                Position = UDim2.new(0, 14, 1, -25),
+                BackgroundTransparency = 1,
+                Text = "\u{1F4F6} FPS: --   \u{2022}   Ping: -- ms",
+                TextColor3 = HELLO.Theme.Primary,
+                TextSize = 10,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Performance.Parent = Card
+
+            local GameName = GetGameName()
+            local function UpdateInfo()
+                InfoLabel.Text = "\u{1F4E6} HELLO v" .. HELLO.Version
+                    .. "\n"
+                    .. "\u{1F194} User ID: " .. tostring(LocalPlayer.UserId)
+                    .. "    \u{1F3AE} " .. tostring(GameName)
+                    .. "\n"
+                    .. "\u{1F194} Place: " .. tostring(game.PlaceId)
+                    .. "    \u{1F5A5}\u{FE0F} Job: "
+                    .. tostring(string.sub(game.JobId, 1, 18)) .. "..."
+            end
+            UpdateInfo()
+
+            local Frames    = 0
+            local FPS       = 0
+            local LastTime  = os.clock()
+            local FPSConnection
+            FPSConnection = RunService.RenderStepped:Connect(function()
+                if not Card.Parent then
+                    if FPSConnection then FPSConnection:Disconnect() end
+                    return
+                end
+                Frames += 1
+                local Now = os.clock()
+                if Now - LastTime >= 1 then
+                    FPS      = Frames
+                    Frames   = 0
+                    LastTime = Now
+                    local Ping = GetPing()
+                    Performance.Text = "\u{1F4F6} FPS: " .. tostring(FPS)
+                        .. "   \u{2022}   Ping: " .. tostring(Ping) .. " ms"
+                end
+            end)
+
+            task.spawn(function()
+                while Card.Parent do
+                    PlayTween(LiveDot, 0.6,
+                        { BackgroundTransparency = 0.7 }).Completed:Wait()
+                    PlayTween(LiveDot, 0.6,
+                        { BackgroundTransparency = 0 }).Completed:Wait()
+                end
+            end)
+
+            if config.Fire ~= false then
+                HELLO.Effects:Fire(Card)
+            end
+            if config.Glow ~= false then
+                HELLO.Effects:Glow(Card)
+            end
+
+            return {
+                Frame = Card,
+                Avatar = BigAvatar,
+                Name = NameLabel,
+                Info = InfoLabel,
+                Performance = Performance,
+                Update = UpdateInfo,
+            }
+        end
+
+        -- SEARCH BOX
+        function Tab:CreateSearchBox(config)
+            config = config or {}
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 66),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            AddFieldLabel(Frame, config.Name or "Search", config.Description)
+
+            local Input = Create("TextBox", {
+                Size = UDim2.new(1, -28, 1, -32),
+                Position = UDim2.fromOffset(14, 26),
+                BackgroundColor3 = HELLO.Theme.Background,
+                Text = "",
+                PlaceholderText = config.Placeholder
+                    or "\u{1F50D} ค้นหาเมนู...",
+                PlaceholderColor3 = HELLO.Theme.SubText,
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 11,
+                Font = Enum.Font.Gotham,
+                ClearTextOnFocus = false,
+            })
+            Input.Parent = Frame
+            AddCorner(Input, HELLO.Corners.Inner)
+
+            local function Search(Query)
+                Query = string.lower(Query or "")
+                for _, Child in ipairs(Page:GetChildren()) do
+                    if Child ~= Frame
+                        and Child:IsA("GuiObject")
+                        and not Child:IsA("UIListLayout")
+                        and not Child:IsA("UIPadding") then
+                        if Query == "" then
+                            Child.Visible = true
+                        else
+                            local Name = string.lower(Child.Name or "")
+                            local Text = ""
+                            pcall(function()
+                                Text = string.lower(Child.Text or "")
+                            end)
+                            Child.Visible =
+                                string.find(Name, Query, 1, true) ~= nil
+                                or string.find(Text, Query, 1, true) ~= nil
+                        end
+                    end
+                end
+            end
+
+            Input:GetPropertyChangedSignal("Text"):Connect(function()
+                Search(Input.Text)
+                if config.Callback then
+                    task.spawn(config.Callback, Input.Text)
+                end
+            end)
+            return Input
+        end
+
+        -- COMMAND BOX
+        function Tab:CreateCommandBox(config)
+            config = config or {}
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 72),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, HELLO.Corners.Element)
+
+            AddFieldLabel(Frame, config.Name or "Command", config.Description)
+
+            local Input = Create("TextBox", {
+                Size = UDim2.new(1, -85, 1, -34),
+                Position = UDim2.fromOffset(10, 28),
+                BackgroundColor3 = HELLO.Theme.Background,
+                Text = "",
+                PlaceholderText = config.Placeholder or ":help",
+                PlaceholderColor3 = HELLO.Theme.SubText,
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 11,
+                Font = Enum.Font.Code,
+                ClearTextOnFocus = false,
+            })
+            Input.Parent = Frame
+            AddCorner(Input, HELLO.Corners.Inner)
+
+            local RunButton = Create("TextButton", {
+                Size = UDim2.fromOffset(62, 38),
+                Position = UDim2.new(1, -72, 0, 28),
+                BackgroundColor3 = HELLO.Theme.PrimaryDark,
+                Text = "RUN",
+                TextColor3 = Color3.new(1, 1, 1),
+                TextSize = 10,
+                Font = Enum.Font.GothamBold,
+                AutoButtonColor = false,
+            })
+            RunButton.Parent = Frame
+            AddCorner(RunButton, HELLO.Corners.Inner)
+
+            local function Execute()
+                local Command = Input.Text
+                if Command == "" then return end
+                if config.Callback then
+                    task.spawn(config.Callback, Command)
+                end
+            end
+
+            RunButton.Activated:Connect(Execute)
+            Input.FocusLost:Connect(function(EnterPressed)
+                if EnterPressed then Execute() end
+            end)
+
+            return {
+                Input = Input,
+                Run   = Execute,
+                Get   = function() return Input.Text end,
+                Set   = function(_, Text) Input.Text = tostring(Text or "") end,
+            }
+        end
+
+        return Tab
+    end
+
+    -- FLOATING GUI
+    local FloatGui = Create("ScreenGui", {
+        Name = "HELLO_Floating",
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    FloatGui.Parent = GetParent()
+    Window.FloatGui = FloatGui
+
+    -- FLOATING BUTTON
+    local FloatButton = Create("ImageButton", {
+        Name = "ToggleButton",
+        Size = UDim2.fromOffset(58, 58),
+        Position = UDim2.new(0, 20, 0.5, -29),
+        BackgroundColor3 = HELLO.Theme.FloatBg,
+        BackgroundTransparency = 0.05,
+        Image = "rbxassetid://<YOUR_FLOAT_ICON_ID>",
+        ScaleType = Enum.ScaleType.Fit,
+        AutoButtonColor = false,
+    })
+    FloatButton.Parent = FloatGui
+    AddCorner(FloatButton, 12)
+
+    local FloatGlowStroke = AddStroke(FloatButton,
+        HELLO.Theme.FloatEdge1, 0.66, 6)
+    local FloatStroke = AddStroke(FloatButton,
+        Color3.fromRGB(255, 255, 255), 0, 2)
+
+    -- ขอบปุ่มลอยมีมิติ: ไล่สีขอบอ่อน-สว่างสลับกัน
+    local FloatGradient = Instance.new("UIGradient")
+    FloatGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,    HELLO.Theme.FloatEdge1),
+        ColorSequenceKeypoint.new(0.28, HELLO.Theme.FxWhite),
+        ColorSequenceKeypoint.new(0.58, HELLO.Theme.FloatEdge2),
+        ColorSequenceKeypoint.new(0.82, HELLO.Theme.FxWhite),
+        ColorSequenceKeypoint.new(1,    HELLO.Theme.FloatEdge1),
+    })
+    FloatGradient.Parent = FloatStroke
+
+    local FloatGlowGradient = Instance.new("UIGradient")
+    FloatGlowGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   HELLO.Theme.FloatEdge2),
+        ColorSequenceKeypoint.new(0.5, HELLO.Theme.FxWhite),
+        ColorSequenceKeypoint.new(1,   HELLO.Theme.FloatEdge1),
+    })
+    FloatGlowGradient.Parent = FloatGlowStroke
+
+    task.spawn(function()
+        while FloatButton.Parent and not Window.Destroyed do
+            FloatGradient.Rotation     = 0
+            FloatGlowGradient.Rotation = 180
+
+            local edgeSpin = TweenService:Create(
+                FloatGradient,
+                TweenInfo.new(2.8, Enum.EasingStyle.Linear),
+                { Rotation = 360 }
+            )
+            local haloSpin = TweenService:Create(
+                FloatGlowGradient,
+                TweenInfo.new(4.2, Enum.EasingStyle.Linear),
+                { Rotation = 540 }
+            )
+            local haloPulse = TweenService:Create(
+                FloatGlowStroke,
+                TweenInfo.new(
+                    1.4, Enum.EasingStyle.Sine,
+                    Enum.EasingDirection.InOut, 1, true
+                ),
+                { Transparency = 0.82, Thickness = 6.5 }
+            )
+            edgeSpin:Play()
+            haloSpin:Play()
+            haloPulse:Play()
+            edgeSpin.Completed:Wait()
+        end
+    end)
+
+    local FloatScale = Instance.new("UIScale")
+    FloatScale.Scale  = 1
+    FloatScale.Parent = FloatButton
+    Window.FloatButton = FloatButton
+
+    FixImage(FloatButton, "ปุ่มเปิดปิด")
+
+    if HELLO.SpaceEffect ~= false then
+        HELLO.BuildSpaceEffect(FloatButton, Window)
+    end
+
+    -- FLOAT DRAG
+    local floatDragging = false
+    local floatDragStart
+    local floatStartPosition
+    local floatMoved = false
+
+    FloatButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            floatDragging      = true
+            floatMoved         = false
+            floatDragStart     = input.Position
+            floatStartPosition = FloatButton.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    floatDragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not floatDragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - floatDragStart
+            if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+                floatMoved = true
+            end
+            FloatButton.Position = UDim2.new(
+                floatStartPosition.X.Scale,
+                floatStartPosition.X.Offset + delta.X,
+                floatStartPosition.Y.Scale,
+                floatStartPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    -- FLOAT CLICK
+    FloatButton.Activated:Connect(function()
+        if floatMoved then return end
+        if Window.Destroyed then return end
+        local down = PlayTween(FloatScale, 0.08, { Scale = 0.86 })
+        down.Completed:Wait()
+        PlayTween(FloatScale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+        Window:ToggleVisibility()
+    end)
+
+    -- FLOAT HOVER
+    FloatButton.MouseEnter:Connect(function()
+        PlayTween(FloatScale, 0.18, { Scale = 1.08 })
+        PlayTween(FloatStroke, 0.18, { Thickness = 2.5 })
+    end)
+    FloatButton.MouseLeave:Connect(function()
+        PlayTween(FloatScale, 0.18, { Scale = 1 })
+        PlayTween(FloatStroke, 0.18, { Thickness = 2 })
+    end)
+
+    -- OPENING ANIMATION
+    HideScale.Scale = 0.85
+    Main.BackgroundTransparency = 1
+    BgImage.ImageTransparency = 1
+
+    PlayTween(BgImage, 0.6, {
+        ImageTransparency = HELLO.Background.Transparency
+    })
+    PlayTween(HideScale, 0.45, { Scale = 1 },
+        Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    PlayTween(Main, 0.45, {
+        Size = UDim2.fromOffset(Window.Size.X, Window.Size.Y),
+        Position = UDim2.new(
+            0.5, -Window.Size.X / 2,
+            0.5, -Window.Size.Y / 2
+        ),
+        BackgroundTransparency = HELLO.Glass.Main,
+    }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+    -- WELCOME
+    task.delay(0.5, function()
+        if not Window.Destroyed then
+            Window:Notify({
+                Title = "Hello Hub v" .. HELLO.Version,
+                Content = "Library Loaded Successfully \u{1F525}",
+                Duration = 3,
+            })
+        end
+    end)
+
+    return Window
+end
+
+--=========================================================
+-- RETURN
+--=========================================================
+return HELLO
