@@ -1,20 +1,7 @@
 --[[
 =========================================================
                     HELLO HUB UI LIBRARY
-                         v1.21.11
-=========================================================
-
-CORE
-- Window, Tab, Section, Label, Card, Button, Toggle,
-  Slider, Input, Dropdown, MultiDropdown, ColorPicker, Keybind
-
-SPECIAL COMPONENTS
-- InfoCard, ProfileCard, Status, FeatureCard,
-  SearchBox, CommandBox, FloatingButton
-
-EFFECTS
-- Glow, Pulse, Shake, Rainbow, Fire / Ember, SpaceFX
-
+                         v1.21.12
 =========================================================
 ]]
 
@@ -36,11 +23,8 @@ local LocalPlayer = Players.LocalPlayer
 local HELLO = {}
 
 HELLO.Name    = "Hello Hub"
-HELLO.Version = "1.21.11"
+HELLO.Version = "1.21.12"
 
---=========================================================
--- THEMES
---=========================================================
 HELLO.Themes = {
     Grey = {
         IsHalloween = false,
@@ -70,6 +54,15 @@ HELLO.Themes = {
         FxSilver    = Color3.fromRGB(185, 191, 200),
         FxLight     = Color3.fromRGB(235, 238, 243),
         FxWhite     = Color3.fromRGB(255, 255, 255),
+        BgTop       = Color3.fromRGB(44, 45, 52),
+        BgBottom    = Color3.fromRGB(14, 15, 18),
+        PlanetA     = Color3.fromRGB(235, 238, 243),
+        PlanetB     = Color3.fromRGB(150, 156, 165),
+        PlanetC     = Color3.fromRGB(70, 73, 80),
+        On          = Color3.fromRGB(255, 255, 255),
+        Off         = Color3.fromRGB(150, 156, 165),
+        TitleOn     = Color3.fromRGB(255, 255, 255),
+        TitleOff    = Color3.fromRGB(235, 238, 243),
     },
     Halloween = {
         IsHalloween = true,
@@ -99,6 +92,15 @@ HELLO.Themes = {
         FxSilver    = Color3.fromRGB(255, 125, 20),
         FxLight     = Color3.fromRGB(255, 185, 80),
         FxWhite     = Color3.fromRGB(255, 240, 210),
+        BgTop       = Color3.fromRGB(48, 22, 62),
+        BgBottom    = Color3.fromRGB(12, 6, 16),
+        PlanetA     = Color3.fromRGB(255, 175, 60),
+        PlanetB     = Color3.fromRGB(240, 110, 20),
+        PlanetC     = Color3.fromRGB(150, 60, 10),
+        On          = Color3.fromRGB(255, 150, 40),
+        Off         = Color3.fromRGB(150, 115, 175),
+        TitleOn     = Color3.fromRGB(255, 240, 210),
+        TitleOff    = Color3.fromRGB(225, 205, 240),
     },
 }
 
@@ -117,31 +119,13 @@ HELLO.Themes.Normal = CloneTheme(HELLO.Themes.Grey, {
     Text=Color3.fromRGB(247,248,250), SubText=Color3.fromRGB(168,173,182),
     Stroke1=Color3.fromRGB(78,83,93), Stroke2=Color3.fromRGB(235,238,243),
     Stroke3=Color3.fromRGB(135,141,151),
-    Sheen1=Color3.fromRGB(255,255,255), Sheen2=Color3.fromRGB(174,179,188),
-    Sheen3=Color3.fromRGB(236,238,242),
-    FloatBg=Color3.fromRGB(12,13,17),
-    FloatEdge1=Color3.fromRGB(126,132,143), FloatEdge2=Color3.fromRGB(246,247,250),
-    FxDark=Color3.fromRGB(65,69,78), FxMid=Color3.fromRGB(126,132,143),
-    FxSilver=Color3.fromRGB(191,197,207), FxLight=Color3.fromRGB(232,235,240),
-    FxWhite=Color3.fromRGB(255,255,255),
 })
 
-HELLO.ThemeAliases = {
-    grey="normal", default="normal", normal="normal",
-    halloween="halloween",
-}
-
+HELLO.ThemeAliases = { grey="normal", default="normal", normal="normal", halloween="halloween" }
 HELLO.ThemeSettings = { Theme="halloween", Animation=true }
-HELLO.HalloweenSeason = { Month=10, FromDay=6, ToDay=30 }
 
 function HELLO:SetTheme(mode)
     mode = string.lower(tostring(mode or self.ThemeSettings.Theme or "halloween"))
-    if mode == "auto" then
-        local ok, d = pcall(function() return os.date("*t") end)
-        local season = ok and type(d) == "table" and d.month == self.HalloweenSeason.Month
-            and d.day >= self.HalloweenSeason.FromDay and d.day <= self.HalloweenSeason.ToDay
-        mode = season and "halloween" or "normal"
-    end
     mode = self.ThemeAliases[mode] or mode
     local themeKey = mode:gsub("^%l", string.upper)
     if not self.Themes[themeKey] then mode, themeKey = "halloween", "Halloween" end
@@ -151,7 +135,6 @@ function HELLO:SetTheme(mode)
 end
 
 HELLO:SetTheme("halloween")
-
 HELLO.Glass = { Main = 0.2, Sidebar = 0.3, Card = 0.4, Inner = 0.45 }
 
 local function GetParent()
@@ -197,7 +180,7 @@ local function PlayTween(object, time, properties, style, direction)
 end
 
 --=========================================================
--- KRYVEX ADVANCED FLOATING BUTTON SYSTEM
+-- CREATE FLOATING BUTTON (KRYVEX SYSTEM)
 --=========================================================
 function HELLO:CreateFloatingButton(Config)
     Config = Config or {}
@@ -439,6 +422,230 @@ function HELLO:CreateFloatingButton(Config)
 end
 
 --=========================================================
--- RETURN LIBRARY
+-- CREATE WINDOW
 --=========================================================
+function HELLO:CreateWindow(config)
+    config = config or {}
+    local GuiParent = GetParent()
+    
+    local Window = {}
+    Window.Title    = config.Title    or "Hello Hub"
+    Window.Subtitle = config.Subtitle or "Custom Library"
+    Window.Tabs     = {}
+
+    local ScreenGui = Create("ScreenGui", {
+        Name = "HELLO_UI_Main",
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    ScreenGui.Parent = GuiParent
+    Window.ScreenGui = ScreenGui
+
+    local Main = Create("Frame", {
+        Size = UDim2.fromOffset(700, 440),
+        Position = UDim2.new(0.5, -350, 0.5, -220),
+        BackgroundColor3 = HELLO.Theme.Background,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+    })
+    Main.Parent = ScreenGui
+    AddCorner(Main, 16)
+
+    -- HEADER
+    local Header = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 58),
+        BackgroundTransparency = 1,
+        Active = true,
+    })
+    Header.Parent = Main
+
+    local Title = Create("TextLabel", {
+        Size = UDim2.new(1, -100, 0, 24),
+        Position = UDim2.fromOffset(18, 17),
+        BackgroundTransparency = 1,
+        Text = Window.Title,
+        TextColor3 = HELLO.Theme.Text,
+        TextSize = 17,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    })
+    Title.Parent = Header
+
+    -- SIDEBAR
+    local Sidebar = Create("Frame", {
+        Size = UDim2.new(0, 190, 1, -58),
+        Position = UDim2.fromOffset(0, 58),
+        BackgroundColor3 = HELLO.Theme.Sidebar,
+        BackgroundTransparency = HELLO.Glass.Sidebar,
+        BorderSizePixel = 0,
+    })
+    Sidebar.Parent = Main
+
+    local TabHolder = Create("ScrollingFrame", {
+        Size = UDim2.new(1, -20, 1, -20),
+        Position = UDim2.fromOffset(10, 10),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 2,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    })
+    TabHolder.Parent = Sidebar
+
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.Padding = UDim.new(0, 5)
+    TabLayout.Parent  = TabHolder
+
+    -- CONTENT
+    local Content = Create("Frame", {
+        Size = UDim2.new(1, -190, 1, -58),
+        Position = UDim2.new(0, 190, 0, 58),
+        BackgroundTransparency = 1,
+    })
+    Content.Parent = Main
+
+    function Window:CreateTab(name)
+        local Tab = {}
+        local Page = Create("ScrollingFrame", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 2,
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            Visible = false,
+        })
+        Page.Parent = Content
+
+        local PagePadding = Instance.new("UIPadding")
+        PagePadding.PaddingTop = UDim.new(0, 12)
+        PagePadding.PaddingBottom = UDim.new(0, 12)
+        PagePadding.PaddingLeft = UDim.new(0, 12)
+        PagePadding.PaddingRight = UDim.new(0, 12)
+        PagePadding.Parent = Page
+
+        local PageLayout = Instance.new("UIListLayout")
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.Parent  = Page
+
+        local TabButton = Create("TextButton", {
+            Size = UDim2.new(1, 0, 0, 36),
+            BackgroundTransparency = 1,
+            Text = name,
+            TextColor3 = HELLO.Theme.SubText,
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            AutoButtonColor = false,
+        })
+        TabButton.Parent = TabHolder
+        AddCorner(TabButton, 8)
+
+        local pad = Instance.new("UIPadding")
+        pad.PaddingLeft = UDim.new(0, 12)
+        pad.Parent = TabButton
+
+        function Tab:Select()
+            for _, t in ipairs(Window.Tabs) do
+                PlayTween(t.Button, 0.15, { BackgroundTransparency = 1, TextColor3 = HELLO.Theme.SubText })
+                t.Page.Visible = false
+            end
+            PlayTween(TabButton, 0.15, { BackgroundColor3 = HELLO.Theme.PrimaryDark, BackgroundTransparency = 0.15, TextColor3 = HELLO.Theme.Text })
+            Page.Visible = true
+        end
+
+        TabButton.Activated:Connect(function() Tab:Select() end)
+        if #Window.Tabs == 0 then Tab:Select() end
+        table.insert(Window.Tabs, Tab)
+        Tab.Button = TabButton
+        Tab.Page = Page
+
+        -- CREATE BUTTON
+        function Tab:CreateButton(config)
+            config = config or {}
+            local ButtonFrame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 50),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            ButtonFrame.Parent = Page
+            AddCorner(ButtonFrame, 8)
+
+            local Button = Create("TextButton", {
+                Size = UDim2.fromScale(1, 1),
+                BackgroundTransparency = 1,
+                Text = tostring(config.Name or "Button"),
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 13,
+                Font = Enum.Font.GothamSemibold,
+            })
+            Button.Parent = ButtonFrame
+
+            Button.Activated:Connect(function()
+                if config.Callback then task.spawn(config.Callback) end
+            end)
+            return ButtonFrame
+        end
+
+        -- CREATE TOGGLE
+        function Tab:CreateToggle(config)
+            config = config or {}
+            local state = config.Default or false
+
+            local Frame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 50),
+                BackgroundColor3 = HELLO.Theme.Card,
+            })
+            Frame.Parent = Page
+            AddCorner(Frame, 8)
+
+            local Label = Create("TextLabel", {
+                Size = UDim2.new(1, -70, 1, 0),
+                Position = UDim2.fromOffset(14, 0),
+                BackgroundTransparency = 1,
+                Text = tostring(config.Name or "Toggle"),
+                TextColor3 = HELLO.Theme.Text,
+                TextSize = 13,
+                Font = Enum.Font.GothamSemibold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            Label.Parent = Frame
+
+            local Toggle = Create("TextButton", {
+                Size = UDim2.fromOffset(44, 24),
+                Position = UDim2.new(1, -14, 0.5, 0),
+                AnchorPoint = Vector2.new(1, 0.5),
+                BackgroundColor3 = state and HELLO.Theme.Primary or HELLO.Theme.ToggleOff,
+                Text = "",
+                AutoButtonColor = false,
+            })
+            Toggle.Parent = Frame
+            AddCorner(Toggle, 12)
+
+            local Circle = Create("Frame", {
+                Size = UDim2.fromOffset(18, 18),
+                Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9),
+                BackgroundColor3 = Color3.new(1, 1, 1),
+            })
+            Circle.Parent = Toggle
+            AddCorner(Circle, 20)
+
+            local function Update()
+                PlayTween(Toggle, 0.18, { BackgroundColor3 = state and HELLO.Theme.Primary or HELLO.Theme.ToggleOff })
+                PlayTween(Circle, 0.18, { Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9) })
+                if config.Callback then task.spawn(config.Callback, state) end
+            end
+
+            Toggle.Activated:Connect(function()
+                state = not state
+                Update()
+            end)
+
+            return { Set = function(_, v) state = v Update() end, Get = function() return state end }
+        end
+
+        return Tab
+    end
+
+    return Window
+end
+
 return HELLO
