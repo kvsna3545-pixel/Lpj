@@ -2347,12 +2347,29 @@ end
 function HELLO:CreateWindow(config)
     config = config or {}
 
+    -- RE-RUN GUARD: remove stale Hello Hub windows before creating a new one.
+    -- This prevents duplicate ScreenGuis when the library is executed repeatedly.
+    local GuiParent = GetParent()
+    if HELLO._ActiveWindow and not HELLO._ActiveWindow.Destroyed then
+        pcall(function() HELLO._ActiveWindow:Destroy() end)
+    end
+    for _, child in ipairs(GuiParent:GetChildren()) do
+        if child:IsA("ScreenGui") and (
+            child.Name == "HELLO_Floating"
+            or child.Name == "HELLO_UI_Main"
+            or child.Name:match("^HELLO_UI_")
+        ) then
+            child:Destroy()
+        end
+    end
+
     if config.Theme then HELLO:SetTheme(config.Theme) end
     if config.ThemeAnimation ~= nil then
         HELLO.ThemeSettings.Animation = config.ThemeAnimation ~= false
     end
 
     local Window = {}
+    HELLO._ActiveWindow = Window
 
     Window.Title    = config.Title    or "Hello Hub"
     Window.Subtitle = config.Subtitle or "Custom Library"
@@ -2368,12 +2385,12 @@ function HELLO:CreateWindow(config)
 
     -- SCREEN GUI
     local ScreenGui = Create("ScreenGui", {
-        Name = "HELLO_UI_" .. tostring(math.random(10000, 99999)),
+        Name = "HELLO_UI_Main",
         ResetOnSpawn = false,
         IgnoreGuiInset = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     })
-    ScreenGui.Parent = GetParent()
+    ScreenGui.Parent = GuiParent
     Window.ScreenGui = ScreenGui
 
     -- MAIN
@@ -3118,6 +3135,8 @@ function HELLO:CreateWindow(config)
     end
 
     -- DESTROY
+    -- Forward declaration is required because Destroy is defined before FloatGui is created.
+    local FloatGui
     function Window:Destroy()
         if Window.Destroyed then return end
         Window.Destroyed = true
@@ -3128,24 +3147,41 @@ function HELLO:CreateWindow(config)
         end
         PlayTween(BgImage, 0.3, { ImageTransparency = 1 })
 
-        local tween = PlayTween(Main, 0.3, {
-            Size = UDim2.fromOffset(
-                Main.AbsoluteSize.X * 0.8,
-                Main.AbsoluteSize.Y * 0.8
-            ),
-            BackgroundTransparency = 1,
-            Position = UDim2.new(
-                Main.Position.X.Scale,
-                Main.Position.X.Offset,
-                Main.Position.Y.Scale,
-                Main.Position.Y.Offset + 20
-            ),
-        }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        local function CleanupGui()
+            if ScreenGui and ScreenGui.Parent then ScreenGui:Destroy() end
+            if FloatGui and FloatGui.Parent then FloatGui:Destroy() end
+            if HELLO._ActiveWindow == Window then
+                HELLO._ActiveWindow = nil
+            end
+        end
 
-        tween.Completed:Connect(function()
-            if ScreenGui then ScreenGui:Destroy() end
-            if FloatGui  then FloatGui:Destroy()  end
+        -- If the UI was already removed externally, don't try to tween destroyed instances.
+        if not Main.Parent then
+            CleanupGui()
+            return
+        end
+
+        local ok, tween = pcall(function()
+            return PlayTween(Main, 0.3, {
+                Size = UDim2.fromOffset(
+                    Main.AbsoluteSize.X * 0.8,
+                    Main.AbsoluteSize.Y * 0.8
+                ),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(
+                    Main.Position.X.Scale,
+                    Main.Position.X.Offset,
+                    Main.Position.Y.Scale,
+                    Main.Position.Y.Offset + 20
+                ),
+            }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
         end)
+
+        if ok and tween then
+            tween.Completed:Once(CleanupGui)
+        else
+            CleanupGui()
+        end
     end
 
     -- CONFIRM DIALOG (กล่องยืนยัน)
@@ -4685,13 +4721,13 @@ function HELLO:CreateWindow(config)
     end
 
     -- FLOATING GUI
-    local FloatGui = Create("ScreenGui", {
+    FloatGui = Create("ScreenGui", {
         Name = "HELLO_Floating",
         ResetOnSpawn = false,
         IgnoreGuiInset = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     })
-    FloatGui.Parent = GetParent()
+    FloatGui.Parent = GuiParent
     Window.FloatGui = FloatGui
 
     -- FLOATING BUTTON
