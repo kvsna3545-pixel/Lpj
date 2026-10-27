@@ -1,0 +1,444 @@
+--[[
+=========================================================
+                    HELLO HUB UI LIBRARY
+                         v1.21.11
+=========================================================
+
+CORE
+- Window, Tab, Section, Label, Card, Button, Toggle,
+  Slider, Input, Dropdown, MultiDropdown, ColorPicker, Keybind
+
+SPECIAL COMPONENTS
+- InfoCard, ProfileCard, Status, FeatureCard,
+  SearchBox, CommandBox, FloatingButton
+
+EFFECTS
+- Glow, Pulse, Shake, Rainbow, Fire / Ember, SpaceFX
+
+=========================================================
+]]
+
+--=========================================================
+-- SERVICES
+--=========================================================
+local Players            = game:GetService("Players")
+local TweenService       = game:GetService("TweenService")
+local UserInputService   = game:GetService("UserInputService")
+local RunService         = game:GetService("RunService")
+local Stats              = game:GetService("Stats")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local LocalPlayer = Players.LocalPlayer
+
+--=========================================================
+-- HELLO HUB
+--=========================================================
+local HELLO = {}
+
+HELLO.Name    = "Hello Hub"
+HELLO.Version = "1.21.11"
+
+--=========================================================
+-- THEMES
+--=========================================================
+HELLO.Themes = {
+    Grey = {
+        IsHalloween = false,
+        Background  = Color3.fromRGB(46, 47, 52),
+        Sidebar     = Color3.fromRGB(38, 39, 44),
+        Card        = Color3.fromRGB(62, 63, 69),
+        CardHover   = Color3.fromRGB(77, 78, 85),
+        Primary     = Color3.fromRGB(178, 183, 192),
+        PrimaryDark = Color3.fromRGB(102, 106, 115),
+        Text        = Color3.fromRGB(240, 245, 250),
+        SubText     = Color3.fromRGB(155, 170, 188),
+        ToggleOff   = Color3.fromRGB(88, 90, 97),
+        Danger      = Color3.fromRGB(190, 65, 75),
+        Success     = Color3.fromRGB(75, 210, 125),
+        Warning     = Color3.fromRGB(255, 190, 70),
+        Stroke1     = Color3.fromRGB(92, 96, 104),
+        Stroke2     = Color3.fromRGB(190, 195, 203),
+        Stroke3     = Color3.fromRGB(112, 117, 125),
+        Sheen1      = Color3.fromRGB(255, 255, 255),
+        Sheen2      = Color3.fromRGB(196, 198, 205),
+        Sheen3      = Color3.fromRGB(236, 238, 242),
+        FloatBg     = Color3.fromRGB(24, 25, 28),
+        FloatEdge1  = Color3.fromRGB(150, 155, 163),
+        FloatEdge2  = Color3.fromRGB(235, 238, 243),
+        FxDark      = Color3.fromRGB(105, 109, 118),
+        FxMid       = Color3.fromRGB(150, 156, 165),
+        FxSilver    = Color3.fromRGB(185, 191, 200),
+        FxLight     = Color3.fromRGB(235, 238, 243),
+        FxWhite     = Color3.fromRGB(255, 255, 255),
+    },
+    Halloween = {
+        IsHalloween = true,
+        Background  = Color3.fromRGB(30, 20, 38),
+        Sidebar     = Color3.fromRGB(22, 14, 28),
+        Card        = Color3.fromRGB(46, 31, 58),
+        CardHover   = Color3.fromRGB(66, 44, 82),
+        Primary     = Color3.fromRGB(255, 140, 30),
+        PrimaryDark = Color3.fromRGB(150, 75, 15),
+        Text        = Color3.fromRGB(255, 240, 222),
+        SubText     = Color3.fromRGB(190, 160, 200),
+        ToggleOff   = Color3.fromRGB(80, 60, 95),
+        Danger      = Color3.fromRGB(205, 50, 60),
+        Success     = Color3.fromRGB(125, 215, 85),
+        Warning     = Color3.fromRGB(255, 205, 70),
+        Stroke1     = Color3.fromRGB(120, 50, 170),
+        Stroke2     = Color3.fromRGB(255, 140, 30),
+        Stroke3     = Color3.fromRGB(140, 60, 190),
+        Sheen1      = Color3.fromRGB(255, 215, 170),
+        Sheen2      = Color3.fromRGB(175, 120, 210),
+        Sheen3      = Color3.fromRGB(255, 190, 120),
+        FloatBg     = Color3.fromRGB(24, 12, 32),
+        FloatEdge1  = Color3.fromRGB(150, 70, 200),
+        FloatEdge2  = Color3.fromRGB(255, 170, 60),
+        FxDark      = Color3.fromRGB(95, 45, 140),
+        FxMid       = Color3.fromRGB(165, 95, 225),
+        FxSilver    = Color3.fromRGB(255, 125, 20),
+        FxLight     = Color3.fromRGB(255, 185, 80),
+        FxWhite     = Color3.fromRGB(255, 240, 210),
+    },
+}
+
+local function CloneTheme(source, patch)
+    local result = {}
+    for key, value in pairs(source) do result[key] = value end
+    for key, value in pairs(patch or {}) do result[key] = value end
+    return result
+end
+
+HELLO.Themes.Normal = CloneTheme(HELLO.Themes.Grey, {
+    ThemeId="normal", Animation="clean", IsHalloween=false,
+    Background=Color3.fromRGB(17,18,22), Sidebar=Color3.fromRGB(11,12,16),
+    Card=Color3.fromRGB(27,29,34), CardHover=Color3.fromRGB(44,47,55),
+    Primary=Color3.fromRGB(198,203,212), PrimaryDark=Color3.fromRGB(105,110,120),
+    Text=Color3.fromRGB(247,248,250), SubText=Color3.fromRGB(168,173,182),
+    Stroke1=Color3.fromRGB(78,83,93), Stroke2=Color3.fromRGB(235,238,243),
+    Stroke3=Color3.fromRGB(135,141,151),
+    Sheen1=Color3.fromRGB(255,255,255), Sheen2=Color3.fromRGB(174,179,188),
+    Sheen3=Color3.fromRGB(236,238,242),
+    FloatBg=Color3.fromRGB(12,13,17),
+    FloatEdge1=Color3.fromRGB(126,132,143), FloatEdge2=Color3.fromRGB(246,247,250),
+    FxDark=Color3.fromRGB(65,69,78), FxMid=Color3.fromRGB(126,132,143),
+    FxSilver=Color3.fromRGB(191,197,207), FxLight=Color3.fromRGB(232,235,240),
+    FxWhite=Color3.fromRGB(255,255,255),
+})
+
+HELLO.ThemeAliases = {
+    grey="normal", default="normal", normal="normal",
+    halloween="halloween",
+}
+
+HELLO.ThemeSettings = { Theme="halloween", Animation=true }
+HELLO.HalloweenSeason = { Month=10, FromDay=6, ToDay=30 }
+
+function HELLO:SetTheme(mode)
+    mode = string.lower(tostring(mode or self.ThemeSettings.Theme or "halloween"))
+    if mode == "auto" then
+        local ok, d = pcall(function() return os.date("*t") end)
+        local season = ok and type(d) == "table" and d.month == self.HalloweenSeason.Month
+            and d.day >= self.HalloweenSeason.FromDay and d.day <= self.HalloweenSeason.ToDay
+        mode = season and "halloween" or "normal"
+    end
+    mode = self.ThemeAliases[mode] or mode
+    local themeKey = mode:gsub("^%l", string.upper)
+    if not self.Themes[themeKey] then mode, themeKey = "halloween", "Halloween" end
+    self.ThemeMode, self.Theme = mode, self.Themes[themeKey]
+    self.ThemeSettings.Theme = mode
+    return self.Theme
+end
+
+HELLO:SetTheme("halloween")
+
+HELLO.Glass = { Main = 0.2, Sidebar = 0.3, Card = 0.4, Inner = 0.45 }
+
+local function GetParent()
+    if typeof(gethui) == "function" then
+        local success, result = pcall(gethui)
+        if success and result then return result end
+    end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local function Create(className, properties)
+    local object = Instance.new(className)
+    for property, value in pairs(properties or {}) do
+        pcall(function() object[property] = value end)
+    end
+    return object
+end
+
+local function AddCorner(object, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent       = object
+    return corner
+end
+
+local function AddStroke(object, color, transparency, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color        = color or HELLO.Theme.Primary
+    stroke.Transparency = transparency or 0
+    stroke.Thickness    = thickness or 1
+    stroke.Parent       = object
+    return stroke
+end
+
+local function PlayTween(object, time, properties, style, direction)
+    local tween = TweenService:Create(
+        object,
+        TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out),
+        properties
+    )
+    tween:Play()
+    return tween
+end
+
+--=========================================================
+-- KRYVEX ADVANCED FLOATING BUTTON SYSTEM
+--=========================================================
+function HELLO:CreateFloatingButton(Config)
+    Config = Config or {}
+    local Name = Config.Name or "ปุ่ม"
+    local Mode = Config.Mode or "Toggle"
+    local Callback = Config.Callback or function() end
+
+    local W = Config.Width or 156
+    local H = Config.Height or 60
+    local CornerRadius = Config.Corner or 28
+
+    local IS_HALLOWEEN = HELLO.Theme.ThemeId == "halloween" or HELLO.Theme.IsHalloween
+    local C = IS_HALLOWEEN and HELLO.Themes.Halloween or HELLO.Themes.Grey
+
+    local GUI_NAME = "KRYVEX_FloatingButtons_" .. Name
+    local Gui = GetParent()
+    
+    local old = Gui:FindFirstChild(GUI_NAME)
+    if old then old:Destroy() end
+
+    local FloatingGui = Create("ScreenGui", {
+        Name = GUI_NAME,
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    FloatingGui.Parent = Gui
+
+    local Dead = false
+    local Connections = {}
+    local function Track(con) table.insert(Connections, con) return con end
+
+    local Camera = workspace.CurrentCamera or workspace:WaitForChild("Camera")
+
+    local function ClampPos(pos)
+        local view = Camera.ViewportSize
+        local margin = 4
+        return Vector2.new(
+            math.clamp(pos.X, margin, math.max(margin, view.X - W - margin)),
+            math.clamp(pos.Y, margin, math.max(margin, view.Y - H - margin))
+        )
+    end
+
+    local Pos = ClampPos(Vector2.new(60, Camera.ViewportSize.Y / 2 - H / 2))
+    local Target = Pos
+
+    local Holder = Create("Frame", {
+        Name = "Holder",
+        Size = UDim2.fromOffset(W, H),
+        Position = UDim2.fromOffset(Pos.X, Pos.Y),
+        BackgroundTransparency = 1,
+    })
+    Holder.Parent = FloatingGui
+
+    local Button = Create("TextButton", {
+        Name = "SpaceButton",
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(W, H),
+        BackgroundColor3 = C.White,
+        AutoButtonColor = false,
+        Text = "",
+    })
+    Button.Parent = Holder
+    AddCorner(Button, CornerRadius)
+
+    Create("UIGradient", {
+        Rotation = 45,
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, C.BgTop),
+            ColorSequenceKeypoint.new(1, C.BgBottom),
+        }),
+    }, Button)
+
+    local Scale = Create("UIScale", { Scale = 1 }, Button)
+    local EdgeStroke = AddStroke(Button, C.White, 0, 2)
+
+    local EdgeGrad = Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, C.Dark),
+            ColorSequenceKeypoint.new(0.35, C.Light),
+            ColorSequenceKeypoint.new(0.7, C.Silver),
+            ColorSequenceKeypoint.new(1, C.Dark),
+        }),
+    }, EdgeStroke)
+
+    local Inner = Create("Frame", {
+        Name = "Inner",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 2,
+    }, Button)
+    AddCorner(Inner, CornerRadius)
+
+    local TitleLabel = Create("TextLabel", {
+        Name = "Title",
+        Position = UDim2.new(0, 60, 0.5, -17),
+        Size = UDim2.new(1, -72, 0, 16),
+        BackgroundTransparency = 1,
+        Text = Name,
+        TextColor3 = C.TitleOff,
+        TextSize = 13,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        ZIndex = 8,
+    }, Inner)
+
+    local StatusDot = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0, 64, 0.5, 9),
+        Size = UDim2.fromOffset(7, 7),
+        BackgroundColor3 = C.Dark,
+        BorderSizePixel = 0,
+        ZIndex = 8,
+    }, Inner)
+    AddCorner(StatusDot, 7)
+    local DotGlow = AddStroke(StatusDot, C.On, 1, 2)
+
+    local StatusLabel = Create("TextLabel", {
+        Name = "Status",
+        Position = UDim2.new(0, 73, 0.5, 1),
+        Size = UDim2.new(1, -85, 0, 16),
+        BackgroundTransparency = 1,
+        Text = Mode == "Button" and "กดเพื่อใช้" or "ปิด",
+        TextColor3 = C.Off,
+        TextSize = 12,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 8,
+    }, Inner)
+
+    local Active = false
+    local Busy = false
+
+    local function SetState(on)
+        StatusLabel.Text = on and (Config.OnText or "เปิด") or (Config.OffText or "ปิด")
+        PlayTween(StatusLabel, 0.2, { TextColor3 = on and C.On or C.Off })
+        PlayTween(StatusDot, 0.25, { BackgroundColor3 = on and C.On or C.Dark })
+        PlayTween(DotGlow, 0.25, { Transparency = on and 0.45 or 1 })
+        PlayTween(TitleLabel, 0.25, { TextColor3 = on and C.TitleOn or C.TitleOff })
+    end
+
+    Track(RunService.Heartbeat:Connect(function(Dt)
+        if Dead or not Holder.Parent then return end
+        if Pos ~= Target then
+            Pos = Pos:Lerp(Target, 1 - math.exp(-Dt * 28))
+            Holder.Position = UDim2.fromOffset(math.round(Pos.X), math.round(Pos.Y))
+        end
+        EdgeGrad.Rotation = (os.clock() * 60) % 360
+    end))
+
+    local Hovering, Dragging, Moved = false, false, false
+    local DragInput, DragOrigin, DragStartPos
+
+    Track(Button.MouseEnter:Connect(function()
+        Hovering = true
+        if not Dragging then
+            PlayTween(Scale, 0.18, { Scale = 1.08 })
+            PlayTween(EdgeStroke, 0.18, { Thickness = 2.5 })
+        end
+    end))
+
+    Track(Button.MouseLeave:Connect(function()
+        Hovering = false
+        if not Dragging then
+            PlayTween(Scale, 0.18, { Scale = 1 })
+            PlayTween(EdgeStroke, 0.18, { Thickness = 2 })
+        end
+    end))
+
+    Track(Button.InputBegan:Connect(function(Input)
+        if Dragging then return end
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            Dragging, Moved = true, false
+            DragInput, DragOrigin, DragStartPos = Input, Input.Position, Target
+        end
+    end))
+
+    Track(UserInputService.InputChanged:Connect(function(Input)
+        if not Dragging or not DragInput then return end
+        local delta = Vector2.new(Input.Position.X - DragOrigin.X, Input.Position.Y - DragOrigin.Y)
+        if not Moved then
+            if delta.Magnitude < 6 then return end
+            Moved = true
+            DragOrigin, DragStartPos = Input.Position, Target
+            PlayTween(Scale, 0.15, { Scale = 0.94 })
+            return
+        end
+        Target = ClampPos(DragStartPos + delta)
+    end))
+
+    Track(UserInputService.InputEnded:Connect(function(Input)
+        if not Dragging then return end
+        if Input == DragInput or Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = false
+            if Moved then
+                PlayTween(Scale, 0.22, { Scale = Hovering and 1.08 or 1 }, Enum.EasingStyle.Back)
+            end
+            DragInput = nil
+        end
+    end))
+
+    Track(Button.Activated:Connect(function()
+        if Moved then return end
+        PlayTween(Scale, 0.08, { Scale = 0.86 })
+        task.delay(0.09, function()
+            if not Dead then
+                PlayTween(Scale, 0.25, { Scale = Hovering and 1.08 or 1 }, Enum.EasingStyle.Back)
+            end
+        end)
+
+        if Mode == "Button" then
+            if Busy then return end
+            Busy = true
+            task.spawn(function()
+                pcall(Callback)
+                StatusLabel.Text = "พร้อม"
+                task.wait(0.3)
+                Busy = false
+            end)
+            return
+        end
+
+        Active = not Active
+        SetState(Active)
+        task.spawn(function() pcall(Callback, Active) end)
+    end))
+
+    local Handle = {}
+    function Handle:Destroy()
+        if Dead then return end
+        Dead = true
+        for _, conn in ipairs(Connections) do pcall(function() conn:Disconnect() end) end
+        pcall(function() FloatingGui:Destroy() end)
+    end
+    return Handle
+end
+
+--=========================================================
+-- RETURN LIBRARY
+--=========================================================
+return HELLO
