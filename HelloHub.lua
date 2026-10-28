@@ -12,6 +12,16 @@
               คืน handle: :Set(v) :Get() :SetTitle(t) :SetVisible(b) :Destroy()
     Themes  : Hello (default, pink-purple) | Ocean | Mint | Sunset | Dark
               หรือส่ง table สีของตัวเองเข้า SetTheme ได้
+
+ ||         ||         ||         //========\\      ||        ||
+ ||         ||                    ||         ||      \\      //
+ ||         ||         ||         ||         //       \\    //
+ ||         ||         ||         ||========《          \\ //     ____________
+ ||         ||         ||         ||         \\          ||      | Kvsna3545 |
+ ||         ||         ||         ||         ||          ||       """"""""""" 
+ ||         ||         ||         ||         ||          ||
+  \\_______//          ||          \\________//          ||
+    
 ]]
 
 local Players          = game:GetService("Players")
