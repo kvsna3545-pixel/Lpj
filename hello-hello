@@ -1,0 +1,1585 @@
+--[[
+    ╔══════════════════════════════════════════════════════════╗
+    ║  HelloHub UI Library  |  v1.3.0.                 All-in-One Edition║
+    ╠══════════════════════════════════════════════════════════╣
+    ║  ✨ ฟีเจอร์:                                                          |
+    ║    • 9 ธีมสำเร็จรูป + Custom Theme                                     |
+    ║    • ดาวหมุนรอบ Toggle / Button / Tab / FAB                          | 
+    ║    • Particle Burst ตอนคลิก                                         |                   
+    ║    • Glow Pulse / Starfield / Animated Border                      |
+    ║    • Background Image Image ID / File / URL                        |              
+    ║    • Floating Buttons Toggle / Button + Cooldown                   |
+    ║    • Test Mode ในตัว — ใส่ win ที่มีอยู่ได้                                 |
+    ╠══════════════════════════════════════════════════════════╣
+    ║  🚀 วิธีใช้:                                                           ║
+    ║    1) ตั้ง _TEST_MODE = true → เปิดหน้าต่างทดสอบทันที                     ║
+    ║    2) ตั้ง _TEST_WINDOW = myWin → ทดสอบบน win ที่มีอยู่                  ║
+    ║    3) ภายนอก: HelloHub:RunTest(win)                                ║
+    ╚══════════════════════════════════════════════════════════╝
+art ════════╗
+
+ iamgayokb          iok       nor
+ HelloHubV1.3.       Iok     nor
+ loko'   "bror.       quа   wtf    ═══════════════════—~
+ liamgayokbro          lot for     ║KVSNA3545║
+ lha     'row.          Iamgy.     ╚════════╝
+ loa.    famai           loa
+ LocalHelloH             Lol
+
+]]
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  ⚙️ ตั้งค่าด้านบน                                          ║
+-- ╚══════════════════════════════════════════════════════════╝
+local _TEST_MODE   = false      -- true = เปิดหน้าต่างทดสอบทันที
+local _TEST_WINDOW = nil        -- ใส่ win ที่มีอยู่เพื่อทดสอบบน win นั้น
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  📦 Services                                              ║
+-- ╚══════════════════════════════════════════════════════════╝
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS          = game:GetService("UserInputService")
+local CoreGui      = game:GetService("CoreGui")
+local RunService   = game:GetService("RunService")
+
+local HelloHub = { Version = "1.3.0", Flags = {} }
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🎨 Themes                                                ║
+-- ╚══════════════════════════════════════════════════════════╝
+HelloHub.Themes = {
+	Hello = {
+		Background=Color3.fromRGB(20,14,30), Topbar=Color3.fromRGB(32,22,46),
+		Sidebar=Color3.fromRGB(24,16,36), Element=Color3.fromRGB(40,30,56),
+		ElementHover=Color3.fromRGB(56,42,78), Accent=Color3.fromRGB(255,115,195),
+		Accent2=Color3.fromRGB(160,105,255), Text=Color3.fromRGB(255,255,255),
+		SubText=Color3.fromRGB(200,185,220), Stroke=Color3.fromRGB(80,60,112),
+	},
+	Ocean = {
+		Background=Color3.fromRGB(10,20,32), Topbar=Color3.fromRGB(16,32,50),
+		Sidebar=Color3.fromRGB(12,26,40), Element=Color3.fromRGB(24,44,66),
+		ElementHover=Color3.fromRGB(36,62,92), Accent=Color3.fromRGB(0,200,255),
+		Accent2=Color3.fromRGB(100,130,255), Text=Color3.fromRGB(255,255,255),
+		SubText=Color3.fromRGB(170,200,225), Stroke=Color3.fromRGB(45,80,120),
+	},
+	Mint = {
+		Background=Color3.fromRGB(10,24,22), Topbar=Color3.fromRGB(16,38,34),
+		Sidebar=Color3.fromRGB(14,30,28), Element=Color3.fromRGB(24,52,46),
+		ElementHover=Color3.fromRGB(36,74,66), Accent=Color3.fromRGB(70,245,180),
+		Accent2=Color3.fromRGB(90,210,255), Text=Color3.fromRGB(255,255,255),
+		SubText=Color3.fromRGB(170,220,205), Stroke=Color3.fromRGB(45,100,85),
+	},
+	Sunset = {
+		Background=Color3.fromRGB(30,16,16), Topbar=Color3.fromRGB(46,24,22),
+		Sidebar=Color3.fromRGB(36,20,18), Element=Color3.fromRGB(62,36,30),
+		ElementHover=Color3.fromRGB(84,50,40), Accent=Color3.fromRGB(255,140,70),
+		Accent2=Color3.fromRGB(255,80,130), Text=Color3.fromRGB(255,255,255),
+		SubText=Color3.fromRGB(230,190,175), Stroke=Color3.fromRGB(115,70,55),
+	},
+	Christmas = {
+		Background=Color3.fromRGB(18,38,45), Topbar=Color3.fromRGB(25,52,58),
+		Sidebar=Color3.fromRGB(15,32,38), Element=Color3.fromRGB(30,64,68),
+		ElementHover=Color3.fromRGB(44,92,88), Accent=Color3.fromRGB(228,65,78),
+		Accent2=Color3.fromRGB(215,190,90), Text=Color3.fromRGB(248,255,248),
+		SubText=Color3.fromRGB(180,220,208), Stroke=Color3.fromRGB(30,135,105),
+	},
+	Valentine = {
+		Background=Color3.fromRGB(48,20,36), Topbar=Color3.fromRGB(64,26,48),
+		Sidebar=Color3.fromRGB(34,14,28), Element=Color3.fromRGB(78,32,58),
+		ElementHover=Color3.fromRGB(108,44,80), Accent=Color3.fromRGB(255,95,155),
+		Accent2=Color3.fromRGB(255,180,215), Text=Color3.fromRGB(255,244,250),
+		SubText=Color3.fromRGB(230,170,200), Stroke=Color3.fromRGB(185,55,115),
+	},
+	Summer = {
+		Background=Color3.fromRGB(14,52,70), Topbar=Color3.fromRGB(18,66,86),
+		Sidebar=Color3.fromRGB(10,38,54), Element=Color3.fromRGB(22,86,100),
+		ElementHover=Color3.fromRGB(32,118,130), Accent=Color3.fromRGB(255,205,70),
+		Accent2=Color3.fromRGB(60,215,205), Text=Color3.fromRGB(242,255,255),
+		SubText=Color3.fromRGB(155,220,230), Stroke=Color3.fromRGB(25,170,190),
+	},
+	Halloween = {
+		Background=Color3.fromRGB(16,8,22), Topbar=Color3.fromRGB(34,16,46),
+		Sidebar=Color3.fromRGB(24,12,32), Element=Color3.fromRGB(50,26,66),
+		ElementHover=Color3.fromRGB(70,38,90), Accent=Color3.fromRGB(255,135,30),
+		Accent2=Color3.fromRGB(175,105,235), Text=Color3.fromRGB(255,245,215),
+		SubText=Color3.fromRGB(215,180,230), Stroke=Color3.fromRGB(105,55,150),
+	},
+	Dark = {
+		Background=Color3.fromRGB(18,18,22), Topbar=Color3.fromRGB(26,26,32),
+		Sidebar=Color3.fromRGB(22,22,28), Element=Color3.fromRGB(34,34,42),
+		ElementHover=Color3.fromRGB(50,50,60), Accent=Color3.fromRGB(240,240,245),
+		Accent2=Color3.fromRGB(165,165,180), Text=Color3.fromRGB(255,255,255),
+		SubText=Color3.fromRGB(180,180,195), Stroke=Color3.fromRGB(64,64,74),
+	},
+}
+
+local function ResolveThemeName(n)
+	if n == "Auto" then
+		local ok, d = pcall(os.date, "*t")
+		if ok and type(d) == "table" and d.month == 10 and d.day >= 6 and d.day <= 30 then
+			return "Halloween"
+		end
+		return "Hello"
+	end
+	if type(n) == "string" and HelloHub.Themes[n] then return n end
+	return nil
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🔧 Helpers                                               ║
+-- ╚══════════════════════════════════════════════════════════╝
+local function New(class, props, children)
+	local o = Instance.new(class)
+	local parent
+	for k, v in pairs(props or {}) do
+		if k == "Parent" then parent = v else o[k] = v end
+	end
+	for _, c in ipairs(children or {}) do c.Parent = o end
+	if parent then o.Parent = parent end
+	return o
+end
+
+local function Tween(obj, props, t, style, dir)
+	TweenService:Create(obj, TweenInfo.new(
+		t or 0.18, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out), props):Play()
+end
+
+local function Corner(r) return New("UICorner", {CornerRadius = UDim.new(0, r or 8)}) end
+
+local function ProtectGui(gui)
+	local ok = pcall(function() gui.Parent = (gethui and gethui()) or CoreGui end)
+	if not ok or not gui.Parent then
+		gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	end
+end
+
+local function Bind(win, obj, prop, key)
+	obj[prop] = win.Theme[key]
+	table.insert(win._bound, {obj, prop, key})
+end
+
+local function OnRefresh(win, fn)
+	table.insert(win._refresh, fn)
+	fn(true)
+end
+
+local function Label(win, parent, text, size, key, align)
+	local l = New("TextLabel", {
+		BackgroundTransparency = 1, Text = text or "",
+		Font = Enum.Font.GothamMedium, TextSize = size or 13,
+		TextXAlignment = align or Enum.TextXAlignment.Left, Parent = parent,
+	})
+	Bind(win, l, "TextColor3", key or "Text")
+	return l
+end
+
+local function AccentGradient(win, parent, rotation)
+	local g = New("UIGradient", {Rotation = rotation or 0, Parent = parent})
+	OnRefresh(win, function()
+		g.Color = ColorSequence.new(win.Theme.Accent, win.Theme.Accent2)
+	end)
+	return g
+end
+
+local function SetFlag(o, value)
+	if o.Flag then HelloHub.Flags[o.Flag] = value end
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  ✨ Effects Library                                       ║
+-- ╚══════════════════════════════════════════════════════════╝
+
+-- ดาวหมุนรอบ element
+local function MakeStars(win, parent, opts)
+	opts = opts or {}
+	local count    = opts.Count    or 6
+	local radiusX  = opts.RadiusX  or 24
+	local radiusY  = opts.RadiusY  or 14
+	local colorKey = opts.ColorKey or "Accent"
+	local baseSize = opts.Size     or 2
+	local speed    = opts.Speed    or 2
+	local orbit    = opts.Orbit    or 0.4
+	local zIdx     = opts.ZIndex   or 20
+	local visible  = opts.Visible ~= false
+	local centerUD = opts.Center   or UDim2.fromScale(0.5, 0.5)
+	local phase0   = opts.Phase    or 0
+
+	win._stars = win._stars or {}
+	local stars = {}
+	for i = 1, count do
+		local a = (i / count) * math.pi * 2 + phase0 + math.random() * 0.3
+		local star = New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(
+				centerUD.X.Scale, centerUD.X.Offset + math.cos(a) * radiusX,
+				centerUD.Y.Scale, centerUD.Y.Offset + math.sin(a) * radiusY),
+			Size = UDim2.fromOffset(baseSize, baseSize),
+			BackgroundTransparency = visible and 0.35 or 1,
+			BorderSizePixel = 0, ZIndex = zIdx, Parent = parent,
+		}, {Corner(baseSize)})
+		Bind(win, star, "BackgroundColor3", colorKey)
+		table.insert(stars, {
+			obj = star, angle = a, phase = math.random() * math.pi * 2,
+			rate = speed * (0.7 + math.random() * 0.6),
+			orbitSpeed = orbit * (math.random() < 0.5 and -1 or 1),
+			rX = radiusX, rY = radiusY,
+			centerX = centerUD.X, centerY = centerUD.Y,
+			baseTransp = visible and 0.35 or 1,
+		})
+	end
+	local field = {stars = stars, baseSize = baseSize}
+	table.insert(win._stars, field)
+	return {
+		setVisible = function(v)
+			for _, s in ipairs(stars) do s.baseTransp = v and 0.3 or 1 end
+		end,
+		destroy = function()
+			for i = #win._stars, 1, -1 do
+				if win._stars[i] == field then table.remove(win._stars, i) end
+			end
+			for _, s in ipairs(stars) do if s.obj.Parent then s.obj:Destroy() end end
+		end,
+	}
+end
+
+-- Particle burst ออกเป็นวงกลม
+local function Burst(win, parent, opts)
+	opts = opts or {}
+	local count    = opts.Count    or 12
+	local duration = opts.Duration or 0.6
+	local radius   = opts.Radius   or 50
+	local size     = opts.Size     or 4
+	local color    = opts.Color    or win.Theme.Accent
+	local centerUD = opts.Center   or UDim2.fromScale(0.5, 0.5)
+
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + math.random() * 0.2
+		local dx = math.cos(angle) * radius * (0.8 + math.random() * 0.4)
+		local dy = math.sin(angle) * radius * (0.8 + math.random() * 0.4)
+		local fx = New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = centerUD,
+			Size = UDim2.fromOffset(size, size),
+			BackgroundColor3 = color, BorderSizePixel = 0,
+			ZIndex = 30, Parent = parent,
+		}, {Corner(size)})
+		Tween(fx, {
+			Position = UDim2.new(centerUD.X.Scale, centerUD.X.Offset + dx,
+				centerUD.Y.Scale, centerUD.Y.Offset + dy),
+			BackgroundTransparency = 1, Size = UDim2.fromOffset(1, 1),
+		}, duration, Enum.EasingStyle.Quint)
+		task.delay(duration + 0.05, function() if fx.Parent then fx:Destroy() end end)
+	end
+end
+
+-- Glow pulse
+local function GlowPulse(win, obj, color, thickness)
+	if not obj then return end
+	local stroke = obj:FindFirstChild("HelloHubPulse")
+	if not stroke then
+		stroke = New("UIStroke", {
+			Name = "HelloHubPulse", Thickness = thickness or 2,
+			Transparency = 0.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = color or win.Theme.Accent, Parent = obj,
+		})
+	end
+	return stroke
+end
+
+-- Animated gradient border
+local function AnimatedBorder(win, obj, thickness)
+	local stroke = New("UIStroke", {
+		Thickness = thickness or 1.5, Transparency = 0.2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = obj,
+	})
+	local grad = New("UIGradient", {Rotation = 0, Parent = stroke})
+	OnRefresh(win, function()
+		grad.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, win.Theme.Accent),
+			ColorSequenceKeypoint.new(0.5, win.Theme.Accent2),
+			ColorSequenceKeypoint.new(1, win.Theme.Accent),
+		})
+	end)
+	win._borders = win._borders or {}
+	table.insert(win._borders, {stroke = stroke, grad = grad, speed = 45})
+	return stroke
+end
+
+-- Starfield drift
+local function Starfield(win, parent, count)
+	count = count or 30
+	local stars = {}
+	for i = 1, count do
+		local star = New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(math.random(), math.random()),
+			Size = UDim2.fromOffset(math.random(1, 3), math.random(1, 3)),
+			BackgroundTransparency = 0.3 + math.random() * 0.5,
+			BorderSizePixel = 0, ZIndex = 0, Parent = parent,
+		}, {Corner(2)})
+		Bind(win, star, "BackgroundColor3", "Text")
+		table.insert(stars, {
+			obj = star, phase = math.random() * math.pi * 2,
+			rate = 0.4 + math.random() * 1.2,
+			vx = (math.random() - 0.5) * 0.02,
+			vy = (math.random() - 0.5) * 0.02,
+		})
+	end
+	win._starfields = win._starfields or {}
+	table.insert(win._starfields, {stars = stars})
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🃏 Row (การ์ด)                                            ║
+-- ╚══════════════════════════════════════════════════════════╝
+local function Row(win, page, height)
+	local f = New("Frame", {
+		Size = UDim2.new(1, 0, 0, height or 36),
+		BorderSizePixel = 0, Parent = page,
+	}, {Corner(9)})
+	Bind(win, f, "BackgroundColor3", "Element")
+	local stroke = New("UIStroke", {Thickness = 1, Transparency = 0.35, Parent = f})
+	Bind(win, stroke, "Color", "Stroke")
+
+	local hl = New("Frame", {
+		Size = UDim2.new(1, 0, 0.5, 0), BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.94, BorderSizePixel = 0, Parent = f, ZIndex = 0,
+	}, {Corner(9)})
+	New("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1),
+		}),
+		Parent = hl,
+	})
+
+	if win._rows then table.insert(win._rows, f) end
+	return f, stroke
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  📑 Tab                                                    ║
+-- ╚══════════════════════════════════════════════════════════╝
+local Tab = {}
+Tab.__index = Tab
+
+function Tab:AddSection(name)
+	local win = self.Win
+	local wrap = New("Frame", {
+		Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Parent = self.Page,
+	})
+	local bar = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(3, 14), BorderSizePixel = 0, Parent = wrap,
+	}, {Corner(2)})
+	AccentGradient(win, bar, 90)
+	local l = Label(win, wrap, string.upper(name), 11, "Accent")
+	l.Font = Enum.Font.GothamBold
+	l.Position = UDim2.fromOffset(10, 0)
+	l.Size = UDim2.new(1, -10, 1, 0)
+	return l
+end
+
+function Tab:AddLabel(text)
+	local win = self.Win
+	local row = Row(win, self.Page, 30)
+	local l = Label(win, row, text, 13, "SubText")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -24, 1, 0)
+	local obj = {}
+	function obj:Set(t) l.Text = t end
+	return obj
+end
+
+function Tab:AddButton(o)
+	local win = self.Win
+	local row = Row(win, self.Page, 36)
+
+	local stars = MakeStars(win, row, {
+		Count = 10, RadiusX = 60, RadiusY = 12, Size = 1.6,
+		Speed = 3, Orbit = 0.9, ZIndex = 2, ColorKey = "Accent",
+		Center = UDim2.new(0.1, 0, 0.5, 0), Visible = false, Phase = 0.3,
+	})
+
+	local l = Label(win, row, o.Name or "Button", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -24, 1, 0)
+	l.Font = Enum.Font.GothamMedium
+	l.ZIndex = 3
+
+	local accentBar = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(0, 20), BackgroundTransparency = 0.3,
+		BorderSizePixel = 0, Parent = row, ZIndex = 3,
+	}, {Corner(2)})
+	AccentGradient(win, accentBar, 90)
+
+	local btn = New("TextButton", {
+		BackgroundTransparency = 1, Text = "", Size = UDim2.fromScale(1, 1),
+		ZIndex = 5, Parent = row,
+	})
+
+	local hover = false
+	btn.MouseEnter:Connect(function()
+		hover = true
+		Tween(row, {BackgroundColor3 = win.Theme.ElementHover})
+		Tween(accentBar, {Size = UDim2.fromOffset(3, 20), BackgroundTransparency = 0.05})
+		stars.setVisible(true)
+	end)
+	btn.MouseLeave:Connect(function()
+		hover = false
+		Tween(row, {BackgroundColor3 = win.Theme.Element})
+		Tween(accentBar, {Size = UDim2.fromOffset(0, 20), BackgroundTransparency = 0.3})
+		stars.setVisible(false)
+	end)
+	btn.MouseButton1Click:Connect(function()
+		Tween(row, {BackgroundColor3 = win.Theme.Accent}, 0.08)
+		Burst(win, row, {
+			Count = 12, Radius = 55, Size = 3,
+			Color = win.Theme.Accent, Duration = 0.55,
+			Center = UDim2.new(0.95, -10, 0.5, 0),
+		})
+		task.delay(0.12, function()
+			Tween(row, {BackgroundColor3 = hover and win.Theme.ElementHover or win.Theme.Element}, 0.25)
+		end)
+		if o.Callback then task.spawn(o.Callback) end
+	end)
+end
+
+function Tab:AddToggle(o)
+	local win = self.Win
+	local state = o.Default == true
+	local row = Row(win, self.Page, 36)
+	local l = Label(win, row, o.Name or "Toggle", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -76, 1, 0)
+	l.Font = Enum.Font.GothamMedium
+
+	local track = New("Frame", {
+		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.fromOffset(42, 22), BorderSizePixel = 0,
+		Parent = row, ZIndex = 2,
+	}, {Corner(11)})
+	local trackStroke = New("UIStroke", {Thickness = 1, Transparency = 0.5, Parent = track})
+	Bind(win, trackStroke, "Color", "Stroke")
+
+	local stars = MakeStars(win, track, {
+		Count = 7, RadiusX = 32, RadiusY = 18, Size = 1.6,
+		Speed = 2.2, Orbit = 0.5, ZIndex = 4, ColorKey = "Accent", Visible = false,
+	})
+
+	local knob = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 3, 0.5, 0),
+		Size = UDim2.fromOffset(16, 16), BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1), Parent = track, ZIndex = 3,
+	}, {Corner(8)})
+	New("UIStroke", {Color = Color3.new(0, 0, 0), Transparency = 0.75, Thickness = 1, Parent = knob})
+
+	local pulseStroke
+	local function paint(instant)
+		local t = instant and 0 or 0.22
+		Tween(track, {BackgroundColor3 = state and win.Theme.Accent or win.Theme.Stroke}, t)
+		Tween(knob, {Position = state and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)}, t, Enum.EasingStyle.Quint)
+		stars.setVisible(state)
+		if state then
+			pulseStroke = pulseStroke or GlowPulse(win, row, win.Theme.Accent, 2)
+			pulseStroke.Transparency = 0.35
+		elseif pulseStroke then
+			pulseStroke.Transparency = 1
+		end
+	end
+	OnRefresh(win, function() paint(true) end)
+
+	local obj = {}
+	function obj:Set(v, silent)
+		state = v and true or false
+		paint()
+		SetFlag(o, state)
+		if not silent and o.Callback then task.spawn(o.Callback, state) end
+	end
+	function obj:Get() return state end
+
+	local btn = New("TextButton", {
+		BackgroundTransparency = 1, Text = "", Size = UDim2.fromScale(1, 1),
+		ZIndex = 5, Parent = row,
+	})
+	btn.MouseButton1Click:Connect(function()
+		obj:Set(not state)
+		if state then
+			Burst(win, row, {
+				Count = 14, Radius = 32, Size = 2.5,
+				Color = win.Theme.Accent, Duration = 0.5,
+				Center = UDim2.new(1, -14, 0.5, 0),
+			})
+		end
+	end)
+	SetFlag(o, state)
+	return obj
+end
+
+function Tab:AddSlider(o)
+	local win = self.Win
+	local min, max, inc = o.Min or 0, o.Max or 100, o.Increment or 1
+	local value = math.clamp(o.Default or min, min, max)
+	local row = Row(win, self.Page, 52)
+
+	local l = Label(win, row, o.Name or "Slider", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 6)
+	l.Size = UDim2.new(1, -100, 0, 20)
+	l.Font = Enum.Font.GothamMedium
+	local vl = Label(win, row, "", 12, "Accent", Enum.TextXAlignment.Right)
+	vl.Position = UDim2.new(1, -100, 0, 6)
+	vl.Size = UDim2.fromOffset(88, 20)
+	vl.Font = Enum.Font.GothamBold
+
+	local bar = New("Frame", {
+		Position = UDim2.new(0, 12, 1, -16), Size = UDim2.new(1, -24, 0, 6),
+		BorderSizePixel = 0, Parent = row,
+	}, {Corner(3)})
+	Bind(win, bar, "BackgroundColor3", "Stroke")
+	local fill = New("Frame", {
+		Size = UDim2.fromScale(0, 1), BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1), Parent = bar,
+	}, {Corner(3)})
+	AccentGradient(win, fill)
+
+	local thumb = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(14, 14), BorderSizePixel = 0,
+		BackgroundColor3 = Color3.new(1, 1, 1), Parent = bar,
+	}, {Corner(7)})
+	local thumbStroke = New("UIStroke", {Thickness = 2, Parent = thumb})
+	Bind(win, thumbStroke, "Color", "Accent")
+
+	local obj = {}
+	local function render()
+		local rel = (value - min) / math.max(max - min, 1e-9)
+		fill.Size = UDim2.fromScale(rel, 1)
+		thumb.Position = UDim2.new(rel, 0, 0.5, 0)
+		vl.Text = tostring(value) .. (o.Suffix or "")
+	end
+	function obj:Set(v, silent)
+		v = math.clamp(math.floor((v - min) / inc + 0.5) * inc + min, min, max)
+		v = math.floor(v * 1000 + 0.5) / 1000
+		value = v
+		render()
+		SetFlag(o, value)
+		if not silent and o.Callback then task.spawn(o.Callback, value) end
+	end
+	function obj:Get() return value end
+
+	local dragging = false
+	local function fromX(x)
+		local rel = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
+		obj:Set(min + (max - min) * rel)
+	end
+	local hit = New("TextButton", {BackgroundTransparency = 1, Text = "", Size = UDim2.fromScale(1, 1), Parent = row})
+	hit.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			Tween(thumb, {Size = UDim2.fromOffset(18, 18)}, 0.12)
+			fromX(i.Position.X)
+		end
+	end)
+	table.insert(win._conns, UIS.InputChanged:Connect(function(i)
+		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			fromX(i.Position.X)
+		end
+	end))
+	table.insert(win._conns, UIS.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			if dragging then Tween(thumb, {Size = UDim2.fromOffset(14, 14)}, 0.15, Enum.EasingStyle.Back) end
+			dragging = false
+		end
+	end))
+
+	render()
+	SetFlag(o, value)
+	return obj
+end
+
+function Tab:AddDropdown(o)
+	local win = self.Win
+	local items = o.Items or {}
+	local current = o.Default
+	local open = false
+	local ROW_H, ITEM_H = 36, 28
+
+	local row = Row(win, self.Page, ROW_H)
+	local l = Label(win, row, o.Name or "Dropdown", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -150, 0, ROW_H)
+	l.Font = Enum.Font.GothamMedium
+	local vl = Label(win, row, tostring(current or "..."), 12, "SubText", Enum.TextXAlignment.Right)
+	vl.Position = UDim2.new(1, -140, 0, 0)
+	vl.Size = UDim2.fromOffset(115, ROW_H)
+	local arrow = Label(win, row, "▾", 14, "Accent", Enum.TextXAlignment.Center)
+	arrow.Position = UDim2.new(1, -24, 0, 0)
+	arrow.Size = UDim2.fromOffset(16, ROW_H)
+	arrow.Font = Enum.Font.GothamBold
+
+	local listWrap = New("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(6, ROW_H + 2),
+		Size = UDim2.new(1, -12, 1, -(ROW_H + 6)), ClipsDescendants = true, Parent = row,
+	})
+	local list = New("ScrollingFrame", {
+		BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
+		ScrollBarThickness = 2, CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = listWrap,
+	}, {New("UIListLayout", {Padding = UDim.new(0, 3)})})
+
+	local buttons = {}
+	local obj = {}
+
+	local function paint()
+		for name, b in pairs(buttons) do
+			b.TextColor3 = (name == current) and win.Theme.Accent or win.Theme.SubText
+		end
+		vl.Text = tostring(current or "...")
+	end
+	OnRefresh(win, paint)
+
+	local function setOpen(v)
+		open = v
+		local visible = math.min(#items, 5)
+		Tween(row, {Size = UDim2.new(1, 0, 0, open and (ROW_H + 8 + visible * (ITEM_H + 3)) or ROW_H)}, 0.28, Enum.EasingStyle.Back)
+		Tween(arrow, {Rotation = open and 180 or 0}, 0.28, Enum.EasingStyle.Quint)
+	end
+
+	function obj:Set(v, silent)
+		current = v
+		paint()
+		SetFlag(o, current)
+		if not silent and o.Callback then task.spawn(o.Callback, current) end
+	end
+	function obj:Get() return current end
+	function obj:SetItems(newItems)
+		items = newItems
+		for _, b in pairs(buttons) do b:Destroy() end
+		buttons = {}
+		for _, name in ipairs(items) do
+			local b = New("TextButton", {
+				BackgroundColor3 = win.Theme.Element, BorderSizePixel = 0,
+				Size = UDim2.new(1, 0, 0, ITEM_H),
+				Font = Enum.Font.Gotham, TextSize = 12, Text = tostring(name),
+				TextXAlignment = Enum.TextXAlignment.Left, Parent = list,
+			}, {Corner(6), New("UIPadding", {PaddingLeft = UDim.new(0, 10)})})
+			buttons[name] = b
+			b.MouseEnter:Connect(function() Tween(b, {BackgroundColor3 = win.Theme.ElementHover}) end)
+			b.MouseLeave:Connect(function() Tween(b, {BackgroundColor3 = win.Theme.Element}) end)
+			b.MouseButton1Click:Connect(function() obj:Set(name) setOpen(false) end)
+		end
+		paint()
+		if open then setOpen(true) end
+	end
+
+	local head = New("TextButton", {BackgroundTransparency = 1, Text = "", Size = UDim2.new(1, 0, 0, ROW_H), Parent = row})
+	head.MouseButton1Click:Connect(function() setOpen(not open) end)
+
+	obj:SetItems(items)
+	SetFlag(o, current)
+	return obj
+end
+
+function Tab:AddTextbox(o)
+	local win = self.Win
+	local row = Row(win, self.Page, 36)
+	local l = Label(win, row, o.Name or "Textbox", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -160, 1, 0)
+	l.Font = Enum.Font.GothamMedium
+
+	local box = New("TextBox", {
+		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.fromOffset(140, 24), BorderSizePixel = 0,
+		Font = Enum.Font.Gotham, TextSize = 12, ClearTextOnFocus = false,
+		PlaceholderText = o.Placeholder or "...", Text = o.Default or "", Parent = row,
+	}, {Corner(7)})
+	Bind(win, box, "BackgroundColor3", "Background")
+	Bind(win, box, "TextColor3", "Text")
+	Bind(win, box, "PlaceholderColor3", "SubText")
+
+	local boxStroke = New("UIStroke", {Thickness = 1, Transparency = 0.5, Parent = box})
+	Bind(win, boxStroke, "Color", "Stroke")
+
+	box.Focused:Connect(function()
+		Tween(boxStroke, {Transparency = 0.05}, 0.15)
+		boxStroke.Color = win.Theme.Accent
+	end)
+	box.FocusLost:Connect(function(enter)
+		Tween(boxStroke, {Transparency = 0.5}, 0.15)
+		boxStroke.Color = win.Theme.Stroke
+		SetFlag(o, box.Text)
+		if o.Callback then task.spawn(o.Callback, box.Text, enter) end
+	end)
+	SetFlag(o, box.Text)
+
+	local obj = {}
+	function obj:Set(t) box.Text = t SetFlag(o, t) end
+	function obj:Get() return box.Text end
+	return obj
+end
+
+function Tab:AddKeybind(o)
+	local win = self.Win
+	local key = o.Default or Enum.KeyCode.F
+	local listening = false
+	local row = Row(win, self.Page, 36)
+	local l = Label(win, row, o.Name or "Keybind", 13, "Text")
+	l.Position = UDim2.fromOffset(12, 0)
+	l.Size = UDim2.new(1, -120, 1, 0)
+	l.Font = Enum.Font.GothamMedium
+
+	local btn = New("TextButton", {
+		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.fromOffset(88, 24), BorderSizePixel = 0,
+		Font = Enum.Font.GothamBold, TextSize = 12, Text = key.Name, Parent = row,
+	}, {Corner(7)})
+	Bind(win, btn, "BackgroundColor3", "Background")
+	Bind(win, btn, "TextColor3", "Accent")
+	local btnStroke = New("UIStroke", {Thickness = 1, Transparency = 0.5, Parent = btn})
+	Bind(win, btnStroke, "Color", "Stroke")
+
+	btn.MouseButton1Click:Connect(function()
+		listening = true
+		btn.Text = "..."
+		btnStroke.Color = win.Theme.Accent
+		btnStroke.Transparency = 0.1
+	end)
+	table.insert(win._conns, UIS.InputBegan:Connect(function(i, gpe)
+		if listening then
+			if i.UserInputType == Enum.UserInputType.Keyboard then
+				listening = false
+				key = i.KeyCode
+				btn.Text = key.Name
+				btnStroke.Color = win.Theme.Stroke
+				btnStroke.Transparency = 0.5
+				SetFlag(o, key)
+				if o.Changed then task.spawn(o.Changed, key) end
+			end
+		elseif not gpe and i.KeyCode == key and i.UserInputType == Enum.UserInputType.Keyboard then
+			if o.Callback then task.spawn(o.Callback) end
+		end
+	end))
+	SetFlag(o, key)
+
+	local obj = {}
+	function obj:Get() return key end
+	return obj
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🖼️ Background                                             ║
+-- ╚══════════════════════════════════════════════════════════╝
+HelloHub.Background = { Enabled = true, Image = "", File = "HelloHub_bg.jpg", Url = "", Transparency = 0.5 }
+HelloHub.Glass = { Main = 0.2, Sidebar = 0.3, Card = 0.4 }
+
+local function ResolveBackground(cfg)
+	if not cfg.Enabled then return nil end
+	if cfg.Image and cfg.Image ~= "" then return cfg.Image end
+	local getAsset = getcustomasset or getsynasset
+	if not (getAsset and isfile and writefile) then return nil end
+	if not cfg.File or cfg.File == "" then return nil end
+	pcall(function()
+		if cfg.Url and cfg.Url ~= "" and not isfile(cfg.File) then
+			writefile(cfg.File, game:HttpGet(cfg.Url))
+		end
+	end)
+	local ok, asset = pcall(function()
+		if isfile(cfg.File) then return getAsset(cfg.File) end
+	end)
+	if ok and asset then return asset end
+	return nil
+end
+
+local function FixImage(img)
+	task.spawn(function()
+		local original = img.Image
+		if original == "" then return end
+		local ok, result = pcall(function() return game:GetObjects(original) end)
+		if ok and type(result) == "table" and result[1] then
+			local asset, texture = result[1], nil
+			if asset:IsA("Decal") or asset:IsA("Texture") then
+				texture = asset.Texture
+			else
+				local found = asset:FindFirstChildWhichIsA("Decal", true)
+				if found then texture = found.Texture end
+			end
+			if texture and texture ~= "" then img.Image = texture end
+		end
+	end)
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🪟 Window                                                 ║
+-- ╚══════════════════════════════════════════════════════════╝
+local Window = {}
+Window.__index = Window
+
+function Window:_ApplyGlass()
+	if not self.BgImage then return end
+	local has, g = self.BgImage.Visible, HelloHub.Glass
+	self.Main.BackgroundTransparency = has and g.Main or 0
+	self._sidebarFrame.BackgroundTransparency = has and g.Sidebar or 0
+	for _, r in ipairs(self._rows) do
+		if r.Parent then r.BackgroundTransparency = has and g.Card or 0 end
+	end
+end
+
+function Window:SetBackground(cfg)
+	if type(cfg) == "string" then cfg = {Image = cfg, Enabled = true}
+	elseif cfg == false then cfg = {Enabled = false}
+	elseif type(cfg) ~= "table" then return end
+	for k, v in pairs(cfg) do self._bgCfg[k] = v end
+	local asset = ResolveBackground(self._bgCfg)
+	self.BgImage.Image = asset or ""
+	self.BgImage.Visible = asset ~= nil
+	Tween(self.BgImage, {ImageTransparency = self._bgCfg.Transparency}, 0.3)
+	if asset then FixImage(self.BgImage) end
+	self:_ApplyGlass()
+end
+
+function Window:SetBackgroundTransparency(v)
+	self._bgCfg.Transparency = v
+	Tween(self.BgImage, {ImageTransparency = v}, 0.2)
+end
+
+function HelloHub:CreateWindow(opts)
+	opts = opts or {}
+	local win = setmetatable({}, Window)
+	win.Theme = {}
+	for k, v in pairs(HelloHub.Themes.Hello) do win.Theme[k] = v end
+	local tn = ResolveThemeName(opts.Theme)
+	win.ThemeName = tn or "Hello"
+	local preset = tn and HelloHub.Themes[tn]
+	if preset then for k, v in pairs(preset) do win.Theme[k] = v end end
+	win.Theme.Animation = preset and preset.Animation or "clean"
+	if type(opts.Theme) == "table" then
+		win.ThemeName = "Custom"
+		for k, v in pairs(opts.Theme) do win.Theme[k] = v end
+		win.Theme.Animation = opts.Theme.Animation or "clean"
+	end
+
+	win._bound, win._refresh, win._conns, win._rows = {}, {}, {}, {}
+	win._stars, win._borders, win._starfields = {}, {}, {}
+	win.Tabs, win.Current, win.Visible = {}, nil, true
+
+	local name = opts.Name or "HelloHub"
+	local size = opts.Size or UDim2.fromOffset(580, 380)
+	local toggleKey = opts.ToggleKey or Enum.KeyCode.RightShift
+
+	local gui = New("ScreenGui", {
+		Name = "HelloHub", ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999,
+	})
+	ProtectGui(gui)
+	win.Gui = gui
+
+	local shadow = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0, size.X.Offset + 28, 0, size.Y.Offset + 28),
+		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.72,
+		BorderSizePixel = 0, ZIndex = 0, Parent = gui,
+	}, {Corner(20)})
+
+	local main = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		Size = size, BorderSizePixel = 0, ClipsDescendants = true, ZIndex = 1, Parent = gui,
+	}, {Corner(14)})
+	Bind(win, main, "BackgroundColor3", "Background")
+	local mainStroke = New("UIStroke", {Thickness = 1.5, Transparency = 0.2, Parent = main})
+	Bind(win, mainStroke, "Color", "Stroke")
+	win.Main = main
+	win._mainStroke = mainStroke
+	win._shadow = shadow
+
+	win._bgCfg = {}
+	for k, v in pairs(HelloHub.Background) do win._bgCfg[k] = v end
+	if type(opts.Background) == "string" then
+		win._bgCfg.Image = opts.Background
+	elseif type(opts.Background) == "table" then
+		for k, v in pairs(opts.Background) do win._bgCfg[k] = v end
+	elseif opts.Background == false then
+		win._bgCfg.Enabled = false
+	end
+	local bgAsset = ResolveBackground(win._bgCfg)
+	win.BgImage = New("ImageLabel", {
+		Name = "BackgroundImage", Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1, BorderSizePixel = 0,
+		Image = bgAsset or "", ImageTransparency = win._bgCfg.Transparency,
+		ScaleType = Enum.ScaleType.Crop, ZIndex = 0,
+		Visible = bgAsset ~= nil, Parent = main,
+	}, {Corner(14)})
+	if bgAsset then FixImage(win.BgImage) end
+
+	local top = New("Frame", {Size = UDim2.new(1, 0, 0, 42), BorderSizePixel = 0, Parent = main, ZIndex = 2})
+	Bind(win, top, "BackgroundColor3", "Topbar")
+	local line = New("Frame", {
+		Position = UDim2.new(0, 0, 1, -2), Size = UDim2.new(1, 0, 0, 2),
+		BorderSizePixel = 0, BackgroundColor3 = Color3.new(1, 1, 1), Parent = top, ZIndex = 3,
+	})
+	win._lineGrad = AccentGradient(win, line)
+
+	local title = Label(win, top, name, 16, "Text")
+	title.Font = Enum.Font.GothamBold
+	title.Position = UDim2.fromOffset(16, 0)
+	title.Size = UDim2.new(0.6, 0, 1, -2)
+	title.TextColor3 = Color3.new(1, 1, 1)
+	win._titleGrad = AccentGradient(win, title)
+	for i = #win._bound, 1, -1 do
+		if win._bound[i][1] == title then table.remove(win._bound, i) end
+	end
+
+	local ver = Label(win, top, "v" .. HelloHub.Version, 11, "SubText", Enum.TextXAlignment.Right)
+	ver.Position = UDim2.new(1, -90, 0, 0)
+	ver.Size = UDim2.new(0, 52, 1, -2)
+
+	local close = New("TextButton", {
+		BackgroundTransparency = 1, Text = "✕", Font = Enum.Font.GothamBold,
+		TextSize = 14, Position = UDim2.new(1, -36, 0, 0),
+		Size = UDim2.fromOffset(30, 40), Parent = top,
+	})
+	Bind(win, close, "TextColor3", "SubText")
+	close.MouseEnter:Connect(function() Tween(close, {TextColor3 = win.Theme.Accent}) end)
+	close.MouseLeave:Connect(function() Tween(close, {TextColor3 = win.Theme.SubText}) end)
+
+	local sidebar = New("ScrollingFrame", {
+		Position = UDim2.fromOffset(0, 42), Size = UDim2.new(0, 140, 1, -42),
+		BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = main, ZIndex = 2,
+	}, {
+		New("UIListLayout", {Padding = UDim.new(0, 5)}),
+		New("UIPadding", {PaddingTop = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10),
+			PaddingRight = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)}),
+	})
+	Bind(win, sidebar, "BackgroundColor3", "Sidebar")
+	win._sidebarFrame = sidebar
+
+	local content = New("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(140, 42),
+		Size = UDim2.new(1, -140, 1, -42), Parent = main, ZIndex = 2,
+	})
+	win._sidebar, win._content = sidebar, content
+
+	win:_ApplyGlass()
+
+	-- Starfield drift
+	if opts.Animation ~= false and opts.Starfield ~= false then
+		local sf = New("Frame", {
+			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+			ClipsDescendants = true, ZIndex = 0, Parent = main,
+		})
+		Starfield(win, sf, 35)
+	end
+
+	-- Drag
+	do
+		local dragging, start, orig
+		top.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				dragging, start, orig = true, i.Position, main.Position
+				i.Changed:Connect(function()
+					if i.UserInputState == Enum.UserInputState.End then dragging = false end
+				end)
+			end
+		end)
+		table.insert(win._conns, UIS.InputChanged:Connect(function(i)
+			if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+				local d = i.Position - start
+				main.Position = UDim2.new(orig.X.Scale, orig.X.Offset + d.X, orig.Y.Scale, orig.Y.Offset + d.Y)
+				shadow.Position = main.Position
+			end
+		end))
+	end
+
+	-- FAB
+	local fab = New("TextButton", {
+		Position = UDim2.new(0, 16, 0.5, -24), Size = UDim2.fromOffset(48, 48),
+		BorderSizePixel = 0, Text = "H", Font = Enum.Font.GothamBold, TextSize = 22,
+		TextColor3 = Color3.new(1, 1, 1), BackgroundColor3 = Color3.new(1, 1, 1),
+		AutoButtonColor = false, Parent = gui,
+	}, {Corner(24)})
+	AccentGradient(win, fab, 45)
+	MakeStars(win, fab, {
+		Count = 8, RadiusX = 34, RadiusY = 34, Size = 1.5,
+		Speed = 2.5, Orbit = 0.8, ZIndex = 3, ColorKey = "Text", Visible = true,
+	})
+	do
+		local dragging, start, orig, moved = false, nil, nil, 0
+		fab.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				dragging, start, orig, moved = true, i.Position, fab.Position, 0
+				i.Changed:Connect(function()
+					if i.UserInputState == Enum.UserInputState.End then
+						dragging = false
+						if moved < 6 then win:Toggle() end
+					end
+				end)
+			end
+		end)
+		table.insert(win._conns, UIS.InputChanged:Connect(function(i)
+			if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+				local d = i.Position - start
+				moved = math.max(moved, d.Magnitude)
+				fab.Position = UDim2.new(orig.X.Scale, orig.X.Offset + d.X, orig.Y.Scale, orig.Y.Offset + d.Y)
+			end
+		end))
+	end
+
+	-- Notifications
+	local notifHolder = New("Frame", {
+		BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -16, 0, 16), Size = UDim2.fromOffset(280, 400),
+		Parent = gui, ZIndex = 10,
+	}, {New("UIListLayout", {Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder})})
+	win._notifHolder = notifHolder
+
+	close.MouseButton1Click:Connect(function() win:Toggle(false) end)
+	table.insert(win._conns, UIS.InputBegan:Connect(function(i, gpe)
+		if not gpe and i.KeyCode == toggleKey then win:Toggle() end
+	end))
+
+	-- Heartbeat อัปเดตทุก effect
+	win._clock = 0
+	table.insert(win._conns, RunService.Heartbeat:Connect(function(dt)
+		if win.Destroyed then return end
+		win._clock = win._clock + dt
+
+		for _, field in ipairs(win._stars) do
+			for _, s in ipairs(field.stars) do
+				if s.obj.Parent then
+					s.angle = s.angle + s.orbitSpeed * dt
+					local x = math.cos(s.angle) * s.rX
+					local y = math.sin(s.angle) * s.rY
+					s.obj.Position = UDim2.new(
+						s.centerX.Scale, s.centerX.Offset + x,
+						s.centerY.Scale, s.centerY.Offset + y)
+					local pulse = 0.5 + 0.5 * math.sin(win._clock * s.rate + s.phase)
+					s.obj.BackgroundTransparency = math.clamp(
+						s.baseTransp + (1 - s.baseTransp) * (1 - pulse) * 0.85, 0, 1)
+					local sz = field.baseSize * (0.5 + 0.9 * pulse)
+					s.obj.Size = UDim2.fromOffset(sz, sz)
+				end
+			end
+		end
+
+		for _, field in ipairs(win._starfields) do
+			for _, s in ipairs(field.stars) do
+				if s.obj.Parent then
+					local p = s.obj.Position
+					local nx = (p.X.Scale + s.vx * dt) % 1
+					local ny = (p.Y.Scale + s.vy * dt) % 1
+					if nx < 0 then nx = nx + 1 end
+					if ny < 0 then ny = ny + 1 end
+					s.obj.Position = UDim2.fromScale(nx, ny)
+					s.obj.BackgroundTransparency = 0.3 + 0.5 * (0.5 + 0.5 * math.sin(win._clock * s.rate + s.phase))
+				end
+			end
+		end
+
+		for _, b in ipairs(win._borders) do
+			if b.stroke.Parent then b.grad.Rotation = (b.grad.Rotation + dt * b.speed) % 360 end
+		end
+
+		if win._lineGrad then win._lineGrad.Offset = Vector2.new((win._clock * 0.35) % 2 - 1, 0) end
+		if win._titleGrad then win._titleGrad.Offset = Vector2.new((win._clock * 0.5) % 2 - 1, 0) end
+		if win._mainStroke then
+			win._mainStroke.Thickness = 1.4 + 0.7 * (0.5 + 0.5 * math.sin(win._clock * 1.6))
+		end
+	end))
+
+	return win
+end
+
+function Window:Toggle(v)
+	if v == nil then v = not self.Visible end
+	self.Visible = v
+	self.Main.Visible = v
+	self._shadow.Visible = v
+end
+
+function Window:SetTheme(theme)
+	local t
+	if type(theme) == "string" then
+		local n = ResolveThemeName(theme)
+		if not n then return end
+		self.ThemeName = n
+		t = HelloHub.Themes[n]
+	elseif type(theme) == "table" then
+		self.ThemeName = "Custom"
+		t = theme
+	else return end
+	for k, v in pairs(t) do self.Theme[k] = v end
+	self.Theme.Animation = t.Animation or "clean"
+	for _, b in ipairs(self._bound) do
+		local obj, prop, key = b[1], b[2], b[3]
+		if obj and obj.Parent then Tween(obj, {[prop] = self.Theme[key]}, 0.25) end
+	end
+	for _, fn in ipairs(self._refresh) do pcall(fn) end
+end
+
+function Window:Notify(o)
+	local theme = self.Theme
+	local f = New("Frame", {
+		Size = UDim2.new(1, 0, 0, 64), BackgroundColor3 = theme.Topbar,
+		BorderSizePixel = 0, ClipsDescendants = true, Parent = self._notifHolder,
+		Position = UDim2.new(1, 40, 0, 0), BackgroundTransparency = 0.05,
+	}, {Corner(10)})
+	New("UIStroke", {Color = theme.Stroke, Thickness = 1, Transparency = 0.3, Parent = f})
+	local bar = New("Frame", {
+		Size = UDim2.new(0, 4, 1, 0), BorderSizePixel = 0,
+		BackgroundColor3 = theme.Accent, Parent = f,
+	})
+	New("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(theme.Accent, theme.Accent2),
+		Parent = bar,
+	})
+	New("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 8),
+		Size = UDim2.new(1, -26, 0, 20), Font = Enum.Font.GothamBold,
+		TextSize = 14, TextColor3 = theme.Text, TextXAlignment = Enum.TextXAlignment.Left,
+		Text = o.Title or "HelloHub", Parent = f,
+	})
+	New("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 30),
+		Size = UDim2.new(1, -26, 0, 28), Font = Enum.Font.Gotham,
+		TextSize = 12, TextColor3 = theme.SubText, TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
+		Text = o.Content or "", Parent = f,
+	})
+	Tween(f, {Position = UDim2.new(0, 0, 0, 0)}, 0.35, Enum.EasingStyle.Back)
+	task.delay(o.Duration or 4, function()
+		if f.Parent then
+			Tween(f, {Position = UDim2.new(1, 60, 0, 0), BackgroundTransparency = 1}, 0.35)
+			task.wait(0.4)
+			f:Destroy()
+		end
+	end)
+end
+
+function Window:CreateTab(name)
+	local win = self
+	local tab = setmetatable({Win = win, Name = name}, Tab)
+
+	local btn = New("TextButton", {
+		Size = UDim2.new(1, 0, 0, 34), BorderSizePixel = 0, AutoButtonColor = false,
+		Font = Enum.Font.GothamMedium, TextSize = 13, Text = name,
+		TextXAlignment = Enum.TextXAlignment.Left, Parent = win._sidebar,
+		ZIndex = 2,
+	}, {Corner(8), New("UIPadding", {PaddingLeft = UDim.new(0, 12)})})
+
+	local accent = New("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(0, 20), BackgroundTransparency = 0.3,
+		BorderSizePixel = 0, Parent = btn, ZIndex = 3,
+	}, {Corner(2)})
+	AccentGradient(win, accent, 90)
+
+	local tabStars = MakeStars(win, btn, {
+		Count = 6, RadiusX = 42, RadiusY = 12, Size = 1.4,
+		Speed = 2.5, Orbit = 0.6, ZIndex = 1, ColorKey = "Accent", Visible = false,
+	})
+
+	local page = New("ScrollingFrame", {
+		BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
+		ScrollBarThickness = 2, ScrollBarImageTransparency = 0.5,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		Visible = false, Parent = win._content,
+	}, {
+		New("UIListLayout", {Padding = UDim.new(0, 7)}),
+		New("UIPadding", {PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10),
+			PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12)}),
+	})
+	Bind(win, page, "ScrollBarImageColor3", "Accent")
+	tab.Page, tab.Button, tab._accent = page, btn, accent
+
+	local function paint()
+		local active = win.Current == tab
+		Tween(btn, {
+			BackgroundColor3 = active and win.Theme.Element or win.Theme.Sidebar,
+			TextColor3 = active and win.Theme.Accent or win.Theme.SubText,
+		}, 0.2)
+		Tween(accent, {
+			Size = UDim2.fromOffset(active and 3 or 0, 20),
+			BackgroundTransparency = active and 0.05 or 0.3,
+		}, 0.25)
+		tabStars.setVisible(active)
+	end
+	tab._paint = paint
+	OnRefresh(win, paint)
+
+	btn.MouseButton1Click:Connect(function() win:SelectTab(tab) end)
+	table.insert(win.Tabs, tab)
+	if not win.Current then win:SelectTab(tab) end
+	return tab
+end
+
+function Window:SelectTab(tab)
+	self.Current = tab
+	for _, t in ipairs(self.Tabs) do
+		t.Page.Visible = (t == tab)
+		t._paint()
+	end
+end
+
+function Window:Destroy()
+	for _, c in ipairs(self._conns) do pcall(function() c:Disconnect() end) end
+	self.Destroyed = true
+	if self._fabGui then pcall(function() self._fabGui:Destroy() end) end
+	self.Gui:Destroy()
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🔘 Floating Button                                        ║
+-- ╚══════════════════════════════════════════════════════════╝
+local function GetFabGui(win)
+	if win._fabGui and win._fabGui.Parent then return win._fabGui end
+	local g = New("ScreenGui", {
+		Name = "HelloHub_Buttons", ResetOnSpawn = false, IgnoreGuiInset = true,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 998,
+	})
+	ProtectGui(g)
+	win._fabGui = g
+	return g
+end
+
+local function BuildFloatingButton(win, cfg, standalone)
+	cfg = cfg or {}
+	local name     = cfg.Name or "Button"
+	local mode     = cfg.Mode or "Toggle"
+	local callback = cfg.Callback or function() end
+	local effects  = cfg.Effects ~= false
+	local W, H     = cfg.Width or (effects and 170 or 150), cfg.Height or (effects and 62 or 54)
+	local TX       = effects and 62 or 18
+	local OnText   = cfg.OnText or "เปิด"
+	local OffText  = cfg.OffText or "ปิด"
+	local ReadyText= cfg.ReadyText or "กดเพื่อใช้"
+	local cooldown = cfg.Cooldown or 0
+	local MARGIN, THRESHOLD, SMOOTH = 4, 6, 28
+
+	win._fabs = win._fabs or {}
+	if win._fabs[name] then win._fabs[name]:Destroy() end
+
+	local gui = GetFabGui(win)
+	local cam = workspace.CurrentCamera or workspace:WaitForChild("Camera")
+	local dead, busy = false, false
+	local state = (mode == "Toggle") and cfg.Default == true
+	local conns = {}
+	local function track(c) table.insert(conns, c) table.insert(win._conns, c) return c end
+
+	local function clamp(v)
+		local vs = cam.ViewportSize
+		return Vector2.new(
+			math.clamp(v.X, MARGIN, math.max(MARGIN, vs.X - W - MARGIN)),
+			math.clamp(v.Y, MARGIN, math.max(MARGIN, vs.Y - H - MARGIN)))
+	end
+	local pos = clamp(cfg.Position or Vector2.new(60, cam.ViewportSize.Y / 2 - H / 2))
+	local target = pos
+
+	local holder = New("Frame", {
+		Name = name, Size = UDim2.fromOffset(W, H), BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(pos.X, pos.Y), Parent = gui,
+	})
+
+	New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 10, 1, 10), BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.7, BorderSizePixel = 0, Parent = holder,
+	}, {Corner(H / 2 + 5)})
+
+	local button = New("TextButton", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(W, H), BackgroundColor3 = Color3.new(1, 1, 1),
+		AutoButtonColor = false, Text = "", Parent = holder,
+	}, {Corner(H / 2)})
+	local scale = New("UIScale", {Scale = 1, Parent = button})
+
+	local bgGrad = New("UIGradient", {Rotation = 45, Parent = button})
+	local stroke = New("UIStroke", {Color = Color3.new(1, 1, 1), Thickness = 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = button})
+	local strokeGrad = New("UIGradient", {Parent = stroke})
+	OnRefresh(win, function()
+		local t = win.Theme
+		bgGrad.Color = ColorSequence.new(t.Topbar, t.Background)
+		strokeGrad.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, t.Accent),
+			ColorSequenceKeypoint.new(0.5, t.Accent2),
+			ColorSequenceKeypoint.new(1, t.Accent),
+		})
+	end)
+
+	local inner = New("Frame", {
+		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+		ClipsDescendants = true, Parent = button,
+	}, {Corner(H / 2)})
+
+	if effects then
+		MakeStars(win, inner, {
+			Count = 14, RadiusX = W / 2 + 12, RadiusY = H / 2 + 10,
+			Size = 1.6, Speed = 2.5, Orbit = 0.5,
+			ZIndex = 2, ColorKey = "Text", Visible = true,
+		})
+		MakeStars(win, inner, {
+			Count = 8, RadiusX = W / 2 + 26, RadiusY = H / 2 + 20,
+			Size = 2, Speed = -1.5, Orbit = 0.35,
+			ZIndex = 1, ColorKey = "Accent2", Visible = true,
+		})
+	end
+
+	local titleL = Label(win, inner, cfg.Title or name, 13, "Text")
+	titleL.Font = Enum.Font.GothamBold
+	titleL.Position = UDim2.new(0, TX, 0.5, -18)
+	titleL.Size = UDim2.new(1, -(TX + 14), 0, 18)
+	titleL.TextTruncate = Enum.TextTruncate.AtEnd
+	titleL.ZIndex = 5
+
+	local dot = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, TX + 4, 0.5, 10),
+		Size = UDim2.fromOffset(8, 8), BorderSizePixel = 0, Parent = inner, ZIndex = 5,
+	}, {Corner(4)})
+	local statusL = Label(win, inner, "", 12, "SubText")
+	statusL.Position = UDim2.new(0, TX + 16, 0.5, 2)
+	statusL.Size = UDim2.new(1, -(TX + 28), 0, 16)
+	statusL.ZIndex = 5
+
+	local function paint(instant)
+		local t = win.Theme
+		local d = instant and 0 or 0.22
+		if mode == "Toggle" then
+			statusL.Text = state and OnText or OffText
+		elseif not busy then
+			statusL.Text = ReadyText
+		end
+		Tween(statusL, {TextColor3 = state and t.Accent or t.SubText}, d)
+		Tween(dot, {BackgroundColor3 = state and t.Accent or t.Stroke}, d)
+		Tween(titleL, {TextColor3 = state and t.Text or t.SubText}, d)
+	end
+	OnRefresh(win, function() paint(true) end)
+
+	local clock = 0
+	track(RunService.Heartbeat:Connect(function(dt)
+		if dead then return end
+		clock += dt
+		if pos ~= target then
+			pos = pos:Lerp(target, 1 - math.exp(-dt * SMOOTH))
+			if (target - pos).Magnitude < 0.25 then pos = target end
+			holder.Position = UDim2.fromOffset(math.round(pos.X), math.round(pos.Y))
+		end
+		strokeGrad.Rotation = (clock * 60) % 360
+	end))
+
+	local hovering, dragging, moved = false, false, false
+	local dragInput, dragOrigin, dragStart
+
+	track(button.MouseEnter:Connect(function()
+		hovering = true
+		if not dragging then Tween(scale, {Scale = 1.07}) end
+	end))
+	track(button.MouseLeave:Connect(function()
+		hovering = false
+		if not dragging then Tween(scale, {Scale = 1}) end
+	end))
+	track(button.InputBegan:Connect(function(i)
+		if dragging then return end
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			dragging, moved = true, false
+			dragInput, dragOrigin, dragStart = i, i.Position, target
+		end
+	end))
+	track(UIS.InputChanged:Connect(function(i)
+		if not dragging or not dragInput then return end
+		local isMouse = dragInput.UserInputType == Enum.UserInputType.MouseButton1 and i.UserInputType == Enum.UserInputType.MouseMovement
+		local isTouch = dragInput.UserInputType == Enum.UserInputType.Touch and i == dragInput
+		if not (isMouse or isTouch) then return end
+		local delta = Vector2.new(i.Position.X - dragOrigin.X, i.Position.Y - dragOrigin.Y)
+		if not moved then
+			if delta.Magnitude < THRESHOLD then return end
+			moved = true
+			dragOrigin, dragStart = i.Position, target
+			Tween(scale, {Scale = 0.94}, 0.15)
+			return
+		end
+		target = clamp(dragStart + delta)
+	end))
+	track(UIS.InputEnded:Connect(function(i)
+		if not dragging then return end
+		local sameTouch = i == dragInput
+		local sameMouse = dragInput and dragInput.UserInputType == Enum.UserInputType.MouseButton1 and i.UserInputType == Enum.UserInputType.MouseButton1
+		if not (sameTouch or sameMouse) then return end
+		dragging, dragInput = false, nil
+		if moved then Tween(scale, {Scale = hovering and 1.07 or 1}, 0.2, Enum.EasingStyle.Back) end
+	end))
+	track(cam:GetPropertyChangedSignal("ViewportSize"):Connect(function() target = clamp(target) end))
+
+	local function ripple()
+		local r = New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(W, H), BackgroundTransparency = 1, ZIndex = 9, Parent = button,
+		}, {Corner(H / 2 + 4)})
+		local s = New("UIStroke", {Color = win.Theme.Accent, Thickness = 2, Transparency = 0.1, Parent = r})
+		Tween(r, {Size = UDim2.fromOffset(W + 60, H + 60)}, 0.55)
+		Tween(s, {Transparency = 1}, 0.55)
+		task.delay(0.6, function() r:Destroy() end)
+	end
+
+	local handle = {Gui = gui, Button = button, Holder = holder}
+	function handle:Set(v, silent)
+		if mode ~= "Toggle" then return end
+		state = v and true or false
+		paint()
+		SetFlag(cfg, state)
+		if not silent then task.spawn(callback, state) end
+	end
+	function handle:Get() return state end
+	function handle:SetTitle(t) titleL.Text = t end
+	function handle:SetVisible(v) holder.Visible = v end
+	function handle:Destroy()
+		if dead then return end
+		dead = true
+		for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+		pcall(function() holder:Destroy() end)
+		if win._fabs[name] == handle then win._fabs[name] = nil end
+		if standalone then win:Destroy() end
+	end
+
+	track(button.Activated:Connect(function()
+		if moved or dead then return end
+		ripple()
+		Burst(win, inner, {
+			Count = 16, Radius = W / 2 + 30, Size = 2.5,
+			Color = win.Theme.Accent, Duration = 0.7,
+		})
+		Tween(scale, {Scale = 0.86}, 0.08)
+		task.delay(0.09, function()
+			if not dead then Tween(scale, {Scale = hovering and 1.07 or 1}, 0.25, Enum.EasingStyle.Back) end
+		end)
+		if mode == "Button" then
+			if busy then return end
+			task.spawn(callback)
+			if cooldown > 0 then
+				busy = true
+				task.spawn(function()
+					local untilT = os.clock() + cooldown
+					while not dead and os.clock() < untilT do
+						statusL.Text = string.format("%.1f", untilT - os.clock())
+						statusL.TextColor3 = win.Theme.Accent
+						task.wait(0.1)
+					end
+					busy = false
+					if not dead then paint() end
+				end)
+			end
+			return
+		end
+		handle:Set(not state)
+	end))
+
+	SetFlag(cfg, state)
+	win._fabs[name] = handle
+	return handle
+end
+
+function Window:CreateFloatingButton(cfg)
+	return BuildFloatingButton(self, cfg, false)
+end
+
+function HelloHub:CreateFloatingButton(cfg)
+	cfg = cfg or {}
+	local host = setmetatable({Theme = {}, _bound = {}, _refresh = {}, _conns = {},
+		Tabs = {}, Gui = Instance.new("Folder"), _stars = {}, _borders = {}, _starfields = {}}, Window)
+	for k, v in pairs(HelloHub.Themes.Hello) do host.Theme[k] = v end
+	local tn = ResolveThemeName(cfg.Theme)
+	host.ThemeName = tn or "Hello"
+	local preset = tn and HelloHub.Themes[tn]
+	if type(cfg.Theme) == "table" then preset, host.ThemeName = cfg.Theme, "Custom" end
+	if preset then for k, v in pairs(preset) do host.Theme[k] = v end end
+	local h = BuildFloatingButton(host, cfg, true)
+	h.SetTheme = function(_, t) host:SetTheme(t) end
+	return h
+end
+
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║  🧪 Test Mode                                             ║
+-- ╚══════════════════════════════════════════════════════════╝
+
+local function RunTest(win)
+	-- ถ้าไม่ใส่ win → สร้างใหม่
+	win = win or HelloHub:CreateWindow({
+		Name = "HelloHub Test", Subtitle = "ทดสอบทุกฟีเจอร์",
+		Theme = "Hello", ToggleKey = Enum.KeyCode.RightShift,
+		Size = UDim2.fromOffset(620, 440),
+	})
+
+	local t1 = win:CreateTab("Elements")
+	t1:AddSection("Labels")
+	local counter = t1:AddLabel("นับ: 0")
+	local n = 0
+
+	t1:AddSection("Buttons")
+	t1:AddButton({Name = "กดเพื่อ Notify", Callback = function()
+		win:Notify({Title = "สำเร็จ!", Content = "ปุ่มถูกกด ⭐", Duration = 3})
+	end})
+	t1:AddButton({Name = "เพิ่มตัวนับ", Callback = function()
+		n = n + 1 counter:Set("นับ: " .. n)
+	end})
+
+	t1:AddSection("Toggles")
+	t1:AddToggle({Name = "Toggle #1", Default = true,
+		Callback = function(v) print("[Toggle1]", v) end})
+	t1:AddToggle({Name = "Toggle #2", Default = false,
+		Callback = function(v) print("[Toggle2]", v) end})
+
+	t1:AddSection("Sliders")
+	t1:AddSlider({Name = "ความเร็ว", Min = 0, Max = 100, Increment = 5,
+		Default = 50, Suffix = "%", Callback = function(v) print("[Slider]", v) end})
+
+	t1:AddSection("Dropdown")
+	t1:AddDropdown({Name = "โหมด", Items = {"Speed","Jump","Fly","Noclip"},
+		Default = "Speed", Callback = function(v) print("[Drop]", v) end})
+
+	local t2 = win:CreateTab("Input")
+	t2:AddSection("Textbox")
+	t2:AddTextbox({Name = "ชื่อ", Placeholder = "พิมพ์ชื่อ...",
+		Callback = function(txt) print("[Text]", txt) end})
+	t2:AddSection("Keybind")
+	t2:AddKeybind({Name = "Notify Key", Default = Enum.KeyCode.F,
+		Callback = function() win:Notify({Title = "Keybind", Content = "คุณกด F!", Duration = 2}) end})
+
+	local t3 = win:CreateTab("Themes")
+	t3:AddSection("เปลี่ยนธีม")
+	for _, thm in ipairs({"Hello","Ocean","Mint","Sunset","Christmas","Valentine","Summer","Halloween","Dark"}) do
+		t3:AddButton({Name = "→ " .. thm, Callback = function()
+			win:SetTheme(thm)
+			win:Notify({Title = "Theme", Content = thm, Duration = 2})
+		end})
+	end
+	t3:AddSection("Notifications")
+	t3:AddButton({Name = "Notify ปกติ", Callback = function()
+		win:Notify({Title = "Hello", Content = "ทดสอบ", Duration = 3})
+	end})
+	t3:AddButton({Name = "Notify x5", Callback = function()
+		for i = 1, 5 do
+			win:Notify({Title = "Notify #" .. i, Content = "ทดสอบ", Duration = 4})
+			task.wait(0.15)
+		end
+	end})
+
+	win:Notify({
+		Title = "พร้อมใช้งาน!",
+		Content = "RightShift = ซ่อน/แสดง • ลองกดทุกปุ่มดูเอฟเฟกต์ ⭐",
+		Duration = 6,
+	})
+
+	print("=== HelloHub v" .. HelloHub.Version .. " Test Mode ===")
+	print("window: " .. tostring(win.Title or "unnamed"))
+	return win
+end
+
+function HelloHub:RunTest(win) return RunTest(win) end
+
+if _TEST_MODE then
+	task.defer(function() RunTest(_TEST_WINDOW) end)
+end
+
+return HelloHub
