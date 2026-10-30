@@ -1052,19 +1052,562 @@ task.spawn(function()
     task.wait()
 
     -- =========================================================
-    -- 📌 TAB: อีเว้นท์ (EventTab)
+    -- 📌 TAB: อีเว้นท์ (EventTab) - ต่อจากส่วนที่ตัดไป
     -- =========================================================
-    local Env = getgenv()
-    if Env.KOMAT_EventFarm_Stop then pcall(Env.KOMAT_EventFarm_Stop) end
-    local PART_HEIGHT, PART_SIZE, PART_IMAGE, UNDER_OFFSET, NPC_WORD, NPC_OFFSET, MIN_NPC_Y = 1000, Vector3.new(60, 2, 60), "rbxassetid://72855254938167", 6, "cat", Vector3.new(0, 0, 0), -100
-    local FarmOn, NpcOn, FarmToggle, NpcToggle, FarmPart, CurrentVisual, CatNpc, CatSeen, CurrentMode, ReturnCF, Moved, WasActive = false, false, nil, nil, nil, nil, nil, false, nil, nil, false, false
-    local NoclipSaved, NpcSet, LastNpcScan, LastVisualScan, LastVisualEmpty, HbConn, StConn, ScanConn = {}, {}, 0, 0, false, nil, nil, nil
-    local Refresh, FinishNpc
-    local function EventNotify(text) pcall(function() Win:Notify({Title = "KRYVEX HUB", Content = text, Duration = 3}) end) end
-    local function GetChar() local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") local hum = char and char:FindFirstChildOfClass("Humanoid") return char, root, hum end
-    local function EnsurePart()
-        if FarmPart and FarmPart.Parent then return FarmPart end
-        local _, root = GetChar() local base = root and root.Position or Vector3.zero
-        local p = Instance.new("Part") p.Name = "KRYVEX_EventPart" p.Size = PART_SIZE p.Anchored = true p.CanCollide = true p.Material = Enum.Material.SmoothPlastic p.Color = Color3.fromRGB(60, 60, 70) p.CFrame = CFrame.new(base.X, PART_HEIGHT, base.Z) p.Parent = Workspace
-        for _, face in ipairs({Enum.NormalId.Top, Enum.NormalId.Bottom}) do local d = Instance.new("Decal") d.Face = face d.Texture = PART_IMAGE d.Parent = p end
-        FarmPart = p return p
+    local function DestroyPart()
+        if FarmPart then
+            pcall(function() FarmPart:Destroy() end)
+            FarmPart = nil
+        end
+    end
+
+    local function GetTickets()
+        local effects = Workspace:FindFirstChild("Effects")
+        return effects and effects:FindFirstChild("Tickets")
+    end
+
+    local function ObjectPos(obj)
+        if not obj or not obj.Parent then return nil end
+        if obj:IsA("Model") then
+            local ok, cf = pcall(obj.GetPivot, obj)
+            return ok and cf.Position or nil
+        elseif obj:IsA("BasePart") then
+            return obj.Position
+        end
+        return nil
+    end
+
+    local function GetVisual()
+        local tickets = GetTickets()
+        if not tickets then
+            CurrentVisual = nil
+            return nil
+        end
+        if CurrentVisual and CurrentVisual.Parent and CurrentVisual:IsDescendantOf(tickets) then
+            return CurrentVisual
+        end
+        CurrentVisual = nil
+        local now = os.clock()
+        if LastVisualEmpty and now - LastVisualScan < 0.1 then return nil end
+        LastVisualScan = now
+        LastVisualEmpty = true
+        for _, child in ipairs(tickets:GetChildren()) do
+            if child.Name == "Visual" and ObjectPos(child) then
+                CurrentVisual = child
+                LastVisualEmpty = false
+                return child
+            end
+        end
+        return nil
+    end
+
+    local function NameHasWord(name)
+        local spaced = string.gsub(name, "(%l)(%u)", "%1 %2")
+        spaced = string.gsub(spaced, "(%u)(%u%l)", "%1 %2")
+        spaced = string.gsub(spaced, "[^%a]", " ")
+        for word in string.gmatch(spaced, "%S+") do
+            local w = string.lower(word)
+            if w == NPC_WORD or w == NPC_WORD .. "s" then return true end
+        end
+        return false
+    end
+
+    local function IsCat(inst)
+        if not inst:IsA("Model") then return false end
+        if not NameHasWord(inst.Name) then return false end
+        if Players:GetPlayerFromCharacter(inst) then return false end
+        if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then return false end
+        return inst:FindFirstChildWhichIsA("BasePart", true) ~= nil
+    end
+
+    local function FullNpcScan()
+        LastNpcScan = os.clock()
+        for _, d in ipairs(Workspace:GetDescendants()) do
+            if IsCat(d) then NpcSet[d] = true end
+        end
+    end
+
+    local function StartNpcScan()
+        table.clear(NpcSet)
+        CatNpc, CatSeen = nil, false
+        FullNpcScan()
+        if ScanConn then ScanConn:Disconnect() end
+        ScanConn = Workspace.DescendantAdded:Connect(function(d)
+            if IsCat(d) then NpcSet[d] = true end
+        end)
+    end
+
+    local function StopNpcScan()
+        if ScanConn then ScanConn:Disconnect() ScanConn = nil end
+        table.clear(NpcSet)
+        CatNpc, CatSeen = nil, false
+    end
+
+    local function GetCat()
+        if CatNpc and not (CatNpc.Parent and CatNpc:IsDescendantOf(Workspace)) then
+            CatNpc = nil
+            if CatSeen then
+                FinishNpc()
+                return nil
+            end
+        end
+        if CatNpc then return CatNpc end
+        local best, bestScore
+        for model in pairs(NpcSet) do
+            if model.Parent and model:IsDescendantOf(Workspace) then
+                local pos = ObjectPos(model)
+                if pos and pos.Y >= MIN_NPC_Y then
+                    local score = model:FindFirstChildOfClass("Humanoid") and 2 or 1
+                    if not bestScore or score > bestScore then best, bestScore = model, score end
+                end
+            else
+                NpcSet[model] = nil
+            end
+        end
+        if best then
+            CatNpc, CatSeen = best, true
+            EventNotify("เจอ NPC: " .. best.Name)
+            return best
+        end
+        if os.clock() - LastNpcScan > 5 then FullNpcScan() end
+        return nil
+    end
+
+    local function SetNoclip(on)
+        if on then
+            local char = GetChar()
+            if not char then return end
+            for _, p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    if NoclipSaved[p] == nil then NoclipSaved[p] = p.CanCollide end
+                    p.CanCollide = false
+                end
+            end
+        else
+            for p, v in pairs(NoclipSaved) do
+                if p.Parent then p.CanCollide = v end
+            end
+            table.clear(NoclipSaved)
+        end
+    end
+
+    local function ReturnToGround()
+        SetNoclip(false)
+        local _, root, hum = GetChar()
+        if Moved and ReturnCF and root and hum and hum.Health > 0 then
+            root.CFrame = ReturnCF
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+        end
+        Moved = false
+    end
+
+    local function Decide()
+        if NpcOn then
+            local npc = GetCat()
+            if npc then
+                local pos = ObjectPos(npc)
+                if pos then return "npc", CFrame.new(pos + NPC_OFFSET) end
+            end
+        end
+        if FarmOn then
+            local visual = GetVisual()
+            if visual then
+                local pos = ObjectPos(visual)
+                if pos then return "visual", CFrame.new(pos - Vector3.new(0, UNDER_OFFSET, 0)) end
+            end
+            local part = EnsurePart()
+            return "part", part.CFrame * CFrame.new(0, PART_SIZE.Y / 2 + 3, 0)
+        end
+        return nil
+    end
+
+    local function DisconnectEvent()
+        if HbConn then HbConn:Disconnect() HbConn = nil end
+        if StConn then StConn:Disconnect() StConn = nil end
+    end
+
+    Refresh = function()
+        local active = FarmOn or NpcOn
+        if active and not WasActive then
+            local _, root = GetChar()
+            ReturnCF = root and root.CFrame or ReturnCF
+            Moved = false
+            DisconnectEvent()
+            StConn = RunService.Stepped:Connect(function()
+                if CurrentMode and CurrentMode ~= "part" then SetNoclip(true)
+                elseif next(NoclipSaved) then SetNoclip(false) end
+            end)
+            HbConn = RunService.Heartbeat:Connect(function()
+                local mode, cf = Decide()
+                CurrentMode = mode
+                if not mode then return end
+                local _, root, hum = GetChar()
+                if not (root and hum and hum.Health > 0) then return end
+                root.CFrame = cf
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+                Moved = true
+            end)
+        elseif not active and WasActive then
+            DisconnectEvent()
+            CurrentMode = nil
+            CurrentVisual = nil
+            DestroyPart()
+            StopNpcScan()
+            ReturnToGround()
+        end
+        WasActive = active
+    end
+
+    FinishNpc = function()
+        if not NpcOn then return end
+        NpcOn = false
+        StopNpcScan()
+        if NpcToggle then pcall(function() NpcToggle:Set(false) end) end
+        EventNotify("NPC หายแล้ว หยุดวาร์ปไปหา NPC")
+        Refresh()
+    end
+
+    local function SetFarm(value)
+        if FarmOn == value then return end
+        FarmOn = value
+        CurrentVisual = nil
+        if not value then
+            if NpcOn and CurrentMode ~= "npc" then ReturnToGround() end
+            DestroyPart()
+        end
+        Refresh()
+        EventNotify(value and "เปิดออโต้ฟาร์มอีเว้นท์" or "ปิดออโต้ฟาร์มอีเว้นท์")
+    end
+
+    local function SetNpc(value)
+        if NpcOn == value then return end
+        NpcOn = value
+        if value then
+            StartNpcScan()
+        else
+            StopNpcScan()
+            if FarmOn and CurrentMode == "npc" then CurrentMode = nil end
+        end
+        Refresh()
+        EventNotify(value and "เปิดออโต้วาร์ปไปหา NPC อีเว้นท์" or "ปิดออโต้วาร์ปไปหา NPC อีเว้นท์")
+    end
+
+    FarmToggle = EventTab:AddToggle({ Name = "ออโต้ฟาร์มอีเว้นท์", Default = false, Callback = function(Value) SetFarm(Value and true or false) end })
+    NpcToggle = EventTab:AddToggle({ Name = "ออโต้วาร์ปไปหา NPC อีเว้นท์", Default = false, Callback = function(Value) SetNpc(Value and true or false) end })
+    
+    Env.KOMAT_EventFarm_Stop = function()
+        FarmOn, NpcOn = false, false
+        Refresh()
+        DestroyPart()
+        StopNpcScan()
+    end
+
+    -- Event ESP (Totem/NPC)
+    if Env.KRYVEX_EventESP_Stop then pcall(Env.KRYVEX_EventESP_Stop) end
+    local BLUE, BOX_TRANSPARENCY, LINE_THICKNESS, VISUAL_NAME, NPC_WORDS, POLL_VISUAL, RESCAN_EVERY = Color3.fromRGB(60, 140, 255), 0.5, 2, "Visual", {"cat"}, 0.25, 5
+    local EventESP_Gui, LineHolder_ESP, BoxHolder, LabelHolder = nil, nil, nil, nil
+    local function GetESPOverlayParent()
+        if gethui then local ok, h = pcall(gethui) if ok and h then return h end end
+        if pcall(function() return CoreGui.Name end) then return CoreGui end
+        return PlayerGui
+    end
+    local espParent = GetESPOverlayParent()
+    local oldESP = espParent:FindFirstChild("KRYVEX_EventESP") if oldESP then oldESP:Destroy() end
+    EventESP_Gui = Instance.new("ScreenGui") EventESP_Gui.Name = "KRYVEX_EventESP" EventESP_Gui.ResetOnSpawn = false EventESP_Gui.IgnoreGuiInset = true EventESP_Gui.DisplayOrder = 999 EventESP_Gui.Parent = espParent
+    LineHolder_ESP = Instance.new("Folder", EventESP_Gui) BoxHolder = Instance.new("Folder", EventESP_Gui) LabelHolder = Instance.new("Folder", EventESP_Gui)
+    
+    local function newESP(opts)
+        local M = {enabled = false, items = {}, lastScan = 0, scanning = false, addConn = nil}
+        local wordSet = {}
+        for _, w in ipairs(opts.words or {}) do wordSet[string.lower(w)] = true wordSet[string.lower(w) .. "s"] = true end
+        local function isMatch(inst)
+            if not inst:IsA("Model") then return false end
+            local name = inst.Name
+            local sp = string.gsub(name, "(%l)(%u)", "%1 %2") sp = string.gsub(sp, "(%u)(%u%l)", "%1 %2") sp = string.gsub(sp, "[^%a]", " ")
+            local hasWord = false
+            for word in string.gmatch(sp, "%S+") do if wordSet[string.lower(word)] then hasWord = true break end end
+            if not hasWord then return false end
+            if Players:GetPlayerFromCharacter(inst) then return false end
+            if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then return false end
+            return inst:FindFirstChildWhichIsA("BasePart", true) ~= nil
+        end
+        local function removeObj(m) local it = M.items[m] if it then it.box:Destroy() it.line:Destroy() it.label:Destroy() M.items[m] = nil end end
+        local function addObj(m)
+            if M.items[m] then return end
+            local p = m.Parent while p and p ~= Workspace do if M.items[p] then return end p = p.Parent end
+            for other in pairs(M.items) do if other:IsDescendantOf(m) then removeObj(other) end end
+            local box = Instance.new("BoxHandleAdornment") box.Color3 = BLUE box.Transparency = BOX_TRANSPARENCY box.AlwaysOnTop = true box.ZIndex = 5 box.Visible = false box.Parent = BoxHolder
+            local line = Instance.new("Frame") line.AnchorPoint = Vector2.new(0.5, 0.5) line.BackgroundColor3 = BLUE line.BorderSizePixel = 0 line.Visible = false line.Parent = LineHolder_ESP
+            local label = Instance.new("TextLabel") label.AnchorPoint = Vector2.new(0.5, 1) label.Size = UDim2.fromOffset(220, 36) label.BackgroundTransparency = 1 label.TextColor3 = BLUE label.TextStrokeTransparency = 0 label.TextStrokeColor3 = Color3.new(0,0,0) label.Font = Enum.Font.GothamBold label.TextSize = 14 label.TextYAlignment = Enum.TextYAlignment.Bottom label.Visible = false label.Parent = LabelHolder
+            M.items[m] = {box = box, line = line, label = label, adornee = nil}
+        end
+        local function scan()
+            if M.scanning then return end
+            M.scanning = true M.lastScan = os.clock()
+            task.spawn(function() local list = Workspace:GetDescendants() for i, d in ipairs(list) do if not M.enabled then break end if isMatch(d) then addObj(d) end if i % 3000 == 0 then task.wait() end end M.scanning = false end)
+        end
+        function M.start()
+            if M.enabled then return end M.enabled = true
+            if opts.finder then M.lastScan = 0 else scan() M.addConn = Workspace.DescendantAdded:Connect(function(d) if isMatch(d) then addObj(d) end end) end
+        end
+        function M.stop() M.enabled = false if M.addConn then M.addConn:Disconnect() M.addConn = nil end for m in pairs(M.items) do removeObj(m) end end
+        function M.render(top, myPos)
+            if not M.enabled then return end
+            local now = os.clock()
+            if opts.finder then if now - M.lastScan >= POLL_VISUAL then M.lastScan = now for _, inst in ipairs(opts.finder()) do addObj(inst) end end
+            elseif now - M.lastScan > RESCAN_EVERY then scan() end
+            for obj, it in pairs(M.items) do
+                if not obj.Parent or not obj:IsDescendantOf(Workspace) then removeObj(obj)
+                else
+                    local ok, cf, size, ad
+                    if obj:IsA("Model") then ok, cf, size = pcall(obj.GetBoundingBox, obj) if not it.adornee or not it.adornee:IsDescendantOf(obj) then it.adornee = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true) end ad = it.adornee
+                    else ok, cf, size = true, obj.CFrame, obj.Size ad = obj end
+                    if ok and ad then
+                        it.box.Adornee = ad it.box.Size = size it.box.CFrame = ad.CFrame:ToObjectSpace(cf) it.box.Visible = true
+                        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(cf.Position)
+                        if onScreen and pos.Z > 0 then
+                            local diff = Vector2.new(pos.X, pos.Y) - top
+                            it.line.Size = UDim2.fromOffset(diff.Magnitude, LINE_THICKNESS) it.line.Position = UDim2.fromOffset((top.X + pos.X) / 2, (top.Y + pos.Y) / 2) it.line.Rotation = math.deg(math.atan2(diff.Y, diff.X)) it.line.Visible = true
+                            local above = workspace.CurrentCamera:WorldToViewportPoint(cf.Position + Vector3.new(0, size.Y / 2 + 1, 0))
+                            local dist = myPos and math.floor((cf.Position - myPos).Magnitude) or nil
+                            it.label.Text = obj.Name .. "\n" .. (dist and (dist .. " studs") or "?") it.label.Position = UDim2.fromOffset(above.X, above.Y) it.label.Visible = true
+                        else it.line.Visible = false it.label.Visible = false end
+                    end
+                end
+            end
+        end
+        return M
+    end
+    local function findVisuals() local out = {} local effects = Workspace:FindFirstChild("Effects") local tickets = effects and effects:FindFirstChild("Tickets") if tickets then for _, c in ipairs(tickets:GetChildren()) do if c.Name == VISUAL_NAME and (c:IsA("Model") or c:IsA("BasePart")) then out[#out+1] = c end end end return out end
+    local totemESP = newESP({finder = findVisuals})
+    local npcESP = newESP({words = NPC_WORDS})
+    local EventESPConn = RunService.RenderStepped:Connect(function()
+        if not (totemESP.enabled or npcESP.enabled) then return end
+        local cam = Workspace.CurrentCamera if not cam then return end
+        local top = Vector2.new(cam.ViewportSize.X / 2, 0) local char = LocalPlayer.Character local myRoot = char and char:FindFirstChild("HumanoidRootPart") local myPos = myRoot and myRoot.Position
+        totemESP.render(top, myPos) npcESP.render(top, myPos)
+    end)
+    EventTab:AddToggle({ Name = "มองหาโทเทม", Default = false, Callback = function(Value) if Value then totemESP.start() else totemESP.stop() end EventNotify(Value and "เปิดมองหาโทเทม" or "ปิดมองหาโทเทม") end })
+    EventTab:AddToggle({ Name = "มองหา NPC อีเว้นท์", Default = false, Callback = function(Value) if Value then npcESP.start() else npcESP.stop() end EventNotify(Value and "เปิดมองหา NPC อีเว้นท์" or "ปิดมองหา NPC อีเว้นท์") end })
+    Env.KRYVEX_EventESP_Stop = function() pcall(totemESP.stop) pcall(npcESP.stop) pcall(function() EventESPConn:Disconnect() end) pcall(function() EventESP_Gui:Destroy() end) end
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: อื่นๆ (OtherTab)
+    -- =========================================================
+    local NoclipFeatureEnabled, NoclipFeatureConnection = false, nil
+    TabOther:AddToggle({ Name = "ทะลุกำแพง", Default = false, Callback = function(Value)
+        NoclipFeatureEnabled = Value
+        if NoclipFeatureConnection then NoclipFeatureConnection:Disconnect() NoclipFeatureConnection = nil end
+        if Value then
+            NoclipFeatureConnection = RunService.Stepped:Connect(function()
+                if not NoclipFeatureEnabled then return end
+                local c = LocalPlayer.Character if not c then return end
+                for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+            end)
+            Win:Notify({Title = "KRYVEX HUB", Content = "เปิดทะลุกำแพงแล้ว", Duration = 3})
+        else
+            local c = LocalPlayer.Character if c then for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end
+            Win:Notify({Title = "KRYVEX HUB", Content = "ปิดทะลุกำแพงแล้ว", Duration = 3})
+        end
+    end })
+    task.wait()
+
+    local MoonJumpEnabled, MoonJumpConnection = false, nil
+    TabOther:AddToggle({ Name = "กระโดดดวงจันทร์", Default = false, Callback = function(Value)
+        MoonJumpEnabled = Value
+        if MoonJumpConnection then MoonJumpConnection:Disconnect() MoonJumpConnection = nil end
+        if Value then
+            MoonJumpConnection = RunService.Heartbeat:Connect(function()
+                if not MoonJumpEnabled then return end
+                local Character = LocalPlayer.Character if not Character then return end
+                local Root = Character:FindFirstChild("HumanoidRootPart") local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+                if not Root then return end
+                if Humanoid then Humanoid.UseJumpPower = true Humanoid.JumpPower = 60 end
+                Root.Velocity = Vector3.new(Root.Velocity.X, Root.Velocity.Y * 0.4, Root.Velocity.Z)
+            end)
+            Win:Notify({Title = "KRYVEX HUB", Content = "เปิดกระโดดดวงจันทร์แล้ว 🌙", Duration = 3})
+        else
+            local Character = LocalPlayer.Character if Character then local Humanoid = Character:FindFirstChildOfClass("Humanoid") if Humanoid then Humanoid.UseJumpPower = true Humanoid.JumpPower = 50 end end
+            Win:Notify({Title = "KRYVEX HUB", Content = "ปิดกระโดดดวงจันทร์แล้ว", Duration = 3})
+        end
+    end })
+    task.wait()
+
+    local StretchedViewEnabled, StretchedViewConnection, StretchedViewFactor = false, nil, 0.53
+    TabOther:AddToggle({ Name = "มุมมองยืด", Default = false, Callback = function(Value)
+        StretchedViewEnabled = Value
+        if StretchedViewConnection then StretchedViewConnection:Disconnect() StretchedViewConnection = nil end
+        if Value then
+            StretchedViewConnection = RunService.RenderStepped:Connect(function()
+                if not StretchedViewEnabled then return end
+                local cam = workspace.CurrentCamera if not cam then return end
+                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, StretchedViewFactor, 0, 0, 0, 1)
+            end)
+            Win:Notify({Title = "KRYVEX HUB", Content = "เปิดมุมมองยืดแล้ว", Duration = 3})
+        else Win:Notify({Title = "KRYVEX HUB", Content = "ปิดมุมมองยืดแล้ว", Duration = 3}) end
+    end })
+    task.wait()
+
+    local RedeemCodeEvent = ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("UserData") and ReplicatedStorage.Shared.UserData:FindFirstChild("Remotes") and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
+    TabOther:AddButton({ Name = "แลกโค้ดอัตโนมัติ", Callback = function()
+        if not RedeemCodeEvent then Win:Notify({Title = "KRYVEX HUB", Content = "ไม่พบ Redeem Code Event", Duration = 3}) return end
+        local RedeemCodeList = {"Summer2026","HAPPY4THBIRTHDAYEVADE","isurviveddatahaul","HALLOWEEN2026","iloveevade"}
+        local RedeemAttemptCount = 0
+        for _, RedeemCodeValue in ipairs(RedeemCodeList) do
+            pcall(function() RedeemCodeEvent:FireServer(RedeemCodeValue) end)
+            RedeemAttemptCount += 1 task.wait(0.15)
+        end
+        Win:Notify({Title = "KRYVEX HUB", Content = "ส่งโค้ดครบ " .. RedeemAttemptCount .. " โค้ดแล้ว", Duration = 3})
+    end })
+    task.wait()
+
+    local FakeStatsPlayers, FakeStatsLocalPlayer = Players, LocalPlayer
+    local function FakeStatsFormatNumber(Value) local Digits = tostring(Value or ""):gsub("[^%d]", "") if Digits == "" then return nil end local Result = Digits while true do local NewResult, Count = Result:gsub("^(%d+)(%d%d%d)", "%1,%2") Result = NewResult if Count == 0 then break end end return Result end
+    local function FakeStatsSetAmount(TargetName, Value)
+        local AmountText = FakeStatsFormatNumber(Value) if not AmountText then return end
+        local pg = FakeStatsLocalPlayer:FindFirstChild("PlayerGui") local HomePage = pg and pg:FindFirstChild("HomePage") local Root = HomePage and HomePage:FindFirstChild("Root") local Bottom = Root and Root:FindFirstChild("Bottom") local Left = Bottom and Bottom:FindFirstChild("Left") local StatObject = Left and Left:FindFirstChild(TargetName, true)
+        if not StatObject then return end
+        local AmountLabel if StatObject:IsA("TextLabel") then AmountLabel = StatObject
+        else local Body = StatObject:FindFirstChild("Body", true) AmountLabel = Body and Body:FindFirstChild("Amount", true) AmountLabel = AmountLabel or StatObject:FindFirstChild("Amount", true) AmountLabel = AmountLabel or StatObject:FindFirstChildWhichIsA("TextLabel", true) end
+        if AmountLabel and AmountLabel:IsA("TextLabel") then AmountLabel.Text = AmountText end
+    end
+    local function AddFakeStatsInput(DisplayName, TargetName) TabOther:AddTextbox({ Name = DisplayName, Placeholder = "เช่น 122395", Default = "", Callback = function(Value) FakeStatsSetAmount(TargetName, Value) end }) end
+    AddFakeStatsInput("เงิน", "Token") AddFakeStatsInput("คะแนน", "Points") AddFakeStatsInput("ตั๋ว", "Vouchers") AddFakeStatsInput("โทเคน", "Tickets") AddFakeStatsInput("เอาชีวิตรอด", "Survivals")
+    task.wait()
+
+    local removeDarknessLighting, removeDarknessEnabled, removeDarknessOriginalLighting, removeDarknessOriginalEffects, removeDarknessEffectAddedConnection = Lighting, false, {}, {}, nil
+    local function isRemoveDarknessEffect(effect) return effect:IsA("ColorCorrectionEffect") or effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") end
+    local function applyRemoveDarkness()
+        if not removeDarknessEnabled then return end
+        removeDarknessLighting.GlobalShadows = false removeDarknessLighting.Brightness = 3 removeDarknessLighting.ExposureCompensation = 0.5 removeDarknessLighting.Ambient = Color3.fromRGB(180, 180, 180) removeDarknessLighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200) removeDarknessLighting.FogStart = 0 removeDarknessLighting.FogEnd = 1000000
+        for _, effect in ipairs(removeDarknessLighting:GetDescendants()) do if effect:IsA("PostEffect") then if isRemoveDarknessEffect(effect) then if removeDarknessOriginalEffects[effect] == nil then removeDarknessOriginalEffects[effect] = effect.Enabled end effect.Enabled = false end end end
+    end
+    TabOther:AddToggle({ Name = "ลบความมืด", Default = false, Callback = function(Value)
+        if Value then
+            if removeDarknessEnabled then return end
+            removeDarknessEnabled = true
+            removeDarknessOriginalLighting = {GlobalShadows = removeDarknessLighting.GlobalShadows, Brightness = removeDarknessLighting.Brightness, ExposureCompensation = removeDarknessLighting.ExposureCompensation, Ambient = removeDarknessLighting.Ambient, OutdoorAmbient = removeDarknessLighting.OutdoorAmbient, ClockTime = removeDarknessLighting.ClockTime, FogEnd = removeDarknessLighting.FogEnd, FogStart = removeDarknessLighting.FogStart}
+            removeDarknessOriginalEffects = {}
+            removeDarknessEffectAddedConnection = removeDarknessLighting.DescendantAdded:Connect(function(effect) if removeDarknessEnabled and effect:IsA("PostEffect") then if isRemoveDarknessEffect(effect) then if removeDarknessOriginalEffects[effect] == nil then removeDarknessOriginalEffects[effect] = effect.Enabled end effect.Enabled = false end end end)
+            applyRemoveDarkness() Win:Notify({Title = "KRYVEX HUB", Content = "เปิดระบบลบความมืดแล้ว", Duration = 3})
+        else
+            if not removeDarknessEnabled then return end
+            removeDarknessEnabled = false
+            if removeDarknessEffectAddedConnection then removeDarknessEffectAddedConnection:Disconnect() removeDarknessEffectAddedConnection = nil end
+            for property, value in pairs(removeDarknessOriginalLighting) do pcall(function() removeDarknessLighting[property] = value end) end
+            for effect, wasEnabled in pairs(removeDarknessOriginalEffects) do pcall(function() if effect.Parent and effect:IsDescendantOf(removeDarknessLighting) then effect.Enabled = wasEnabled end end) end
+            removeDarknessOriginalLighting = {} removeDarknessOriginalEffects = {}
+            Win:Notify({Title = "KRYVEX HUB", Content = "ปิดระบบและคืนค่าแสงเดิมแล้ว", Duration = 3})
+        end
+    end })
+    task.wait()
+
+    local DayNightLighting, DayNightSelectedTime = Lighting, "กลางวัน"
+    TabOther:AddDropdown({ Name = "ปรับกลางวันและกลางคืน", Items = {"กลางวัน", "กลางคืน"}, Default = "กลางวัน", Callback = function(Value) DayNightSelectedTime = Value end })
+    TabOther:AddButton({ Name = "ตกลง (ปรับเวลา)", Callback = function() DayNightLighting.ClockTime = DayNightSelectedTime == "กลางวัน" and 14 or 0 Win:Notify({Title = "KRYVEX HUB", Content = "ปรับเป็น" .. DayNightSelectedTime .. "แล้ว!", Duration = 3}) end })
+    task.wait()
+
+    -- Sky Themes
+    if Env.KOMAT_SkyThemes_Stop then pcall(Env.KOMAT_SkyThemes_Stop) end
+    local C = Color3.fromRGB
+    local LightingProps, AtmosphereProps, SkyProps = {"ClockTime", "Brightness", "Ambient", "OutdoorAmbient", "ColorShift_Top", "ColorShift_Bottom", "ExposureCompensation", "FogColor", "FogStart", "FogEnd", "EnvironmentDiffuseScale", "EnvironmentSpecularScale"}, {"Density", "Offset", "Color", "Decay", "Glare", "Haze"}, {"StarCount", "MoonAngularSize", "SunAngularSize", "CelestialBodiesShown"}
+    local ThemesSky = {
+        ["🌌 ราตรีดาวเต็มฟ้า"] = {Time = 0, Lighting = {Brightness=1,Ambient=C(20,25,50),OutdoorAmbient=C(30,40,80),ColorShift_Top=C(80,100,200),ColorShift_Bottom=C(20,20,50),ExposureCompensation=0.1,FogColor=C(10,15,35),FogStart=0,FogEnd=100000}, Atmo = {Density=0.25,Offset=0.1,Color=C(40,60,120),Decay=C(10,15,40),Glare=0,Haze=1}, CC = {Saturation=0.15,Contrast=0.1,Brightness=0,TintColor=C(200,215,255)}, Bloom = {Intensity=0.6,Size=30,Threshold=1}, Sky = {StarCount=6000,MoonAngularSize=14,CelestialBodiesShown=true}},
+        ["🌅 รุ่งอรุณชมพู-ทอง"] = {Time = 5.8, Lighting = {Brightness=2,Ambient=C(140,110,120),OutdoorAmbient=C(170,140,140),ColorShift_Top=C(255,190,150),ColorShift_Bottom=C(255,170,190),ExposureCompensation=0.1,FogColor=C(255,205,170),FogStart=0,FogEnd=100000}, Atmo = {Density=0.3,Offset=0.3,Color=C(255,205,180),Decay=C(255,160,170),Glare=0.4,Haze=1.4}, CC = {Saturation=0.15,Contrast=0.05,Brightness=0.02,TintColor=C(255,235,225)}, Bloom = {Intensity=0.4,Size=24,Threshold=1.1}, Rays = {Intensity=0.12,Spread=0.8}},
+        ["🌸 Pastel Dreamland"] = {Time = 17, Lighting = {Brightness=2.2,Ambient=C(170,140,200),OutdoorAmbient=C(190,160,220),ColorShift_Top=C(220,170,255),ColorShift_Bottom=C(255,170,220),ExposureCompensation=0.2,FogColor=C(230,190,255),FogStart=0,FogEnd=100000}, Atmo = {Density=0.35,Offset=0.2,Color=C(230,190,255),Decay=C(255,170,220),Glare=0.3,Haze=2}, CC = {Saturation=0.4,Contrast=-0.05,Brightness=0.05,TintColor=C(255,235,255)}, Bloom = {Intensity=0.6,Size=40,Threshold=0.9}},
+        ["🌃 Synthwave / Cyberpunk"] = {Time = 22, Lighting = {Brightness=1.5,Ambient=C(90,40,140),OutdoorAmbient=C(100,40,150),ColorShift_Top=C(255,0,170),ColorShift_Bottom=C(0,200,255),ExposureCompensation=0.2,FogColor=C(80,20,120),FogStart=0,FogEnd=100000}, Atmo = {Density=0.4,Offset=0.3,Color=C(180,60,220),Decay=C(255,0,150),Glare=1,Haze=2}, CC = {Saturation=0.5,Contrast=0.25,Brightness=0,TintColor=C(255,200,255)}, Bloom = {Intensity=1.2,Size=40,Threshold=0.8}, Sky = {StarCount=3000,MoonAngularSize=12,CelestialBodiesShown=true}},
+        ["🌫️ หมอกเช้าลึกลับ"] = {Time = 6.5, Lighting = {Brightness=1.2,Ambient=C(90,105,100),OutdoorAmbient=C(100,115,110),ColorShift_Top=C(150,170,165),ColorShift_Bottom=C(80,95,95),ExposureCompensation=0,FogColor=C(130,150,145),FogStart=0,FogEnd=400}, Atmo = {Density=0.55,Offset=0,Color=C(150,170,165),Decay=C(90,110,110),Glare=0,Haze=3}, CC = {Saturation=-0.25,Contrast=0.1,Brightness=0,TintColor=C(210,230,225)}, Bloom = {Intensity=0.2,Size=20,Threshold=1.2}},
+        ["🌩️ พายุมืดครึ้ม"] = {Time = 14, Storm = true, Lighting = {Brightness=1,Ambient=C(70,75,85),OutdoorAmbient=C(80,85,95),ColorShift_Top=C(90,95,110),ColorShift_Bottom=C(50,55,65),ExposureCompensation=-0.3,FogColor=C(70,75,85),FogStart=0,FogEnd=1500}, Atmo = {Density=0.5,Offset=0,Color=C(100,105,115),Decay=C(60,65,75),Glare=0,Haze=3}, CC = {Saturation=-0.3,Contrast=0.25,Brightness=0,TintColor=C(200,210,225)}, Bloom = {Intensity=0.2,Size=20,Threshold=1.2}},
+        ["🌈 Golden Hour ทุ่งหญ้า"] = {Time = 16.5, Lighting = {Brightness=2.6,Ambient=C(140,110,80),OutdoorAmbient=C(170,140,100),ColorShift_Top=C(255,200,110),ColorShift_Bottom=C(255,170,90),ExposureCompensation=0.15,FogColor=C(255,215,150),FogStart=0,FogEnd=100000}, Atmo = {Density=0.28,Offset=0.3,Color=C(255,210,140),Decay=C(255,170,90),Glare=0.5,Haze=1.2}, CC = {Saturation=0.25,Contrast=0.1,Brightness=0.02,TintColor=C(255,235,200)}, Bloom = {Intensity=0.5,Size=28,Threshold=1.1}, Rays = {Intensity=0.2,Spread=0.85}},
+        ["🔴 Blood Moon"] = {Time = 0, Lighting = {Brightness=1,Ambient=C(90,20,20),OutdoorAmbient=C(110,25,25),ColorShift_Top=C(180,20,20),ColorShift_Bottom=C(40,0,0),ExposureCompensation=0.1,FogColor=C(60,0,0),FogStart=0,FogEnd=100000}, Atmo = {Density=0.35,Offset=0.1,Color=C(160,20,20),Decay=C(60,0,0),Glare=0,Haze=1.8}, CC = {Saturation=0.2,Contrast=0.2,Brightness=0,TintColor=C(255,170,170)}, Bloom = {Intensity=0.6,Size=30,Threshold=1}, Sky = {StarCount=2500,MoonAngularSize=40,CelestialBodiesShown=true}},
+    }
+    local ThemeOrder = {"🌌 ราตรีดาวเต็มฟ้า","🌅 รุ่งอรุณชมพู-ทอง","🌸 Pastel Dreamland","🌃 Synthwave / Cyberpunk","🌫️ หมอกเช้าลึกลับ","🌩️ พายุ","🌈 Golden Hour ทุ่งหญ้า","🔴 Blood Moon"}
+    local SavedLighting, OriginalAtmosphere, SavedAtmosphere, OriginalSky, SavedSky, OwnAtmosphere, OwnSky, CreatedEffects, ThemeToken, SelectedTheme = nil, nil, nil, nil, nil, nil, nil, {}, 0, ThemeOrder[1]
+    local function Snapshot(Object, Properties) if not Object then return nil end local Values = {} for _, Property in ipairs(Properties) do local OK, Value = pcall(function() return Object[Property] end) if OK then Values[Property] = Value end end return Values end
+    local function ApplyProperties(Object, Values) if not Object or not Values then return end for Property, Value in pairs(Values) do pcall(function() Object[Property] = Value end) end end
+    local function SaveOriginal() if SavedLighting then return end SavedLighting = Snapshot(Lighting, LightingProps) OriginalAtmosphere = Lighting:FindFirstChildOfClass("Atmosphere") SavedAtmosphere = Snapshot(OriginalAtmosphere, AtmosphereProps) OriginalSky = Lighting:FindFirstChildOfClass("Sky") SavedSky = Snapshot(OriginalSky, SkyProps) end
+    local function ClearEffects() ThemeToken = ThemeToken + 1 for _, Effect in ipairs(CreatedEffects) do pcall(function() Effect:Destroy() end) end table.clear(CreatedEffects) end
+    local function RemoveOwnedObjects() if OwnAtmosphere then pcall(function() OwnAtmosphere:Destroy() end) OwnAtmosphere = nil end if OwnSky then pcall(function() OwnSky:Destroy() end) OwnSky = nil end end
+    local function RestoreBase() ApplyProperties(Lighting, SavedLighting) if OriginalAtmosphere and OriginalAtmosphere.Parent then ApplyProperties(OriginalAtmosphere, SavedAtmosphere) end if OriginalSky and OriginalSky.Parent then ApplyProperties(OriginalSky, SavedSky) end end
+    local function AddEffect(ClassName, Name, Properties) local Effect = Instance.new(ClassName) Effect.Name = Name ApplyProperties(Effect, Properties) Effect.Parent = Lighting table.insert(CreatedEffects, Effect) end
+    local function ResetTheme() ClearEffects() RemoveOwnedObjects() RestoreBase() end
+    local function ApplyTheme(Theme)
+        if not Theme then return end SaveOriginal() ResetTheme()
+        ApplyProperties(Lighting, Theme.Lighting) Lighting.ClockTime = Theme.Time
+        local Atmosphere = OriginalAtmosphere if not Atmosphere or not Atmosphere.Parent then Atmosphere = Instance.new("Atmosphere") Atmosphere.Name = "KRYVEX_SkyAtmosphere" Atmosphere.Parent = Lighting OwnAtmosphere = Atmosphere end
+        ApplyProperties(Atmosphere, Theme.Atmo)
+        if Theme.Sky then local Sky = OriginalSky if not Sky or not Sky.Parent then Sky = Instance.new("Sky") Sky.Name = "KRYVEX_Sky" Sky.Parent = Lighting OwnSky = Sky end ApplyProperties(Sky, Theme.Sky) end
+        if Theme.CC then AddEffect("ColorCorrectionEffect", "KRYVEX_SkyCC", Theme.CC) end
+        if Theme.Bloom then AddEffect("BloomEffect", "KRYVEX_SkyBloom", Theme.Bloom) end
+        if Theme.Rays then AddEffect("SunRaysEffect", "KRYVEX_SkyRays", Theme.Rays) end
+        local Token = ThemeToken task.spawn(function() while Token == ThemeToken do task.wait(0.5) if Token == ThemeToken then Lighting.ClockTime = Theme.Time end end end)
+        if Theme.Storm then task.spawn(function() local Brightness = Theme.Lighting.Brightness or Lighting.Brightness local Exposure = Theme.Lighting.ExposureCompensation or Lighting.ExposureCompensation while Token == ThemeToken do task.wait(math.random(3, 9)) if Token ~= ThemeToken then break end Lighting.Brightness = 5 Lighting.ExposureCompensation = 1 task.wait(0.05) if Token == ThemeToken then Lighting.Brightness = Brightness Lighting.ExposureCompensation = Exposure end end end) end
+    end
+    local function RestoreOriginal() ResetTheme() SavedLighting, OriginalAtmosphere, SavedAtmosphere, OriginalSky, SavedSky = nil, nil, nil, nil, nil end
+    Env.KOMAT_SkyThemes_Stop = RestoreOriginal
+    TabOther:AddDropdown({ Name = "เลือกธีมท้องฟ้า", Items = ThemeOrder, Default = ThemeOrder[1], Callback = function(Value) if type(Value) == "table" then Value = Value[1] end if ThemesSky[Value] then SelectedTheme = Value end end })
+    TabOther:AddButton({ Name = "ตกลง (เปลี่ยนท้องฟ้า)", Callback = function() local Theme = ThemesSky[SelectedTheme] if not Theme then return end ApplyTheme(Theme) Win:Notify({Title = "KRYVEX HUB", Content = "เปลี่ยนเป็น " .. SelectedTheme .. " แล้ว", Duration = 3}) end })
+    TabOther:AddButton({ Name = "คืนค่าท้องฟ้าเดิม", Callback = function() RestoreOriginal() Win:Notify({Title = "KRYVEX HUB", Content = "คืนค่าท้องฟ้าเดิมแล้ว", Duration = 3}) end })
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: แมพ (MapTab)
+    -- =========================================================
+    local MapScale, MapScaleEnabled, MapTarget, MapParts, MapOriginal, MapCenter = 2, false, nil, {}, {}, Vector3.zero
+    local function MapNotify(Message) pcall(function() Win:Notify({Title = "KRYVEX MAP", Content = Message, Duration = 3}) end) end
+    local function FindMap() local GameFolder = Workspace:FindFirstChild("Game") local Map = GameFolder and GameFolder:FindFirstChild("Map") return Map or Workspace:FindFirstChild("Map", true) end
+    local function RestoreMap() for Part, Original in pairs(MapOriginal) do if Part and Part.Parent then pcall(function() Part.Size = Original.Size Part.CFrame = Original.CFrame end) end end end
+    local function CaptureMap()
+        RestoreMap() MapTarget = FindMap() MapParts, MapOriginal = {}, {}
+        if not MapTarget then return false, "ไม่พบ Instance ชื่อ Map" end
+        for _, Object in ipairs(MapTarget:GetDescendants()) do if Object:IsA("BasePart") then MapParts[#MapParts + 1] = Object MapOriginal[Object] = {Size = Object.Size, CFrame = Object.CFrame} end end
+        if #MapParts == 0 then return false, "ไม่พบชิ้นส่วนภายใน Map" end
+        local PositionSum = Vector3.zero for _, Part in ipairs(MapParts) do PositionSum += Part.Position end MapCenter = PositionSum / #MapParts return true
+    end
+    local function ApplyMapScale(Scale)
+        if not MapTarget or not MapTarget.Parent then local Success, Message = CaptureMap() if not Success then MapNotify(Message) return false end end
+        local Updated = 0
+        for _, Part in ipairs(MapParts) do
+            local Original = MapOriginal[Part]
+            if Part.Parent and Original then
+                local Success = pcall(function() local Offset = Original.CFrame.Position - MapCenter local NewPosition = MapCenter + Offset * Scale local Rotation = Original.CFrame - Original.CFrame.Position Part.Size = Original.Size * Scale Part.CFrame = CFrame.new(NewPosition) * Rotation end)
+                if Success then Updated += 1 if Updated % 300 == 0 then task.wait() end end
+            end
+        end
+        return Updated > 0
+    end
+    local function TeleportOnMapPart()
+        local Character = LocalPlayer.Character local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+        if not Character or not Root then MapNotify("ไม่พบตัวละคร") return false end
+        if not MapTarget or not MapTarget.Parent then MapNotify("ไม่พบแมพ กรุณาเปิดระบบขยายแมพก่อน") return false end
+        local BestPosition, BestDistance = nil, math.huge
+        for _, Part in ipairs(MapParts) do
+            if Part.Parent and Part:IsA("BasePart") and Part.Size.X >= 4 and Part.Size.Z >= 4 then
+                local LocalPosition = Part.CFrame:PointToObjectSpace(Root.Position) local HalfSize = Part.Size / 2
+                local LocalTarget = Vector3.new(math.clamp(LocalPosition.X, -HalfSize.X + 2, HalfSize.X - 2), HalfSize.Y + 5, math.clamp(LocalPosition.Z, -HalfSize.Z + 2, HalfSize.Z - 2))
+                local WorldTarget = Part.CFrame:PointToWorldSpace(LocalTarget) local Distance = (WorldTarget - Root.Position).Magnitude
+                if Distance < BestDistance then BestDistance = Distance BestPosition = WorldTarget end
+            end
+        end
+        if not BestPosition then MapNotify("หา Part สำหรับวาร์ปไม่เจอ") return false end
+        Character:PivotTo(CFrame.new(BestPosition)) return true
+    end
+    TabMap:AddToggle({ Name = "เปิดใช้งานขยายแมพ", Default = false, Callback = function(Value)
+        if Value then
+            local Success, Message = CaptureMap() if not Success then MapNotify(Message) return end
+            MapScaleEnabled = true
+            if ApplyMapScale(MapScale) then task.wait(0.2) if TeleportOnMapPart() then MapNotify("ขยายแมพ x" .. tostring(MapScale) .. " และวาร์ปขึ้นบน Part แล้ว") end
+            else MapScaleEnabled = false MapNotify("ขยายแมพไม่สำเร็จ") end
+        else MapScaleEnabled = false RestoreMap() MapNotify("คืนขนาดแมพเดิมแล้ว") end
+    end })
+    TabMap:AddSlider({ Name = "ขนาดแมพ", Min = 1, Max = 5, Default = 2, Increment = 0.5, Callback = function(Value) MapScale = tonumber(Value) or 2 if MapScaleEnabled then ApplyMapScale(MapScale) end end })
+    TabMap:AddButton({ Name = "คืนขนาดแมพเดิม", Callback = function() MapScaleEnabled = false RestoreMap() MapNotify("คืนขนาดแมพเดิมแล้ว") end })
+    TabMap:AddButton({ Name = "วาร์ปไปบน Part", Callback = function() if TeleportOnMapPart() then MapNotify("วาร์ปไปบน Part สำเร็จ") end end })
+
+    -- ✅ โหลดฟีเจอร์ครบแล้ว
+    Win:Notify({Title = "KRYVEX HUB", Content = "โหลดฟีเจอร์ทั้งหมดเสร็จสมบูรณ์", Duration = 5})
+    print("✅ KRYVEX HUB (HelloHub) โหลดสำเร็จ!")
+end)
