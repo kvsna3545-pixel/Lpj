@@ -1,0 +1,810 @@
+--[[
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  Evade Hub v3 FINAL  |  FULL FEATURES + DELTA FIX           ║
+    ║  ✅ ครบทุกฟีเจอร์ (Tabs 1-10)                                  ║
+    ║  ✅ แก้บั๊ก Delta Mobile Timeout                               ║
+    ║  ✅ ใช้ปุ่ม H (HelloHub) เปิด/ปิด UI                           ║
+    ╚══════════════════════════════════════════════════════════════╝
+]]
+
+local CONFIG = {
+    HelloHubURLs = {
+        "https://raw.githubusercontent.com/kvsna3545-pixel/Lpj/refs/heads/main/ko",
+    },
+    RetryPerURL  = 2,
+    RetryDelay   = 0.5,
+    Theme        = "Halloween",
+    AutoCleanup  = true,
+    ScriptTag    = "EvadeHub_v3",
+}
+
+if CONFIG.AutoCleanup then
+    pcall(function()
+        local g = getgenv and getgenv() or _G
+        if g[CONFIG.ScriptTag .. "_Cleanup"] then g[CONFIG.ScriptTag .. "_Cleanup"]() end
+    end)
+end
+
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local UIS          = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace    = game:GetService("Workspace")
+local Lighting     = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+local TweenService = game:GetService("TweenService")
+local CoreGui      = game:GetService("CoreGui")
+local LocalPlayer  = Players.LocalPlayer
+local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ลบ GUI เก่าทิ้งก่อน (ถ้าเคยรันมาก่อน)
+do
+    local parents = {CoreGui, PlayerGui}
+    if gethui then pcall(function() table.insert(parents, gethui()) end) end
+    for _, p in ipairs(parents) do
+        if p then
+            for _, gui in ipairs(p:GetChildren()) do
+                if gui:IsA("ScreenGui") and (gui.Name == "HelloHub" or gui.Name == "HelloHub Test" or gui.Name == "EvadeHub_MobileToggle") then
+                    pcall(function() gui:Destroy() end)
+                end
+            end
+        end
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  📚 LOADER
+-- ══════════════════════════════════════════════════════════════
+local function LoadHelloHub()
+    local lastErr
+    for _, url in ipairs(CONFIG.HelloHubURLs) do
+        for attempt = 1, CONFIG.RetryPerURL do
+            local ok, r = pcall(function()
+                local src = game:HttpGet(url, true)
+                if not src or #src < 100 then error("ไฟล์ว่าง/เล็กเกิน") end
+                local orig = src
+                src = src:gsub("(_TEST_MODE%s*=%s*)true", "%1false")
+                src = src:gsub("(_TEST_MODE%s*=%s*)[Tt][Rr][Uu][Ee]", "%1false")
+                return loadstring(src)()
+            end)
+            if ok and r and type(r) == "table" and r.CreateWindow then
+                return r
+            end
+            lastErr = ok and "API ไม่ครบ" or tostring(r)
+            if attempt < CONFIG.RetryPerURL then task.wait(CONFIG.RetryDelay) end
+        end
+    end
+    return nil, lastErr
+end
+
+local HelloHub, loadErr = LoadHelloHub()
+if not HelloHub then
+    warn("[Evade] ❌ โหลด HelloHub ล้มเหลว: " .. tostring(loadErr))
+    return
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  🧠 HELPERS
+-- ══════════════════════════════════════════════════════════════
+local function Safe(fn, ...)
+    local ok, r = pcall(fn, ...)
+    if not ok then warn("[Evade] Safe:", r) end
+    return ok and r or nil
+end
+local function GetChar() return LocalPlayer.Character end
+local function GetRoot() local c = GetChar() return c and c:FindFirstChild("HumanoidRootPart") end
+local function GetHum()  local c = GetChar() return c and c:FindFirstChildOfClass("Humanoid") end
+local function GetTag(o)
+    if not o then return nil end
+    local t = o:GetAttribute("Tag") or o:GetAttribute("ID") or o.Name
+    return tonumber(t) or t
+end
+local function ObjPos(o)
+    if not o or not o.Parent then return nil end
+    if o:IsA("Model") then local ok, cf = pcall(o.GetPivot, o) return ok and cf.Position or nil
+    elseif o:IsA("BasePart") then return o.Position end
+    return nil
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  🎨 WINDOW
+-- ══════════════════════════════════════════════════════════════
+local Win = HelloHub:CreateWindow({
+    Name = "Evade Hub v3",
+    Theme = CONFIG.Theme,
+    Size = UDim2.fromOffset(580, 420),
+    ToggleKey = Enum.KeyCode.RightShift,
+})
+
+local function ForceShow()
+    if not Win or not Win.Gui then return end
+    if Win.Gui.Parent ~= PlayerGui then pcall(function() Win.Gui.Parent = PlayerGui end) end
+    pcall(function()
+        Win.Gui.IgnoreGuiInset = true
+        Win.Gui.DisplayOrder = 999999
+        Win.Gui.Enabled = true
+        Win.Visible = true
+        if Win.Main then Win.Main.Visible = true Win.Main.Position = UDim2.fromScale(0.5, 0.5) end
+        if Win._shadow then Win._shadow.Visible = true end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        if Win.Gui and Win.Gui.Parent ~= PlayerGui then Win.Gui.Parent = PlayerGui end
+        task.wait(1)
+    end
+end)
+
+ForceShow()
+Win:Toggle(true)
+
+-- ══════════════════════════════════════════════════════════════
+--  📢 Notify + Floating Handles
+-- ══════════════════════════════════════════════════════════════
+local function Notify(text, dur)
+    Safe(function() Win:Notify({Title = "Evade Hub v3", Content = text, Duration = dur or 2}) end)
+end
+
+local FloatingHandles = {}
+function KillFloating(k)
+    if FloatingHandles[k] then Safe(function() FloatingHandles[k]:Destroy() end) FloatingHandles[k] = nil end
+end
+local function MakeFloating(k, cfg)
+    KillFloating(k)
+    local h = Safe(function() return Win:CreateFloatingButton(cfg) end)
+    if h then FloatingHandles[k] = h end
+    return h
+end
+local function KillAllFloating() for k in pairs(FloatingHandles) do KillFloating(k) end end
+
+do
+    local g = getgenv and getgenv() or _G
+    g[CONFIG.ScriptTag .. "_Cleanup"] = function()
+        KillAllFloating()
+        Safe(function() Win:Destroy() end)
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  📑 TABS
+-- ══════════════════════════════════════════════════════════════
+local TabMain    = Win:CreateTab("เมนูหลัก")
+local TabDash    = Win:CreateTab("แดช")
+local TabTP      = Win:CreateTab("วาร์ป")
+local TabVisual  = Win:CreateTab("มองเห็น")
+local TabFarm    = Win:CreateTab("ฟาร์ม")
+local TabEvent   = Win:CreateTab("อีเว้นท์")
+local TabScreen  = Win:CreateTab("หน้าจอ")
+local TabMap     = Win:CreateTab("แมพ")
+local TabSetting = Win:CreateTab("ตั้งค่า")
+local TabOther   = Win:CreateTab("อื่นๆ")
+
+-- ══════════════════════════════════════════════════════════════
+--  🚀 ADDING FEATURES (Full Version)
+-- ══════════════════════════════════════════════════════════════
+task.spawn(function()
+    local PlayerFolder = Workspace:FindFirstChild("Players")
+    local EventsFolder = ReplicatedStorage:FindFirstChild("Events")
+    local Interact     = EventsFolder and EventsFolder:FindFirstChild("Interact")
+    local SetPlayerMode= EventsFolder and EventsFolder:FindFirstChild("SetPlayerMode")
+    local RedeemRemote = ReplicatedStorage:FindFirstChild("Shared")
+        and ReplicatedStorage.Shared:FindFirstChild("UserData")
+        and ReplicatedStorage.Shared.UserData:FindFirstChild("Remotes")
+        and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
+
+    -- ══════════════════════════════════════════════════════════
+    --  1️⃣ TAB: เมนูหลัก
+    -- ══════════════════════════════════════════════════════════
+    TabMain:AddSection("การกระโดด")
+    task.wait()
+
+    local AutoJump, AutoJumpConn = false, nil
+    local function StartAutoJump()
+        if AutoJumpConn then AutoJumpConn:Disconnect() end
+        AutoJumpConn = RunService.Heartbeat:Connect(function()
+            if not AutoJump then return end
+            local c, h, r = GetChar(), GetHum(), GetRoot()
+            if not c or not h or not r then return end
+            if workspace:FindPartOnRay(Ray.new(r.Position, Vector3.new(0, -4, 0)), c) then
+                h:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    end
+    StartAutoJump()
+    TabMain:AddToggle({ Name = "ออโต้กระโดด", Default = false, Callback = function(v) AutoJump = v if v then StartAutoJump() end end })
+    TabMain:AddToggle({ Name = "ออโต้กระโดด (ปุ่มลอย)", Default = false, Callback = function(v)
+        if v then MakeFloating("AutoJump", { Name = "ออโต้กระโดด", Mode = "Toggle", Callback = function(a) AutoJump = a if a then StartAutoJump() end end })
+        else KillFloating("AutoJump") AutoJump = false end
+    end })
+    task.wait()
+
+    local ABounce, ABounceH, ABounceD = false, 150, 7
+    local ABounceConn, ABounceCD = nil, false
+    local function StartABounce()
+        if ABounceConn then ABounceConn:Disconnect() end
+        ABounceConn = RunService.Heartbeat:Connect(function()
+            if not ABounce then return end
+            local c, h, r = GetChar(), GetHum(), GetRoot()
+            if not c or not h or not r or h.Health <= 0 then return end
+            local st = h:GetState()
+            if st ~= Enum.HumanoidStateType.Freefall and st ~= Enum.HumanoidStateType.FallingDown then return end
+            if r.AssemblyLinearVelocity.Y >= 0 then return end
+            local params = RaycastParams.new()
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            params.FilterDescendantsInstances = {c}
+            local res = workspace:Raycast(r.Position, Vector3.new(0, -ABounceD, 0), params)
+            if res and (r.Position - res.Position).Magnitude <= ABounceD and not ABounceCD then
+                ABounceCD = true
+                local v = r.AssemblyLinearVelocity
+                r.AssemblyLinearVelocity = Vector3.new(v.X, ABounceH, v.Z)
+                h:ChangeState(Enum.HumanoidStateType.Jumping)
+                task.delay(0.15, function() ABounceCD = false end)
+            end
+        end)
+    end
+    StartABounce()
+    TabMain:AddToggle({ Name = "ออโต้เด้ง", Default = false, Callback = function(v) ABounce = v if v then StartABounce() else if ABounceConn then ABounceConn:Disconnect() end end end })
+    TabMain:AddTextbox({ Name = "ความสูง", Placeholder = "150", Default = "150", Callback = function(v) local n = tonumber(v) if n then ABounceH = math.clamp(n, 1, 1000) end end })
+    task.wait()
+
+    local Hum, StateConn, JumpHeld, BunnyEnabled = nil, nil, false, false
+    local function SetupChar(c)
+        if StateConn then StateConn:Disconnect() end
+        Hum = c:WaitForChild("Humanoid", 5)
+        if not Hum then return end
+        JumpHeld = false
+        StateConn = Hum.StateChanged:Connect(function(_, ns)
+            if ns == Enum.HumanoidStateType.Landed and BunnyEnabled and JumpHeld then
+                task.defer(function()
+                    if Hum and Hum.Parent and BunnyEnabled and JumpHeld then
+                        Hum.Jump = true Hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end)
+            end
+        end)
+    end
+    if LocalPlayer.Character then SetupChar(LocalPlayer.Character) end
+    LocalPlayer.CharacterAdded:Connect(SetupChar)
+    UIS.JumpRequest:Connect(function() if not BunnyEnabled then return end JumpHeld = true if Hum and Hum.Parent then Hum.Jump = true end end)
+    UIS.InputBegan:Connect(function(i) if BunnyEnabled and i.KeyCode == Enum.KeyCode.Space then JumpHeld = true end end)
+    UIS.InputEnded:Connect(function(i) if i.KeyCode == Enum.KeyCode.Space or i.UserInputType == Enum.UserInputType.Touch then JumpHeld = false end end)
+    TabMain:AddToggle({ Name = "กระโดดค้าง", Default = false, Callback = function(v) BunnyEnabled = v if not v then JumpHeld = false else Notify("กด Space ค้าง", 3) end end })
+    task.wait()
+
+    TabMain:AddSection("อุ้ม / ยูทิลิตี้")
+    task.wait()
+
+    local AutoCarry, CarryRange = false, 8
+    local CarryTarget, CarryConn, IsCarrying, LastCarry = nil, nil, false, 0
+    local function FindNearestDowned(range)
+        local c = GetChar() if not c or not PlayerFolder then return nil, nil end
+        local mr = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
+        if not mr then return nil, nil end
+        local t, tag, dist = nil, nil, range
+        for _, o in ipairs(PlayerFolder:GetChildren()) do
+            if o ~= c and o.Name ~= LocalPlayer.Name then
+                local h = o:FindFirstChildOfClass("Humanoid")
+                local r = o:FindFirstChild("HumanoidRootPart") or o.PrimaryPart
+                local tg = GetTag(o)
+                if h and r and tg and h.Health <= 0 then
+                    local d = (mr.Position - r.Position).Magnitude
+                    if d <= dist then dist = d t = o tag = tg end
+                end
+            end
+        end
+        return t, tag
+    end
+    local function DoAutoCarry()
+        if not Interact then return end
+        if IsCarrying then
+            if CarryTarget and CarryTarget.Parent then
+                local h = CarryTarget:FindFirstChildOfClass("Humanoid")
+                if h and h.Health <= 0 then return end
+            end
+            IsCarrying, CarryTarget = false, nil
+        end
+        if tick() - LastCarry < 1.5 then return end
+        local target, tag = FindNearestDowned(CarryRange)
+        if target and tag then IsCarrying, CarryTarget, LastCarry = true, target, tick() Safe(function() Interact:FireServer("Carry", tag) end) end
+    end
+    TabMain:AddToggle({ Name = "ออโต้อุ้ม", Default = false, Callback = function(v)
+        AutoCarry = v
+        if CarryConn then CarryConn:Disconnect() CarryConn = nil end
+        if v then CarryConn = RunService.Heartbeat:Connect(function() if AutoCarry then DoAutoCarry() end end) else CarryTarget, IsCarrying = nil, false end
+    end })
+    
+    local FlexBusy = false
+    local function DoFlexCarry()
+        if FlexBusy or not Interact then return end
+        local c = GetChar() if not c then return end
+        local mr = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
+        if not mr then return end
+        local target, tag = FindNearestDowned(25)
+        if not target or not tag then Notify("ไม่พบเป้าหมาย") return end
+        local tr = target:FindFirstChild("HumanoidRootPart") or target.PrimaryPart
+        if not tr then return end
+        FlexBusy = true
+        task.spawn(function()
+            local origAnchor = mr.Anchored
+            mr.Anchored = true
+            pcall(function() Interact:FireServer("Carry", tag) end)
+            task.wait(0.15)
+            for i = 1, 12 do
+                if not tr or not tr.Parent then break end
+                local center = tr.Position
+                local ang = (i / 12) * math.rad(360)
+                local goal = center + Vector3.new(math.cos(ang) * 12, 7, math.sin(ang) * 12)
+                local tw = TweenService:Create(mr, TweenInfo.new(0.85/12, Enum.EasingStyle.Linear), {CFrame = CFrame.new(goal, center)})
+                tw:Play() tw.Completed:Wait()
+            end
+            if tr and tr.Parent then mr.CFrame = tr.CFrame + Vector3.new(0, 0.2, 0) end
+            mr.Anchored = origAnchor
+            task.wait(0.08)
+            if tr and tr.Parent then pcall(function() Interact:FireServer("Carry", tag) end) end
+            task.wait(0.2)
+            FlexBusy = false
+        end)
+    end
+    TabMain:AddButton({ Name = "อุ้มแอ็ก (Flex)", Callback = DoFlexCarry })
+    task.wait()
+
+    getgenv().CrouchRate = getgenv().CrouchRate or 8
+    local CrouchEnabled, CrouchThread = false, nil
+    local function FindCrouchBtn()
+        local ok, b = pcall(function() return PlayerGui.Game.HUD.Mobile.Right.Mobile.CrouchButton end)
+        if ok and b then return b end
+        return PlayerGui:FindFirstChild("CrouchButton", true)
+    end
+    local function FireSig(sig)
+        if firesignal then pcall(firesignal, sig)
+        elseif getconnections then for _, c in ipairs(getconnections(sig)) do pcall(function() c:Fire() end) end end
+    end
+    local function StartCrouchSpam()
+        if CrouchThread then pcall(task.cancel, CrouchThread) end
+        CrouchEnabled = true
+        CrouchThread = task.spawn(function()
+            while CrouchEnabled do
+                local b = FindCrouchBtn()
+                if b then for _, s in ipairs({"MouseButton1Down","MouseButton1Click","MouseButton1Up","Activated"}) do Safe(function() FireSig(b[s]) end) end end
+                task.wait(1 / (getgenv().CrouchRate or 8))
+            end
+        end)
+    end
+    local function StopCrouchSpam() CrouchEnabled = false if CrouchThread then pcall(task.cancel, CrouchThread) CrouchThread = nil end end
+    TabMain:AddTextbox({ Name = "ความรัวย่อ", Placeholder = "1-30", Default = "8", Callback = function(v) local n = tonumber(v) if n then getgenv().CrouchRate = math.clamp(n, 1, 30) end end })
+    TabMain:AddToggle({ Name = "กดย่อรัวๆ", Default = false, Callback = function(v) if v then StartCrouchSpam() else StopCrouchSpam() end end })
+    task.wait()
+
+    TabMain:AddSection("การบิน / หมุน / แลค")
+    task.wait()
+    local FlyEnabled, FlySpeed = false, 1.5
+    local FlyForce, FlySpin, FlyConn
+    local function StopFly()
+        FlyEnabled = false
+        if FlyConn then FlyConn:Disconnect() FlyConn = nil end
+        if FlyForce then FlyForce:Destroy() FlyForce = nil end
+        if FlySpin then FlySpin:Destroy() FlySpin = nil end
+        local h = GetHum() if h then h.PlatformStand = false h.AutoRotate = true end
+    end
+    local function StartFly()
+        local h, r = GetHum(), GetRoot()
+        local cam = Workspace.CurrentCamera
+        if not h or not r or not cam then return end
+        if FlyForce then FlyForce:Destroy() end
+        if FlySpin then FlySpin:Destroy() end
+        FlyForce = Instance.new("BodyVelocity") FlyForce.Velocity = Vector3.zero FlyForce.P = 1000 FlyForce.MaxForce = Vector3.new(1e5, 1e5, 1e5) FlyForce.Parent = r
+        FlySpin = Instance.new("BodyGyro") FlySpin.P = 10000 FlySpin.MaxTorque = Vector3.new(1e5, 1e5, 1e5) FlySpin.CFrame = r.CFrame FlySpin.Parent = r
+        h.PlatformStand = true h.AutoRotate = false h:ChangeState(Enum.HumanoidStateType.Freefall)
+        FlyConn = RunService.Heartbeat:Connect(function()
+            if not FlyEnabled or not r.Parent or not h.Parent then StopFly() return end
+            local cc = Workspace.CurrentCamera if not cc then return end
+            local fwd = cc.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1))
+            local side = cc.CFrame:VectorToWorldSpace(Vector3.new(-1, 0, 0))
+            local flat = Vector3.new(cc.CFrame.LookVector.X, 0, cc.CFrame.LookVector.Z)
+            if flat.Magnitude > 0 then flat = flat.Unit end
+            local move = CFrame.new(Vector3.zero, flat):VectorToObjectSpace(h.MoveDirection)
+            local push = Vector3.zero
+            push += fwd * (60 * FlySpeed) * -move.Z
+            push += side * (40 * FlySpeed) * -move.X
+            FlySpin.CFrame = CFrame.new(Vector3.zero, fwd)
+            FlyForce.Velocity = FlyForce.Velocity:Lerp(push, 0.2)
+            h.PlatformStand = true h.AutoRotate = false
+        end)
+    end
+    TabMain:AddTextbox({ Name = "ความเร็วบิน", Placeholder = "1.5", Default = "1.5", Callback = function(v) local n = tonumber(v) if n then FlySpeed = math.clamp(n, 0.1, 100) end end })
+    TabMain:AddToggle({ Name = "บิน", Default = false, Callback = function(v) FlyEnabled = v if v then StartFly() Notify("เปิดบิน") else StopFly() Notify("ปิดบิน") end end })
+    LocalPlayer.CharacterAdded:Connect(function() if FlyConn then FlyConn:Disconnect() FlyConn = nil end if FlyForce then FlyForce:Destroy() FlyForce = nil end if FlySpin then FlySpin:Destroy() FlySpin = nil end if FlyEnabled then task.wait(0.3) if FlyEnabled then StartFly() end end end)
+    
+    local SpinEnabled, SpinSpeed = false, 10
+    local SpinConn
+    TabMain:AddTextbox({ Name = "ความเร็วหมุน", Placeholder = "10", Default = "10", Callback = function(v) local n = tonumber(v) if n then SpinSpeed = math.clamp(n, 0, 1000) end end })
+    TabMain:AddToggle({ Name = "หมุนตัวละคร", Default = false, Callback = function(v)
+        SpinEnabled = v
+        if SpinConn then SpinConn:Disconnect() SpinConn = nil end
+        if v then SpinConn = RunService.Heartbeat:Connect(function() if not SpinEnabled then return end local r = GetRoot() if r then r.CFrame = r.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0) end end) end
+    end })
+    task.wait()
+
+    local LagBusy = false
+    local function RunLagSwitch()
+        if LagBusy then return end
+        LagBusy = true
+        task.spawn(function()
+            local h = GetHum()
+            local oldWS, oldJP, oldAR
+            if h then oldWS, oldJP, oldAR = h.WalkSpeed, h.JumpPower, h.AutoRotate h.WalkSpeed, h.JumpPower, h.AutoRotate = 0, 0, false end
+            task.wait(0.5)
+            if h and h.Parent then h.WalkSpeed, h.JumpPower, h.AutoRotate = oldWS, oldJP, oldAR end
+            LagBusy = false
+        end)
+    end
+    TabMain:AddButton({ Name = "แลคสวิตช์", Callback = RunLagSwitch })
+    task.wait()
+
+    TabMain:AddSection("ระบบเกิดใหม่")
+    task.wait()
+    local AutoRespawn, RespawnMode = false, "สปาวปกติ"
+    local SavedCF, CharConns, Processed = nil, {}, setmetatable({}, {__mode="k"})
+    local function HandleDeath(c, h)
+        if not AutoRespawn or Processed[c] or h.Health > 0 then return end
+        Processed[c] = true
+        if RespawnMode == "สปาวจุดเดิม" then local r = c:FindFirstChild("HumanoidRootPart") if r then SavedCF = r.CFrame end end
+        task.delay(3, function()
+            if not AutoRespawn or LocalPlayer.Character ~= c then return end
+            if not h.Parent or h.Health > 0 then return end
+            if SetPlayerMode then Safe(function() SetPlayerMode:FireServer(true) end) end
+        end)
+    end
+    local function WatchChar(c)
+        task.spawn(function()
+            local h = c:WaitForChild("Humanoid", 5)
+            if not h then return end
+            if CharConns[c] then CharConns[c]:Disconnect() end
+            CharConns[c] = h.HealthChanged:Connect(function(hp) if hp <= 0 then HandleDeath(c, h) end end)
+            if h.Health <= 0 then HandleDeath(c, h) end
+        end)
+    end
+    LocalPlayer.CharacterAdded:Connect(WatchChar)
+    if LocalPlayer.Character then WatchChar(LocalPlayer.Character) end
+    TabMain:AddDropdown({ Name = "เลือกการสปาว", Items = {"สปาวปกติ", "สปาวจุดเดิม"}, Default = "สปาวปกติ", Callback = function(v) RespawnMode = v Notify("เลือก " .. v) end })
+    TabMain:AddToggle({ Name = "ออโต้รีสปาว", Default = false, Callback = function(v) AutoRespawn = v Notify(v and "เปิดออโต้รีสปาว" or "ปิด") end })
+    TabMain:AddButton({ Name = "เกิดใหม่ทันที", Callback = function() if SetPlayerMode then Safe(function() SetPlayerMode:FireServer(true) end) Notify("ส่งคำสั่งเกิดใหม่") end end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  2️⃣ TAB: แดช
+    -- ══════════════════════════════════════════════════════════
+    local function MakeDash(tag, forward, jump, speedRef)
+        local enabled, velocity, token = false, nil, 0
+        local function Stop()
+            enabled = false token += 1
+            if velocity then Safe(function() velocity:Destroy() end) velocity = nil end
+        end
+        local function Start()
+            if enabled then return end
+            local c, h, r = GetChar(), GetHum(), GetRoot()
+            if not h or not r or h.Health <= 0 then return end
+            enabled = true token += 1 local myTok = token
+            local v = Instance.new("BodyVelocity")
+            v.Name = "EvadeDash_" .. tag v.MaxForce = Vector3.new(999999, jump and 999999 or 0, 999999)
+            v.P = 1250 v.Velocity = Vector3.zero v.Parent = r
+            velocity = v
+            local lastJump = os.clock()
+            local rayP = RaycastParams.new() rayP.FilterType = Enum.RaycastFilterType.Exclude rayP.FilterDescendantsInstances = {c}
+            if jump then h.Jump = true h:ChangeState(Enum.HumanoidStateType.Jumping) end
+            task.spawn(function()
+                while enabled and token == myTok and velocity == v do
+                    local _, hh, rr = GetChar(), GetHum(), GetRoot()
+                    local cam = Workspace.CurrentCamera
+                    if not hh or not rr or rr ~= r or not cam or hh.Health <= 0 then break end
+                    local look = cam.CFrame.LookVector
+                    local dir = Vector3.new(forward and look.X or -look.X, 0, forward and look.Z or -look.Z)
+                    if dir.Magnitude > 0.001 then v.Velocity = dir.Unit * speedRef.value else v.Velocity = Vector3.zero end
+                    if jump then
+                        local res = workspace:Raycast(rr.Position, Vector3.new(0, -4.5, 0), rayP)
+                        if res and rr.AssemblyLinearVelocity.Y < -2 and os.clock() - lastJump >= 0.45 then
+                            lastJump = os.clock()
+                            hh.Jump = true hh:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                    task.wait(jump and 0.025 or 0.03)
+                end
+                if velocity == v then velocity = nil end
+                if v.Parent then Safe(function() v:Destroy() end) end
+            end)
+        end
+        LocalPlayer.CharacterAdded:Connect(Stop)
+        return Start, Stop
+    end
+
+    TabDash:AddSection("แดชไปหน้า")
+    local spdFwd = {value = 50}
+    local StartDF, StopDF = MakeDash("Fwd", true, false, spdFwd)
+    TabDash:AddToggle({ Name = "แดชไปหน้า", Default = false, Callback = function(v) if v then StartDF() else StopDF() end end })
+    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdFwd.value = math.clamp(n, 1, 1000) end end })
+    TabDash:AddToggle({ Name = "แดชไปหน้า (ปุ่มลอย)", Default = false, Callback = function(v)
+        if v then MakeFloating("DashFwd", { Name = "แดชไปหน้า", Mode = "Toggle", Callback = function(a) if a then StartDF() else StopDF() end end })
+        else KillFloating("DashFwd") StopDF() end
+    end })
+    task.wait()
+
+    TabDash:AddSection("แดชกระโดด")
+    local spdFwdJmp = {value = 50}
+    local StartDFJ, StopDFJ = MakeDash("FwdJmp", true, true, spdFwdJmp)
+    TabDash:AddToggle({ Name = "แดชไปหน้าพร้อมกระโดด", Default = false, Callback = function(v) if v then StartDFJ() else StopDFJ() end end })
+    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdFwdJmp.value = math.clamp(n, 1, 1000) end end })
+    task.wait()
+
+    TabDash:AddSection("แดชถอยหลัง")
+    local spdBack = {value = 50}
+    local StartDB, StopDB = MakeDash("Back", false, false, spdBack)
+    TabDash:AddToggle({ Name = "แดชถอยหลัง", Default = false, Callback = function(v) if v then StartDB() else StopDB() end end })
+    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdBack.value = math.clamp(n, 1, 1000) end end })
+    task.wait()
+
+    TabDash:AddSection("แดชถอยหลังกระโดด")
+    local spdBackJmp = {value = 50}
+    local StartDBJ, StopDBJ = MakeDash("BackJmp", false, true, spdBackJmp)
+    TabDash:AddToggle({ Name = "แดชถอยหลังกระโดด", Default = false, Callback = function(v) if v then StartDBJ() else StopDBJ() end end })
+    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdBackJmp.value = math.clamp(n, 1, 1000) end end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  3️⃣ TAB: วาร์ป
+    -- ══════════════════════════════════════════════════════════
+    TabTP:AddSection("วาร์ปพื้นฐาน")
+    TabTP:AddButton({ Name = "วาร์ปขึ้นบน 1200", Callback = function() local r = GetRoot() if r then r.CFrame = r.CFrame + Vector3.new(0, 1200, 0) Notify("วาร์ปขึ้น") end end })
+    local ClickTpEnabled, ClickTpConn = false, nil
+    TabTP:AddToggle({ Name = "คลิกเทเลพอร์ต", Default = false, Callback = function(v)
+        ClickTpEnabled = v
+        if ClickTpConn then ClickTpConn:Disconnect() ClickTpConn = nil end
+        if not v then Notify("ปิด") return end
+        ClickTpConn = UIS.InputBegan:Connect(function(i, gpe)
+            if gpe or not ClickTpEnabled then return end
+            if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+            local cam = Workspace.CurrentCamera if not cam then return end
+            local ray = cam:ViewportPointToRay(i.Position.X, i.Position.Y)
+            local p = RaycastParams.new() p.FilterType = Enum.RaycastFilterType.Exclude p.FilterDescendantsInstances = {GetChar()}
+            local res = workspace:Raycast(ray.Origin, ray.Direction * 10000, p)
+            if not res then return end
+            local r = GetRoot()
+            if r then r.CFrame = CFrame.new(res.Position + Vector3.new(0, 3, 0)) end
+        end)
+        Notify("เปิดคลิกเทเลพอร์ต")
+    end })
+    task.wait()
+
+    TabTP:AddSection("วาร์ปหาผู้เล่น")
+    local RescueBusy = false
+    local function RescueDowned()
+        if RescueBusy or not Interact then return end
+        local c, mr = GetChar(), GetRoot()
+        if not c or not mr then return end
+        local targets = {}
+        if PlayerFolder then
+            for _, m in ipairs(PlayerFolder:GetChildren()) do
+                if m:IsA("Model") and m ~= c then
+                    local h = m:FindFirstChildWhichIsA("Humanoid", true)
+                    local r = m:FindFirstChild("HumanoidRootPart", true) or m.PrimaryPart
+                    if h and h.Health <= 0 and r then table.insert(targets, {model = m, humanoid = h, root = r, tag = GetTag(m), dist = (r.Position - mr.Position).Magnitude}) end
+                end
+            end
+            table.sort(targets, function(a, b) return a.dist < b.dist end)
+        end
+        if #targets == 0 then Notify("ไม่พบผู้เล่นที่ล้ม") return end
+        local orig = mr.CFrame
+        RescueBusy = true
+        task.spawn(function()
+            local carried = false
+            for _, t in ipairs(targets) do
+                if LocalPlayer.Character ~= c then break end
+                if not t.model.Parent or not t.humanoid.Parent or not t.root.Parent or t.humanoid.Health > 0 then continue end
+                if not t.tag then continue end
+                pcall(function() mr.CFrame = t.root.CFrame * CFrame.new(0, 0, 3) end)
+                task.wait(0.2)
+                if LocalPlayer.Character ~= c then break end
+                if not t.model.Parent or t.humanoid.Health > 0 then continue end
+                Safe(function() Interact:FireServer("Carry", t.tag) end)
+                task.wait(3)
+                local linked = false
+                for _, d in ipairs(c:GetDescendants()) do
+                    if d:IsA("JointInstance") or d:IsA("WeldConstraint") or d:IsA("Constraint") then
+                        local p0 = d.Part0 or (d.Attachment0 and d.Attachment0.Parent)
+                        local p1 = d.Part1 or (d.Attachment1 and d.Attachment1.Parent)
+                        if p0 and p1 and ((p0:IsDescendantOf(c) and p1:IsDescendantOf(t.model)) or (p1:IsDescendantOf(c) and p0:IsDescendantOf(t.model))) then linked = true break end
+                    end
+                end
+                if linked then carried = true break end
+            end
+            if LocalPlayer.Character == c and mr.Parent then mr.CFrame = orig end
+            RescueBusy = false
+            Notify(carried and "อุ้มสำเร็จ" or "ไม่มีเป้าหมาย")
+        end)
+    end
+    TabTP:AddButton({ Name = "ช่วยผู้เล่นที่ล้ม (Rescue)", Callback = RescueDowned })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  4️⃣ TAB: มองเห็น (ESP)
+    -- ══════════════════════════════════════════════════════════
+    TabVisual:AddSection("ESP ผู้เล่น")
+    local ESP_HL = {}
+    local function CreateHL(model, color, tag)
+        if not model or not model:IsA("Model") or ESP_HL[model] then return end
+        local hl = Instance.new("Highlight")
+        hl.Name = "EvadeESP_" .. tag hl.Adornee = model hl.FillColor = color hl.FillTransparency = 0.5
+        hl.OutlineColor = color hl.OutlineTransparency = 0 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop hl.Parent = model
+        ESP_HL[model] = hl
+    end
+    local function RemoveHL(model) if ESP_HL[model] then Safe(function() ESP_HL[model]:Destroy() end) ESP_HL[model] = nil end end
+    local ESP_P, ESP_D, ESP_B = false, false, false
+    RunService.Heartbeat:Connect(function()
+        if not (ESP_P or ESP_D or ESP_B) then return end
+        if ESP_P then for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then local h = p.Character:FindFirstChildOfClass("Humanoid") if h and h.Health > 0 then CreateHL(p.Character, Color3.fromRGB(220, 220, 220), "P_" .. p.Name) end end end end
+        if ESP_D and PlayerFolder then for _, m in ipairs(PlayerFolder:GetChildren()) do if m:IsA("Model") and m ~= LocalPlayer.Character then local h = m:FindFirstChildOfClass("Humanoid") if h and h.Health <= 0 then CreateHL(m, Color3.fromRGB(255, 220, 45), "D_" .. m.Name) end end end end
+        if ESP_B then local rigs = Workspace:FindFirstChild("Rigs") if rigs then for _, rig in ipairs(rigs:GetChildren()) do if rig:IsA("Model") then CreateHL(rig, Color3.fromRGB(255, 65, 65), "B_" .. rig.Name) end end end end
+    end)
+    TabVisual:AddToggle({ Name = "ผู้เล่นทั้งหมด", Default = false, Callback = function(v) ESP_P = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_P" then RemoveHL(m) end end end end })
+    TabVisual:AddToggle({ Name = "ผู้เล่นที่ล้ม", Default = false, Callback = function(v) ESP_D = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_D" then RemoveHL(m) end end end end })
+    TabVisual:AddToggle({ Name = "บอท (NextBot)", Default = false, Callback = function(v) ESP_B = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_B" then RemoveHL(m) end end end end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  5️⃣ TAB: ฟาร์ม
+    -- ══════════════════════════════════════════════════════════
+    TabFarm:AddSection("ฟาร์มเวลา")
+    local FarmHeight, FarmImg = 1200, "rbxassetid://72855254938167"
+    local FarmEnabled, FarmGuard, FarmPart, FarmOrigin, FarmPlatformCF = false, nil, nil, nil, nil
+    local FarmToken = 0
+    local function StopFarm(restore)
+        FarmEnabled = false FarmToken += 1
+        if FarmGuard then pcall(task.cancel, FarmGuard) FarmGuard = nil end
+        if FarmPart then Safe(function() FarmPart:Destroy() end) FarmPart = nil end
+        if restore and FarmOrigin then local r = GetRoot() if r then r.CFrame = FarmOrigin r.AssemblyLinearVelocity = Vector3.zero end end
+        FarmOrigin, FarmPlatformCF = nil, nil
+    end
+    local function StartFarm()
+        local r = GetRoot() if not r then Notify("ไม่พบตัวละคร") return false end
+        if FarmEnabled then return true end
+        FarmEnabled = true FarmOrigin = r.CFrame FarmPlatformCF = FarmOrigin + Vector3.new(0, FarmHeight, 0)
+        local p = Instance.new("Part") p.Name = "Evade_FarmPart" p.Size = Vector3.new(12, 1, 12)
+        p.CFrame = FarmPlatformCF p.Anchored = true p.CanCollide = true p.CanTouch = false p.CanQuery = false p.CastShadow = false
+        p.Material = Enum.Material.SmoothPlastic p.Color = Color3.fromRGB(235, 235, 235) p.Transparency = 0.05 p.Parent = Workspace
+        local d = Instance.new("Decal") d.Texture = FarmImg d.Face = Enum.NormalId.Top d.Parent = p
+        FarmPart = p
+        r.CFrame = FarmPlatformCF + Vector3.new(0, 4, 0) r.AssemblyLinearVelocity = Vector3.zero
+        FarmToken += 1 local tok = FarmToken
+        FarmGuard = task.spawn(function()
+            while FarmEnabled and tok == FarmToken do
+                local r2 = GetRoot()
+                if r2 and FarmPlatformCF then
+                    local safe = FarmPlatformCF.Position + Vector3.new(0, 4, 0)
+                    if (r2.Position - safe).Magnitude > 18 then r2.CFrame = safe r2.AssemblyLinearVelocity = Vector3.zero end
+                end
+                task.wait(0.5)
+            end
+        end)
+        return true
+    end
+    TabFarm:AddToggle({ Name = "ฟาร์มเวลา", Default = false, Callback = function(v) if v then if StartFarm() then Notify("เปิดฟาร์ม") end else StopFarm(true) Notify("ปิด") end end })
+    task.wait()
+
+    local AntiAfkConn = nil
+    TabFarm:AddToggle({ Name = "กันโดนเตะ (Anti-AFK)", Default = true, Callback = function(v)
+        if AntiAfkConn then AntiAfkConn:Disconnect() AntiAfkConn = nil end
+        if not v then return end
+        AntiAfkConn = LocalPlayer.Idled:Connect(function()
+            Safe(function()
+                local vu = game:GetService("VirtualUser")
+                local cam = Workspace.CurrentCamera
+                vu:Button2Down(Vector2.new(0,0), cam and cam.CFrame or CFrame.new())
+                task.wait(1)
+                vu:Button2Up(Vector2.new(0,0), cam and cam.CFrame or CFrame.new())
+            end)
+        end)
+    end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  6️⃣ TAB: อีเว้นท์
+    -- ══════════════════════════════════════════════════════════
+    TabEvent:AddSection("NPC อีเว้นท์")
+    TabEvent:AddButton({ Name = "แลกโค้ดอัตโนมัติ", Callback = function()
+        if not RedeemRemote then Notify("ไม่พบ Redeem") return end
+        local codes = {"Summer2026","HAPPY4THBIRTHDAYEVADE","isurviveddatahaul","HALLOWEEN2026","iloveevade"}
+        for _, c in ipairs(codes) do Safe(function() RedeemRemote:FireServer(c) end) task.wait(0.15) end
+        Notify("ส่งโค้ดแล้ว")
+    end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  7️⃣ TAB: หน้าจอ
+    -- ══════════════════════════════════════════════════════════
+    TabScreen:AddSection("แสงและหมอก")
+    local FogOn = false
+    TabScreen:AddToggle({ Name = "ลบหมอก", Default = false, Callback = function(v)
+        FogOn = v
+        if v then Lighting.FogStart = 0 Lighting.FogEnd = 1000000
+        else Lighting.FogStart = 0 Lighting.FogEnd = 1000 end
+    end })
+    TabScreen:AddToggle({ Name = "Full Bright", Default = false, Callback = function(v)
+        if v then Lighting.Brightness = 3 Lighting.GlobalShadows = false Lighting.ExposureCompensation = 0.5 Lighting.FogEnd = 1000000
+        else Lighting.Brightness = 1 Lighting.GlobalShadows = true end
+    end })
+    TabScreen:AddDropdown({ Name = "กลางวัน/กลางคืน", Items = {"กลางวัน", "กลางคืน"}, Default = "กลางวัน", Callback = function(v) Lighting.ClockTime = v == "กลางวัน" and 14 or 0 Notify("ปรับเป็น" .. v) end })
+    task.wait()
+
+    TabScreen:AddSection("กราฟฟิค")
+    local BoostOn, BoostConn = false, nil
+    local SavedProps = {}
+    TabScreen:AddToggle({ Name = "บูส FPS", Default = false, Callback = function(v)
+        BoostOn = v
+        if v then
+            task.spawn(function()
+                for _, o in ipairs(Workspace:GetDescendants()) do
+                    if not BoostOn then break end
+                    if o:IsA("BasePart") then Safe(function() if o.Material ~= Enum.Material.SmoothPlastic then SavedProps[o] = {Material = o.Material} o.Material = Enum.Material.SmoothPlastic end if o.Reflectance ~= 0 then o.Reflectance = 0 end end) end
+                    task.wait()
+                end
+            end)
+            BoostConn = Workspace.DescendantAdded:Connect(function(o) if BoostOn and o:IsA("BasePart") then Safe(function() o.Material = Enum.Material.SmoothPlastic o.Reflectance = 0 end) end end)
+        else
+            if BoostConn then BoostConn:Disconnect() BoostConn = nil end
+            for o, p in pairs(SavedProps) do if o.Parent then Safe(function() for k, val in pairs(p) do o[k] = val end end) end end
+            SavedProps = {}
+        end
+    end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  8️⃣ TAB: แมพ
+    -- ══════════════════════════════════════════════════════════
+    TabMap:AddSection("ขยายแมพ")
+    local MapScale, MapEnabled = 2, false
+    local MapTarget, MapParts, MapOriginal, MapCenter = nil, {}, {}, Vector3.zero
+    local function FindMap() local g = Workspace:FindFirstChild("Game") local m = g and g:FindFirstChild("Map") return m or Workspace:FindFirstChild("Map", true) end
+    local function RestoreMap() for part, o in pairs(MapOriginal) do if part and part.Parent then Safe(function() part.Size = o.Size part.CFrame = o.CFrame end) end end end
+    local function CaptureMap()
+        RestoreMap() MapTarget = FindMap() MapParts, MapOriginal = {}, {}
+        if not MapTarget then return false, "ไม่พบ Map" end
+        for _, o in ipairs(MapTarget:GetDescendants()) do
+            if o:IsA("BasePart") then MapParts[#MapParts+1] = o MapOriginal[o] = {Size = o.Size, CFrame = o.CFrame} end
+        end
+        if #MapParts == 0 then return false, "ไม่พบชิ้นส่วน" end
+        local sum = Vector3.zero for _, p in ipairs(MapParts) do sum += p.Position end MapCenter = sum / #MapParts return true
+    end
+    TabMap:AddToggle({ Name = "เปิดขยายแมพ", Default = false, Callback = function(v)
+        if v then local ok, msg = CaptureMap() if not ok then Notify(msg) return end MapEnabled = true for _, p in ipairs(MapParts) do local o = MapOriginal[p] if p.Parent and o then Safe(function() local off = o.CFrame.Position - MapCenter local np = MapCenter + off * MapScale local rot = o.CFrame - o.CFrame.Position p.Size = o.Size * MapScale p.CFrame = CFrame.new(np) * rot end) end end Notify("ขยายแมพแล้ว")
+        else MapEnabled = false RestoreMap() Notify("คืนขนาด") end
+    end })
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  9️⃣ TAB: ตั้งค่า
+    -- ══════════════════════════════════════════════════════════
+    TabSetting:AddSection("ธีม UI")
+    for _, t in ipairs({"Hello","Ocean","Mint","Sunset","Christmas","Valentine","Summer","Halloween","Dark"}) do
+        TabSetting:AddButton({ Name = "→ " .. t, Callback = function() Safe(function() Win:SetTheme(t) end) Notify("ธีม " .. t) end })
+        task.wait()
+    end
+
+    -- ══════════════════════════════════════════════════════════
+    --  🔟 TAB: อื่นๆ
+    -- ══════════════════════════════════════════════════════════
+    TabOther:AddSection("การเคลื่อนไหว")
+    local NoclipOn, NoclipConn = false, nil
+    TabOther:AddToggle({ Name = "ทะลุกำแพง", Default = false, Callback = function(v)
+        NoclipOn = v
+        if NoclipConn then NoclipConn:Disconnect() NoclipConn = nil end
+        if v then NoclipConn = RunService.Stepped:Connect(function() if not NoclipOn then return end local c = GetChar() if not c then return end for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end) Notify("เปิด")
+        else local c = GetChar() if c then for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end Notify("ปิด") end
+    end })
+    task.wait()
+
+    TabOther:AddButton({ Name = "Rejoin Server", Callback = function() Notify("Rejoining...") task.wait(1) Safe(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end) end })
+
+    -- ✅ โหลดฟีเจอร์ครบแล้ว
+    Notify("Evade Hub (by kvsna3545) พร้อมใช้งาน!", 5)
+    print("✅ โหลดฟีเจอร์ทั้งหมดเสร็จสมบูรณ์")
+end)
