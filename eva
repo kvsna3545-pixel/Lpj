@@ -1,9 +1,9 @@
 --[[
     ╔══════════════════════════════════════════════════════════╗
-    ║  HelloHub  |  Full Features Edition                      ║
+    ║  HelloHub  |  Full Features Edition (Refactored)       ║
     ║  ✅ เปลี่ยนชื่อเป็น HelloHub ทั้งหมด                         ║
-    ║  ✅ ระบบกระโดด, แดช, บิน, อุ้ม, ฟาร์ม ครบถ้วน                  ║
-    ║  ✅ ป้องกัน Delta Mobile Timeout                           ║
+    ║  ✅ ระบบกระโดด, แดช, บิน, อุ้ม, ฟาร์ม ครบถ้วน (คงฟีเจอร์เดิม)  ║
+    ║  ✅ ป้องกัน Delta Mobile Timeout & เพิ่มประสิทธิภาพการรัน  ║
     ╚══════════════════════════════════════════════════════════╝
 ]]
 
@@ -41,7 +41,6 @@ local UIS          = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace    = game:GetService("Workspace")
 local Lighting     = game:GetService("Lighting")
-local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 local CoreGui      = game:GetService("CoreGui")
 local LocalPlayer  = Players.LocalPlayer
@@ -60,12 +59,6 @@ do
             end
         end
     end
-end
-
-local function Safe(fn, ...)
-    local ok, r = pcall(fn, ...)
-    if not ok then warn("[HelloHub] Safe:", r) end
-    return ok and r or nil
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -492,7 +485,7 @@ task.spawn(function()
     task.wait()
 
     -- Flex Carry (อุ้มแอ็ก)
-    local AutoCarryRange = 25 local FlexFloatingHandle = nil local IsFlexing = false
+    local FlexFloatingHandle = nil local IsFlexing = false
     local function DoFlexSpinAndReCarry()
         local Character = LocalPlayer.Character if not Character or IsFlexing then return end
         local MyRoot = GetCarryRoot(Character) if not MyRoot then return end
@@ -1184,8 +1177,8 @@ task.spawn(function()
         if value then StartNpcScan() else StopNpcScan() if FarmOn and CurrentMode == "npc" then CurrentMode = nil end end
         Refresh() EventNotify(value and "เปิดออโต้วาร์ปไปหา NPC อีเว้นท์" or "ปิดออโต้วาร์ปไปหา NPC อีเว้นท์")
     end
-    FarmToggle = EventTab:AddToggle({ Name = "ออโต้ฟาร์มอีเว้นท์", Default = false, Callback = function(Value) SetFarm(Value and true or false) end })
-    NpcToggle = EventTab:AddToggle({ Name = "ออโต้วาร์ปไปหา NPC อีเว้นท์", Default = false, Callback = function(Value) SetNpc(Value and true or false) end })
+    FarmToggle = TabEvent:AddToggle({ Name = "ออโต้ฟาร์มอีเว้นท์", Default = false, Callback = function(Value) SetFarm(Value and true or false) end })
+    NpcToggle = TabEvent:AddToggle({ Name = "ออโต้วาร์ปไปหา NPC อีเว้นท์", Default = false, Callback = function(Value) SetNpc(Value and true or false) end })
     Env.HelloHub_EventFarm_Stop = function() FarmOn, NpcOn = false, false Refresh() DestroyPart() StopNpcScan() end
 
     -- Event ESP
@@ -1259,8 +1252,8 @@ task.spawn(function()
         local top = Vector2.new(cam.ViewportSize.X / 2, 0) local char = LocalPlayer.Character local myRoot = char and char:FindFirstChild("HumanoidRootPart") local myPos = myRoot and myRoot.Position
         totemESP.render(top, myPos) npcESP.render(top, myPos)
     end)
-    EventTab:AddToggle({ Name = "มองหาโทเทม", Default = false, Callback = function(Value) if Value then totemESP.start() else totemESP.stop() end EventNotify(Value and "เปิดมองหาโทเทม" or "ปิดมองหาโทเทม") end })
-    EventTab:AddToggle({ Name = "มองหา NPC อีเว้นท์", Default = false, Callback = function(Value) if Value then npcESP.start() else npcESP.stop() end EventNotify(Value and "เปิดมองหา NPC อีเว้นท์" or "ปิดมองหา NPC อีเว้นท์") end })
+    TabEvent:AddToggle({ Name = "มองหาโทเทม", Default = false, Callback = function(Value) if Value then totemESP.start() else totemESP.stop() end EventNotify(Value and "เปิดมองหาโทเทม" or "ปิดมองหาโทเทม") end })
+    TabEvent:AddToggle({ Name = "มองหา NPC อีเว้นท์", Default = false, Callback = function(Value) if Value then npcESP.start() else npcESP.stop() end EventNotify(Value and "เปิดมองหา NPC อีเว้นท์" or "ปิดมองหา NPC อีเว้นท์") end })
     Env.HelloHub_EventESP_Stop = function() pcall(totemESP.stop) pcall(npcESP.stop) pcall(function() EventESPConn:Disconnect() end) pcall(function() EventESP_Gui:Destroy() end) end
     task.wait()
 
@@ -1379,16 +1372,16 @@ task.spawn(function()
     local C = Color3.fromRGB
     local LightingProps, AtmosphereProps, SkyProps = {"ClockTime", "Brightness", "Ambient", "OutdoorAmbient", "ColorShift_Top", "ColorShift_Bottom", "ExposureCompensation", "FogColor", "FogStart", "FogEnd", "EnvironmentDiffuseScale", "EnvironmentSpecularScale"}, {"Density", "Offset", "Color", "Decay", "Glare", "Haze"}, {"StarCount", "MoonAngularSize", "SunAngularSize", "CelestialBodiesShown"}
     local ThemesSky = {
-        ["🌌 ราตรีดาวเต็มฟ้า"] = {Time = 0, Lighting = {Brightness=1,Ambient=C(20,25,50),OutdoorAmbient=C(30,40,80),ColorShift_Top=C(80,100,200),ColorShift_Bottom=C(20,20,50),ExposureCompensation=0.1,FogColor=C(10,15,35),FogStart=0,FogEnd=100000}, Atmo = {Density=0.25,Offset=0.1,Color=C(40,60,120),Decay=C(10,15,40),Glare=0,Haze=1}, CC = {Saturation=0.15,Contrast=0.1,Brightness=0,TintColor=C(200,215,255)}, Bloom = {Intensity=0.6,Size=30,Threshold=1}, Sky = {StarCount=6000,MoonAngularSize=14,CelestialBodiesShown=true}},
-        ["🌅 รุ่งอรุณชมพู-ทอง"] = {Time = 5.8, Lighting = {Brightness=2,Ambient=C(140,110,120),OutdoorAmbient=C(170,140,140),ColorShift_Top=C(255,190,150),ColorShift_Bottom=C(255,170,190),ExposureCompensation=0.1,FogColor=C(255,205,170),FogStart=0,FogEnd=100000}, Atmo = {Density=0.3,Offset=0.3,Color=C(255,205,180),Decay=C(255,160,170),Glare=0.4,Haze=1.4}, CC = {Saturation=0.15,Contrast=0.05,Brightness=0.02,TintColor=C(255,235,225)}, Bloom = {Intensity=0.4,Size=24,Threshold=1.1}, Rays = {Intensity=0.12,Spread=0.8}},
-        ["🌸 Pastel Dreamland"] = {Time = 17, Lighting = {Brightness=2.2,Ambient=C(170,140,200),OutdoorAmbient=C(190,160,220),ColorShift_Top=C(220,170,255),ColorShift_Bottom=C(255,170,220),ExposureCompensation=0.2,FogColor=C(230,190,255),FogStart=0,FogEnd=100000}, Atmo = {Density=0.35,Offset=0.2,Color=C(230,190,255),Decay=C(255,170,220),Glare=0.3,Haze=2}, CC = {Saturation=0.4,Contrast=-0.05,Brightness=0.05,TintColor=C(255,235,255)}, Bloom = {Intensity=0.6,Size=40,Threshold=0.9}},
-        ["🌃 Synthwave / Cyberpunk"] = {Time = 22, Lighting = {Brightness=1.5,Ambient=C(90,40,140),OutdoorAmbient=C(100,40,150),ColorShift_Top=C(255,0,170),ColorShift_Bottom=C(0,200,255),ExposureCompensation=0.2,FogColor=C(80,20,120),FogStart=0,FogEnd=100000}, Atmo = {Density=0.4,Offset=0.3,Color=C(180,60,220),Decay=C(255,0,150),Glare=1,Haze=2}, CC = {Saturation=0.5,Contrast=0.25,Brightness=0,TintColor=C(255,200,255)}, Bloom = {Intensity=1.2,Size=40,Threshold=0.8}, Sky = {StarCount=3000,MoonAngularSize=12,CelestialBodiesShown=true}},
+        ["🌌 ราตรีดาวเต็มฟ้า"] = {Time = 0, Lighting = {Brightness=1,Ambient=C(20,25,50),OutdoorAmbient=C(30,40,80),ColorShift_Top=C(80,100,200),ColorShift_Bottom=C(20,20,50),ExposureCompensation=0.1,FogColor=C(10,15,35),FogStart=0,FogEnd=10000}, Atmo = {Density=0.25,Offset=0.1,Color=C(40,60,120),Decay=C(10,15,40),Glare=0,Haze=1}, CC = {Saturation=0.15,Contrast=0.1,Brightness=0,TintColor=C(200,215,255)}, Bloom = {Intensity=0.6,Size=30,Threshold=1}, Sky = {StarCount=6000,MoonAngularSize=14,CelestialBodiesShown=true}},
+        ["🌅 รุ่งอรุณชมพู-ทอง"] = {Time = 5.8, Lighting = {Brightness=2,Ambient=C(140,110,120),OutdoorAmbient=C(170,140,140),ColorShift_Top=C(255,190,150),ColorShift_Bottom=C(255,170,190),ExposureCompensation=0.1,FogColor=C(255,205,170),FogStart=0,FogEnd=10000}, Atmo = {Density=0.3,Offset=0.3,Color=C(255,205,180),Decay=C(255,160,170),Glare=0.4,Haze=1.4}, CC = {Saturation=0.15,Contrast=0.05,Brightness=0.02,TintColor=C(255,235,225)}, Bloom = {Intensity=0.4,Size=24,Threshold=1.1}, Rays = {Intensity=0.12,Spread=0.8}},
+        ["🌸 Pastel Dreamland"] = {Time = 17, Lighting = {Brightness=2.2,Ambient=C(170,140,200),OutdoorAmbient=C(190,160,220),ColorShift_Top=C(220,170,255),ColorShift_Bottom=C(255,170,220),ExposureCompensation=0.2,FogColor=C(230,190,255),FogStart=0,FogEnd=10000}, Atmo = {Density=0.35,Offset=0.2,Color=C(230,190,255),Decay=C(255,170,220),Glare=0.3,Haze=2}, CC = {Saturation=0.4,Contrast=-0.05,Brightness=0.05,TintColor=C(255,235,255)}, Bloom = {Intensity=0.6,Size=40,Threshold=0.9}},
+        ["🌃 Synthwave / Cyberpunk"] = {Time = 22, Lighting = {Brightness=1.5,Ambient=C(90,40,140),OutdoorAmbient=C(100,40,150),ColorShift_Top=C(255,0,170),ColorShift_Bottom=C(0,200,255),ExposureCompensation=0.2,FogColor=C(80,20,120),FogStart=0,FogEnd=10000}, Atmo = {Density=0.4,Offset=0.3,Color=C(180,60,220),Decay=C(255,0,150),Glare=1,Haze=2}, CC = {Saturation=0.5,Contrast=0.25,Brightness=0,TintColor=C(255,200,255)}, Bloom = {Intensity=1.2,Size=40,Threshold=0.8}, Sky = {StarCount=3000,MoonAngularSize=12,CelestialBodiesShown=true}},
         ["🌫️ หมอกเช้าลึกลับ"] = {Time = 6.5, Lighting = {Brightness=1.2,Ambient=C(90,105,100),OutdoorAmbient=C(100,115,110),ColorShift_Top=C(150,170,165),ColorShift_Bottom=C(80,95,95),ExposureCompensation=0,FogColor=C(130,150,145),FogStart=0,FogEnd=400}, Atmo = {Density=0.55,Offset=0,Color=C(150,170,165),Decay=C(90,110,110),Glare=0,Haze=3}, CC = {Saturation=-0.25,Contrast=0.1,Brightness=0,TintColor=C(210,230,225)}, Bloom = {Intensity=0.2,Size=20,Threshold=1.2}},
         ["🌩️ พายุมืดครึ้ม"] = {Time = 14, Storm = true, Lighting = {Brightness=1,Ambient=C(70,75,85),OutdoorAmbient=C(80,85,95),ColorShift_Top=C(90,95,110),ColorShift_Bottom=C(50,55,65),ExposureCompensation=-0.3,FogColor=C(70,75,85),FogStart=0,FogEnd=1500}, Atmo = {Density=0.5,Offset=0,Color=C(100,105,115),Decay=C(60,65,75),Glare=0,Haze=3}, CC = {Saturation=-0.3,Contrast=0.25,Brightness=0,TintColor=C(200,210,225)}, Bloom = {Intensity=0.2,Size=20,Threshold=1.2}},
-        ["🌈 Golden Hour ทุ่งหญ้า"] = {Time = 16.5, Lighting = {Brightness=2.6,Ambient=C(140,110,80),OutdoorAmbient=C(170,140,100),ColorShift_Top=C(255,200,110),ColorShift_Bottom=C(255,170,90),ExposureCompensation=0.15,FogColor=C(255,215,150),FogStart=0,FogEnd=100000}, Atmo = {Density=0.28,Offset=0.3,Color=C(255,210,140),Decay=C(255,170,90),Glare=0.5,Haze=1.2}, CC = {Saturation=0.25,Contrast=0.1,Brightness=0.02,TintColor=C(255,235,200)}, Bloom = {Intensity=0.5,Size=28,Threshold=1.1}, Rays = {Intensity=0.2,Spread=0.85}},
+        ["🌈 Golden Hour ทุ่งหญ้า"] = {Time = 16.5, Lighting = {Brightness=2.6,Ambient=C(140,110,80),OutdoorAmbient=C(170,140,100),ColorShift_Top=C(255,200,110),ColorShift_Bottom=C(255,170,90),ExposureCompensation=0.15,FogColor=C(255,215,150),FogStart=0,FogEnd=10000}, Atmo = {Density=0.28,Offset=0.3,Color=C(255,210,140),Decay=C(255,170,90),Glare=0.5,Haze=1.2}, CC = {Saturation=0.25,Contrast=0.1,Brightness=0.02,TintColor=C(255,235,200)}, Bloom = {Intensity=0.5,Size=28,Threshold=1.1}, Rays = {Intensity=0.2,Spread=0.85}},
         ["🔴 Blood Moon"] = {
             Time = 0,
-            Lighting = {Brightness=1,Ambient=C(90,20,20),OutdoorAmbient=C(110,25,25),ColorShift_Top=C(180,20,20),ColorShift_Bottom=C(40,0,0),ExposureCompensation=0.1,FogColor=C(60,0,0),FogStart=0,FogEnd=100000},
+            Lighting = {Brightness=1,Ambient=C(90,20,20),OutdoorAmbient=C(110,25,25),ColorShift_Top=C(180,20,20),ColorShift_Bottom=C(40,0,0),ExposureCompensation=0.1,FogColor=C(60,0,0),FogStart=0,FogEnd=10000},
             Atmo = {Density=0.35,Offset=0.1,Color=C(160,20,20),Decay=C(60,0,0),Glare=0,Haze=1.8},
             CC = {Saturation=0.2,Contrast=0.2,Brightness=0,TintColor=C(255,170,170)},
             Bloom = {Intensity=0.6,Size=30,Threshold=1},
