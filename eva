@@ -1,9 +1,8 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
-    ║  Evade Hub v3 FINAL  |  FULL FEATURES + DELTA FIX           ║
-    ║  ✅ ครบทุกฟีเจอร์ (Tabs 1-10)                                  ║
+    ║  Evade Hub v3 FINAL  |  FULL FEATURES + EASY SPEED          ║
+    ║  ✅ เพิ่มระบบปรับความเร็ว (WalkSpeed) กดใช้ได้เลย              ║
     ║  ✅ แก้บั๊ก Delta Mobile Timeout                               ║
-    ║  ✅ ใช้ปุ่ม H (HelloHub) เปิด/ปิด UI                           ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
 
@@ -37,7 +36,7 @@ local CoreGui      = game:GetService("CoreGui")
 local LocalPlayer  = Players.LocalPlayer
 local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui")
 
--- ลบ GUI เก่าทิ้งก่อน (ถ้าเคยรันมาก่อน)
+-- ลบ GUI เก่าทิ้งก่อน
 do
     local parents = {CoreGui, PlayerGui}
     if gethui then pcall(function() table.insert(parents, gethui()) end) end
@@ -194,7 +193,55 @@ task.spawn(function()
         and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
 
     -- ══════════════════════════════════════════════════════════
-    --  1️⃣ TAB: เมนูหลัก
+    --  1️⃣ TAB: เมนูหลัก (เริ่มด้วยระบบความเร็วก่อนเลย!)
+    -- ══════════════════════════════════════════════════════════
+    
+    -- ⭐ [ใหม่] ระบบปรับความเร็ว (WalkSpeed) ใช้งานง่าย
+    TabMain:AddSection("⚡ ปรับความเร็ว (Speed)")
+    local SpeedEnabled = false
+    local SpeedValue = 100
+
+    local function ApplySpeed()
+        local h = GetHum()
+        if h then
+            h.WalkSpeed = SpeedEnabled and SpeedValue or 16
+        end
+    end
+
+    TabMain:AddToggle({
+        Name = "เปิดความเร็ว", Default = false,
+        Callback = function(v)
+            SpeedEnabled = v
+            ApplySpeed()
+            Notify(v and ("เปิดความเร็ว: " .. SpeedValue) or "ปิดความเร็ว", 2)
+        end
+    })
+    TabMain:AddSlider({
+        Name = "ระดับความเร็ว", Min = 16, Max = 500, Default = 100, Increment = 1,
+        Callback = function(v)
+            SpeedValue = v
+            if SpeedEnabled then ApplySpeed() end
+        end
+    })
+    TabMain:AddButton({
+        Name = "🚀 一键ความเร็วสูงสุด (300)",
+        Callback = function()
+            SpeedEnabled = true
+            SpeedValue = 300
+            ApplySpeed()
+            Notify("เปิดความเร็วสูงสุด: 300", 2)
+        end
+    })
+    
+    -- อัปเดตความเร็วเมื่อเกิดใหม่
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if SpeedEnabled then ApplySpeed() end
+    end)
+    task.wait()
+
+    -- ══════════════════════════════════════════════════════════
+    --  ส่วนการกระโดด
     -- ══════════════════════════════════════════════════════════
     TabMain:AddSection("การกระโดด")
     task.wait()
@@ -805,6 +852,6 @@ task.spawn(function()
     TabOther:AddButton({ Name = "Rejoin Server", Callback = function() Notify("Rejoining...") task.wait(1) Safe(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end) end })
 
     -- ✅ โหลดฟีเจอร์ครบแล้ว
-    Notify("Evade Hub (by kvsna3545) พร้อมใช้งาน!", 5)
+    Notify("Evade Hub (Full) พร้อมใช้งาน!", 5)
     print("✅ โหลดฟีเจอร์ทั้งหมดเสร็จสมบูรณ์")
 end)
