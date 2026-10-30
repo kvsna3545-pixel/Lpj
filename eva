@@ -1,30 +1,43 @@
 --[[
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  Evade Hub v3 FINAL  |  GETGC SPEED + FULL FEATURES         ║
-    ║  ✅ ระบบปรับความเร็วแบบ getgc (Speed, JumpCap, AirStrafe)      ║
-    ║  ✅ ครบทุกฟีเจอร์ (Tabs 1-10)                                  ║
-    ║  ✅ แก้บั๊ก Delta Mobile Timeout                               ║
-    ╚══════════════════════════════════════════════════════════════╝
+    ╔══════════════════════════════════════════════════════════╗
+    ║  Evade Hub v3  |  HelloHub UI (Hosted Version)           ║
+    ║  ✅ โหลด UI จากลิงก์ใหม่ของคุณ                               ║
+    ║  ✅ ระบบ getgc Speed + อุ้มแฮ็ก (ปุ่มลอย)                    ║
+    ║  ✅ ป้องกัน Delta Mobile Timeout                           ║
+    ╚══════════════════════════════════════════════════════════╝
 ]]
 
-local CONFIG = {
-    HelloHubURLs = {
-        "https://raw.githubusercontent.com/kvsna3545-pixel/Lpj/refs/heads/main/ko",
-    },
-    RetryPerURL  = 2,
-    RetryDelay   = 0.5,
-    Theme        = "Halloween",
-    AutoCleanup  = true,
-    ScriptTag    = "EvadeHub_v3",
-}
-
-if CONFIG.AutoCleanup then
-    pcall(function()
-        local g = getgenv and getgenv() or _G
-        if g[CONFIG.ScriptTag .. "_Cleanup"] then g[CONFIG.ScriptTag .. "_Cleanup"]() end
-    end)
+-- ══════════════════════════════════════════════════════════════
+--  📚 LOADER (โหลด HelloHub จากลิงก์ของคุณ)
+-- ══════════════════════════════════════════════════════════════
+local function LoadHelloHub()
+    local url = "https://raw.githubusercontent.com/kvsna3545-pixel/Lpj/refs/heads/main/hello-hello"
+    
+    local ok, src = pcall(function() return game:HttpGet(url, true) end)
+    if not ok or not src or #src < 100 then
+        warn("[Evade] ❌ โหลด HelloHub ล้มเหลว: ลิงก์มีปัญหาหรือไฟล์ว่าง")
+        return nil
+    end
+    
+    -- บังคับปิด Test Mode ป้องกันหน้าต่างซ้อน
+    src = src:gsub("(_TEST_MODE%s*=%s*)true", "%1false")
+    src = src:gsub("(_TEST_MODE%s*=%s*)[Tt][Rr][Uu][Ee]", "%1false")
+    
+    local success, result = pcall(function() return loadstring(src)() end)
+    if success and type(result) == "table" and result.CreateWindow then
+        return result
+    end
+    
+    warn("[Evade] ❌ โหลด HelloHub API ไม่สำเร็จ")
+    return nil
 end
 
+local HelloHub = LoadHelloHub()
+if not HelloHub then return end
+
+-- ══════════════════════════════════════════════════════════════
+--  📦 Services & ลบ GUI เก่า
+-- ══════════════════════════════════════════════════════════════
 local Players      = game:GetService("Players")
 local RunService   = game:GetService("RunService")
 local UIS          = game:GetService("UserInputService")
@@ -37,7 +50,6 @@ local CoreGui      = game:GetService("CoreGui")
 local LocalPlayer  = Players.LocalPlayer
 local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui")
 
--- ลบ GUI เก่าทิ้งก่อน
 do
     local parents = {CoreGui, PlayerGui}
     if gethui then pcall(function() table.insert(parents, gethui()) end) end
@@ -50,37 +62,6 @@ do
             end
         end
     end
-end
-
--- ══════════════════════════════════════════════════════════════
---  📚 LOADER
--- ══════════════════════════════════════════════════════════════
-local function LoadHelloHub()
-    local lastErr
-    for _, url in ipairs(CONFIG.HelloHubURLs) do
-        for attempt = 1, CONFIG.RetryPerURL do
-            local ok, r = pcall(function()
-                local src = game:HttpGet(url, true)
-                if not src or #src < 100 then error("ไฟล์ว่าง/เล็กเกิน") end
-                local orig = src
-                src = src:gsub("(_TEST_MODE%s*=%s*)true", "%1false")
-                src = src:gsub("(_TEST_MODE%s*=%s*)[Tt][Rr][Uu][Ee]", "%1false")
-                return loadstring(src)()
-            end)
-            if ok and r and type(r) == "table" and r.CreateWindow then
-                return r
-            end
-            lastErr = ok and "API ไม่ครบ" or tostring(r)
-            if attempt < CONFIG.RetryPerURL then task.wait(CONFIG.RetryDelay) end
-        end
-    end
-    return nil, lastErr
-end
-
-local HelloHub, loadErr = LoadHelloHub()
-if not HelloHub then
-    warn("[Evade] ❌ โหลด HelloHub ล้มเหลว: " .. tostring(loadErr))
-    return
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -107,11 +88,11 @@ local function ObjPos(o)
 end
 
 -- ══════════════════════════════════════════════════════════════
---  🎨 WINDOW
+--  🎨 สร้าง Window & แก้บั๊ก Delta Mobile (Force Show)
 -- ══════════════════════════════════════════════════════════════
 local Win = HelloHub:CreateWindow({
     Name = "Evade Hub v3",
-    Theme = CONFIG.Theme,
+    Theme = "Halloween",
     Size = UDim2.fromOffset(580, 420),
     ToggleKey = Enum.KeyCode.RightShift,
 })
@@ -129,6 +110,7 @@ local function ForceShow()
     end)
 end
 
+-- บังคับดึง UI กลับมาหน้าจอตลอดเวลา (กัน Delta ซ่อน)
 task.spawn(function()
     while true do
         if Win.Gui and Win.Gui.Parent ~= PlayerGui then Win.Gui.Parent = PlayerGui end
@@ -140,7 +122,7 @@ ForceShow()
 Win:Toggle(true)
 
 -- ══════════════════════════════════════════════════════════════
---  📢 Notify + Floating Handles
+--  📢 Notify & Floating Handles
 -- ══════════════════════════════════════════════════════════════
 local function Notify(text, dur)
     Safe(function() Win:Notify({Title = "Evade Hub v3", Content = text, Duration = dur or 2}) end)
@@ -158,16 +140,8 @@ local function MakeFloating(k, cfg)
 end
 local function KillAllFloating() for k in pairs(FloatingHandles) do KillFloating(k) end end
 
-do
-    local g = getgenv and getgenv() or _G
-    g[CONFIG.ScriptTag .. "_Cleanup"] = function()
-        KillAllFloating()
-        Safe(function() Win:Destroy() end)
-    end
-end
-
 -- ══════════════════════════════════════════════════════════════
---  📑 TABS
+--  📑 สร้าง Tabs (API ใหม่)
 -- ══════════════════════════════════════════════════════════════
 local TabMain    = Win:CreateTab("เมนูหลัก")
 local TabDash    = Win:CreateTab("แดช")
@@ -181,7 +155,7 @@ local TabSetting = Win:CreateTab("ตั้งค่า")
 local TabOther   = Win:CreateTab("อื่นๆ")
 
 -- ══════════════════════════════════════════════════════════════
---  🚀 ADDING FEATURES
+--  🚀 เพิ่มฟีเจอร์ (ทำงานเบื้องหลังไม่ให้ Delta Timeout)
 -- ══════════════════════════════════════════════════════════════
 task.spawn(function()
     local PlayerFolder = Workspace:FindFirstChild("Players")
@@ -190,14 +164,13 @@ task.spawn(function()
     local SetPlayerMode= EventsFolder and EventsFolder:FindFirstChild("SetPlayerMode")
     local RedeemRemote = ReplicatedStorage:FindFirstChild("Shared")
         and ReplicatedStorage.Shared:FindFirstChild("UserData")
-        and ReplicatedStorage.Shared.UserData:FindFirstChild("Remotes")
+        and ReplicatedStorage.Shared:FindFirstChild("Remotes")
         and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
 
     -- ══════════════════════════════════════════════════════════
-    --  1️⃣ TAB: เมนูหลัก (ระบบ getgc Speed)
+    -- 1️⃣ TAB: เมนูหลัก
     -- ══════════════════════════════════════════════════════════
     TabMain:AddSection("⚡ ปรับความเร็ว (getgc)")
-
     local currentSettings = { Speed = 1555, JumpCap = 2, AirStrafeAcceleration = 187 }
     getgenv().ApplyMode = "Optimized"
     getgenv().AutoApplySettings = true
@@ -217,7 +190,6 @@ task.spawn(function()
     }
 
     local cachedTables
-
     local function getMatchingTables()
         if cachedTables then return cachedTables end
         local Result = {}
@@ -256,7 +228,6 @@ task.spawn(function()
         end
     end
 
-    -- Auto Apply Loop
     getgenv().Evade_AutoGen = (getgenv().Evade_AutoGen or 0) + 1
     local myGen = getgenv().Evade_AutoGen
     task.spawn(function()
@@ -266,7 +237,6 @@ task.spawn(function()
         end
     end)
 
-    -- UI Elements
     TabMain:AddTextbox({
         Name = "ความเร็ว (Speed)", Placeholder = "1555", Default = tostring(currentSettings.Speed),
         Callback = function(v) local n = tonumber(v) if n then currentSettings.Speed = safe(n) applyToTables() end end
@@ -293,25 +263,17 @@ task.spawn(function()
             currentSettings.Speed = 1500
             currentSettings.JumpCap = 2
             currentSettings.AirStrafeAcceleration = 187
-            cachedTables = nil
-            applyToTables()
-            Notify("รีเซ็ตค่าการเคลื่อนไหวแล้ว", 3)
+            cachedTables = nil applyToTables() Notify("รีเซ็ตค่าการเคลื่อนไหวแล้ว", 3)
         end
     })
 
-    LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        cachedTables = nil
-        if getgenv().AutoApplySettings then applyToTables() end
-    end)
+    LocalPlayer.CharacterAdded:Connect(function() task.wait(1) cachedTables = nil if getgenv().AutoApplySettings then applyToTables() end end)
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  ส่วนการกระโดด
+    -- ส่วนการกระโดด
     -- ══════════════════════════════════════════════════════════
     TabMain:AddSection("การกระโดด")
-    task.wait()
-
     local AutoJump, AutoJumpConn = false, nil
     local function StartAutoJump()
         if AutoJumpConn then AutoJumpConn:Disconnect() end
@@ -385,9 +347,10 @@ task.spawn(function()
     TabMain:AddToggle({ Name = "กระโดดค้าง", Default = false, Callback = function(v) BunnyEnabled = v if not v then JumpHeld = false else Notify("กด Space ค้าง", 3) end end })
     task.wait()
 
+    -- ══════════════════════════════════════════════════════════
+    -- อุ้ม / ยูทิลิตี้
+    -- ══════════════════════════════════════════════════════════
     TabMain:AddSection("อุ้ม / ยูทิลิตี้")
-    task.wait()
-
     local AutoCarry, CarryRange = false, 8
     local CarryTarget, CarryConn, IsCarrying, LastCarry = nil, nil, false, 0
     local function FindNearestDowned(range)
@@ -434,7 +397,7 @@ task.spawn(function()
         local mr = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
         if not mr then return end
         local target, tag = FindNearestDowned(25)
-        if not target or not tag then Notify("ไม่พบเป้าหมาย") return end
+        if not target or not tag then Notify("ไม่พบเป้าหมายให้อุ้ม") return end
         local tr = target:FindFirstChild("HumanoidRootPart") or target.PrimaryPart
         if not tr then return end
         FlexBusy = true
@@ -460,6 +423,13 @@ task.spawn(function()
         end)
     end
     TabMain:AddButton({ Name = "อุ้มแอ็ก (Flex)", Callback = DoFlexCarry })
+    TabMain:AddToggle({
+        Name = "อุ้มแฮ็ก (ปุ่มลอย)", Default = false,
+        Callback = function(v)
+            if v then MakeFloating("FlexCarry", { Name = "อุ้มแฮ็ก", Mode = "Button", ReadyText = "อุ้ม", Callback = function() task.spawn(DoFlexCarry) end }) 
+            else KillFloating("FlexCarry") end
+        end
+    })
     task.wait()
 
     getgenv().CrouchRate = getgenv().CrouchRate or 8
@@ -490,7 +460,6 @@ task.spawn(function()
     task.wait()
 
     TabMain:AddSection("การบิน / หมุน / แลค")
-    task.wait()
     local FlyEnabled, FlySpeed = false, 1.5
     local FlyForce, FlySpin, FlyConn
     local function StopFly()
@@ -556,7 +525,6 @@ task.spawn(function()
     task.wait()
 
     TabMain:AddSection("ระบบเกิดใหม่")
-    task.wait()
     local AutoRespawn, RespawnMode = false, "สปาวปกติ"
     local SavedCF, CharConns, Processed = nil, {}, setmetatable({}, {__mode="k"})
     local function HandleDeath(c, h)
@@ -586,7 +554,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  2️⃣ TAB: แดช
+    -- 2️⃣ TAB: แดช
     -- ══════════════════════════════════════════════════════════
     local function MakeDash(tag, forward, jump, speedRef)
         local enabled, velocity, token = false, nil, 0
@@ -664,7 +632,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  3️⃣ TAB: วาร์ป
+    -- 3️⃣ TAB: วาร์ป
     -- ══════════════════════════════════════════════════════════
     TabTP:AddSection("วาร์ปพื้นฐาน")
     TabTP:AddButton({ Name = "วาร์ปขึ้นบน 1200", Callback = function() local r = GetRoot() if r then r.CFrame = r.CFrame + Vector3.new(0, 1200, 0) Notify("วาร์ปขึ้น") end end })
@@ -739,7 +707,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  4️⃣ TAB: มองเห็น (ESP)
+    -- 4️⃣ TAB: มองเห็น (ESP)
     -- ══════════════════════════════════════════════════════════
     TabVisual:AddSection("ESP ผู้เล่น")
     local ESP_HL = {}
@@ -764,7 +732,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  5️⃣ TAB: ฟาร์ม
+    -- 5️⃣ TAB: ฟาร์ม
     -- ══════════════════════════════════════════════════════════
     TabFarm:AddSection("ฟาร์มเวลา")
     local FarmHeight, FarmImg = 1200, "rbxassetid://72855254938167"
@@ -820,7 +788,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  6️⃣ TAB: อีเว้นท์
+    -- 6️⃣ TAB: อีเว้นท์
     -- ══════════════════════════════════════════════════════════
     TabEvent:AddSection("NPC อีเว้นท์")
     TabEvent:AddButton({ Name = "แลกโค้ดอัตโนมัติ", Callback = function()
@@ -832,7 +800,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  7️⃣ TAB: หน้าจอ
+    -- 7️⃣ TAB: หน้าจอ
     -- ══════════════════════════════════════════════════════════
     TabScreen:AddSection("แสงและหมอก")
     local FogOn = false
@@ -871,7 +839,7 @@ task.spawn(function()
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  8️⃣ TAB: แมพ
+    -- 8️⃣ TAB: แมพ
     -- ══════════════════════════════════════════════════════════
     TabMap:AddSection("ขยายแมพ")
     local MapScale, MapEnabled = 2, false
@@ -888,13 +856,33 @@ task.spawn(function()
         local sum = Vector3.zero for _, p in ipairs(MapParts) do sum += p.Position end MapCenter = sum / #MapParts return true
     end
     TabMap:AddToggle({ Name = "เปิดขยายแมพ", Default = false, Callback = function(v)
-        if v then local ok, msg = CaptureMap() if not ok then Notify(msg) return end MapEnabled = true for _, p in ipairs(MapParts) do local o = MapOriginal[p] if p.Parent and o then Safe(function() local off = o.CFrame.Position - MapCenter local np = MapCenter + off * MapScale local rot = o.CFrame - o.CFrame.Position p.Size = o.Size * MapScale p.CFrame = CFrame.new(np) * rot end) end end Notify("ขยายแมพแล้ว")
-        else MapEnabled = false RestoreMap() Notify("คืนขนาด") end
+        if v then 
+            local ok, msg = CaptureMap() 
+            if not ok then Notify(msg) return end 
+            MapEnabled = true 
+            for _, p in ipairs(MapParts) do 
+                local o = MapOriginal[p] 
+                if p.Parent and o then 
+                    Safe(function() 
+                        local off = o.CFrame.Position - MapCenter 
+                        local np = MapCenter + off * MapScale 
+                        local rot = o.CFrame - o.CFrame.Position 
+                        p.Size = o.Size * MapScale 
+                        p.CFrame = CFrame.new(np) * rot 
+                    end) 
+                end 
+            end 
+            Notify("ขยายแมพแล้ว")
+        else 
+            MapEnabled = false 
+            RestoreMap() 
+            Notify("คืนขนาด") 
+        end
     end })
     task.wait()
 
     -- ══════════════════════════════════════════════════════════
-    --  9️⃣ TAB: ตั้งค่า
+    -- 9️⃣ TAB: ตั้งค่า
     -- ══════════════════════════════════════════════════════════
     TabSetting:AddSection("ธีม UI")
     for _, t in ipairs({"Hello","Ocean","Mint","Sunset","Christmas","Valentine","Summer","Halloween","Dark"}) do
@@ -903,15 +891,32 @@ task.spawn(function()
     end
 
     -- ══════════════════════════════════════════════════════════
-    --  🔟 TAB: อื่นๆ
+    -- 🔟 TAB: อื่นๆ
     -- ══════════════════════════════════════════════════════════
     TabOther:AddSection("การเคลื่อนไหว")
     local NoclipOn, NoclipConn = false, nil
     TabOther:AddToggle({ Name = "ทะลุกำแพง", Default = false, Callback = function(v)
         NoclipOn = v
         if NoclipConn then NoclipConn:Disconnect() NoclipConn = nil end
-        if v then NoclipConn = RunService.Stepped:Connect(function() if not NoclipOn then return end local c = GetChar() if not c then return end for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end) Notify("เปิด")
-        else local c = GetChar() if c then for _, p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end Notify("ปิด") end
+        if v then 
+            NoclipConn = RunService.Stepped:Connect(function() 
+                if not NoclipOn then return end 
+                local c = GetChar() 
+                if not c then return end 
+                for _, p in ipairs(c:GetDescendants()) do 
+                    if p:IsA("BasePart") then p.CanCollide = false end 
+                end 
+            end) 
+            Notify("เปิดทะลุกำแพง")
+        else 
+            local c = GetChar() 
+            if c then 
+                for _, p in ipairs(c:GetDescendants()) do 
+                    if p:IsA("BasePart") then p.CanCollide = true end 
+                end 
+            end 
+            Notify("ปิดทะลุกำแพง") 
+        end
     end })
     task.wait()
 
