@@ -1,10 +1,9 @@
 --[[
-    ╔══════════════════════════════════════════════════════════╗
-    ║  Evade Hub v3  |  HelloHub UI (Hosted Version)           ║
-    ║  ✅ โหลด UI จากลิงก์ใหม่ของคุณ                               ║
-    ║  ✅ ระบบ getgc Speed + อุ้มแฮ็ก (ปุ่มลอย)                    ║
-    ║  ✅ ป้องกัน Delta Mobile Timeout                           ║
-    ╚══════════════════════════════════════════════════════════╝
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  KRYVEX HUB  |  Adapted for HelloHub UI                      ║
+    ║  ✅ ระบบกระโดด, แดช, บิน, อุ้ม, ฟาร์ม ครบถ้วน                  ║
+    ║  ✅ แปลง API เป็นของ HelloHub 100%                           ║
+    ╚══════════════════════════════════════════════════════════════╝
 ]]
 
 -- ══════════════════════════════════════════════════════════════
@@ -12,14 +11,12 @@
 -- ══════════════════════════════════════════════════════════════
 local function LoadHelloHub()
     local url = "https://raw.githubusercontent.com/kvsna3545-pixel/Lpj/refs/heads/main/hello-hello"
-    
     local ok, src = pcall(function() return game:HttpGet(url, true) end)
     if not ok or not src or #src < 100 then
-        warn("[Evade] ❌ โหลด HelloHub ล้มเหลว: ลิงก์มีปัญหาหรือไฟล์ว่าง")
+        warn("[KRYVEX] ❌ โหลด HelloHub ล้มเหลว: ลิงก์มีปัญหาหรือไฟล์ว่าง")
         return nil
     end
     
-    -- บังคับปิด Test Mode ป้องกันหน้าต่างซ้อน
     src = src:gsub("(_TEST_MODE%s*=%s*)true", "%1false")
     src = src:gsub("(_TEST_MODE%s*=%s*)[Tt][Rr][Uu][Ee]", "%1false")
     
@@ -27,8 +24,7 @@ local function LoadHelloHub()
     if success and type(result) == "table" and result.CreateWindow then
         return result
     end
-    
-    warn("[Evade] ❌ โหลด HelloHub API ไม่สำเร็จ")
+    warn("[KRYVEX] ❌ โหลด HelloHub API ไม่สำเร็จ")
     return nil
 end
 
@@ -36,7 +32,7 @@ local HelloHub = LoadHelloHub()
 if not HelloHub then return end
 
 -- ══════════════════════════════════════════════════════════════
---  📦 Services & ลบ GUI เก่า
+--  📦 Services & ตัวแปรตั้งต้น
 -- ══════════════════════════════════════════════════════════════
 local Players      = game:GetService("Players")
 local RunService   = game:GetService("RunService")
@@ -50,13 +46,14 @@ local CoreGui      = game:GetService("CoreGui")
 local LocalPlayer  = Players.LocalPlayer
 local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui")
 
+-- ลบ GUI เก่าทิ้งก่อน
 do
     local parents = {CoreGui, PlayerGui}
     if gethui then pcall(function() table.insert(parents, gethui()) end) end
     for _, p in ipairs(parents) do
         if p then
             for _, gui in ipairs(p:GetChildren()) do
-                if gui:IsA("ScreenGui") and (gui.Name == "HelloHub" or gui.Name == "HelloHub Test" or gui.Name == "EvadeHub_MobileToggle") then
+                if gui:IsA("ScreenGui") and (gui.Name == "HelloHub" or gui.Name == "HelloHub Test") then
                     pcall(function() gui:Destroy() end)
                 end
             end
@@ -64,34 +61,19 @@ do
     end
 end
 
--- ══════════════════════════════════════════════════════════════
---  🧠 HELPERS
--- ══════════════════════════════════════════════════════════════
+-- ฟังก์ชัน Dummy ป้องกัน Error ในสคริปต์เก่า
+local function RemoveFloatingButton(name) end
 local function Safe(fn, ...)
     local ok, r = pcall(fn, ...)
-    if not ok then warn("[Evade] Safe:", r) end
+    if not ok then warn("[KRYVEX] Safe:", r) end
     return ok and r or nil
-end
-local function GetChar() return LocalPlayer.Character end
-local function GetRoot() local c = GetChar() return c and c:FindFirstChild("HumanoidRootPart") end
-local function GetHum()  local c = GetChar() return c and c:FindFirstChildOfClass("Humanoid") end
-local function GetTag(o)
-    if not o then return nil end
-    local t = o:GetAttribute("Tag") or o:GetAttribute("ID") or o.Name
-    return tonumber(t) or t
-end
-local function ObjPos(o)
-    if not o or not o.Parent then return nil end
-    if o:IsA("Model") then local ok, cf = pcall(o.GetPivot, o) return ok and cf.Position or nil
-    elseif o:IsA("BasePart") then return o.Position end
-    return nil
 end
 
 -- ══════════════════════════════════════════════════════════════
---  🎨 สร้าง Window & แก้บั๊ก Delta Mobile (Force Show)
+--  🎨 สร้าง Window & แก้บั๊ก Delta Mobile
 -- ══════════════════════════════════════════════════════════════
 local Win = HelloHub:CreateWindow({
-    Name = "Evade Hub v3",
+    Name = "KRYVEX HUB",
     Theme = "Halloween",
     Size = UDim2.fromOffset(580, 420),
     ToggleKey = Enum.KeyCode.RightShift,
@@ -110,7 +92,6 @@ local function ForceShow()
     end)
 end
 
--- บังคับดึง UI กลับมาหน้าจอตลอดเวลา (กัน Delta ซ่อน)
 task.spawn(function()
     while true do
         if Win.Gui and Win.Gui.Parent ~= PlayerGui then Win.Gui.Parent = PlayerGui end
@@ -122,55 +103,26 @@ ForceShow()
 Win:Toggle(true)
 
 -- ══════════════════════════════════════════════════════════════
---  📢 Notify & Floating Handles
+--  📑 สร้าง Tabs (API ของ HelloHub)
 -- ══════════════════════════════════════════════════════════════
-local function Notify(text, dur)
-    Safe(function() Win:Notify({Title = "Evade Hub v3", Content = text, Duration = dur or 2}) end)
-end
-
-local FloatingHandles = {}
-function KillFloating(k)
-    if FloatingHandles[k] then Safe(function() FloatingHandles[k]:Destroy() end) FloatingHandles[k] = nil end
-end
-local function MakeFloating(k, cfg)
-    KillFloating(k)
-    local h = Safe(function() return Win:CreateFloatingButton(cfg) end)
-    if h then FloatingHandles[k] = h end
-    return h
-end
-local function KillAllFloating() for k in pairs(FloatingHandles) do KillFloating(k) end end
-
--- ══════════════════════════════════════════════════════════════
---  📑 สร้าง Tabs (API ใหม่)
--- ══════════════════════════════════════════════════════════════
+local TabSetting = Win:CreateTab("ตั้งค่า")
 local TabMain    = Win:CreateTab("เมนูหลัก")
 local TabDash    = Win:CreateTab("แดช")
 local TabTP      = Win:CreateTab("วาร์ป")
+local TabScreen  = Win:CreateTab("ภาพจอ")
 local TabVisual  = Win:CreateTab("มองเห็น")
 local TabFarm    = Win:CreateTab("ฟาร์ม")
 local TabEvent   = Win:CreateTab("อีเว้นท์")
-local TabScreen  = Win:CreateTab("หน้าจอ")
-local TabMap     = Win:CreateTab("แมพ")
-local TabSetting = Win:CreateTab("ตั้งค่า")
 local TabOther   = Win:CreateTab("อื่นๆ")
+local TabMap     = Win:CreateTab("แมพ")
 
 -- ══════════════════════════════════════════════════════════════
---  🚀 เพิ่มฟีเจอร์ (ทำงานเบื้องหลังไม่ให้ Delta Timeout)
+--  🚀 โหลดฟีเจอร์ทั้งหมด (ทำงานเบื้องหลังไม่ให้ Delta Timeout)
 -- ══════════════════════════════════════════════════════════════
 task.spawn(function()
-    local PlayerFolder = Workspace:FindFirstChild("Players")
-    local EventsFolder = ReplicatedStorage:FindFirstChild("Events")
-    local Interact     = EventsFolder and EventsFolder:FindFirstChild("Interact")
-    local SetPlayerMode= EventsFolder and EventsFolder:FindFirstChild("SetPlayerMode")
-    local RedeemRemote = ReplicatedStorage:FindFirstChild("Shared")
-        and ReplicatedStorage.Shared:FindFirstChild("UserData")
-        and ReplicatedStorage.Shared:FindFirstChild("Remotes")
-        and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
-
-    -- ══════════════════════════════════════════════════════════
-    -- 1️⃣ TAB: เมนูหลัก
-    -- ══════════════════════════════════════════════════════════
-    TabMain:AddSection("⚡ ปรับความเร็ว (getgc)")
+    -- =========================================================
+    -- 📌 TAB: ตั้งค่า (SettingsTab)
+    -- =========================================================
     local currentSettings = { Speed = 1555, JumpCap = 2, AirStrafeAcceleration = 187 }
     getgenv().ApplyMode = "Optimized"
     getgenv().AutoApplySettings = true
@@ -237,692 +189,882 @@ task.spawn(function()
         end
     end)
 
-    TabMain:AddTextbox({
-        Name = "ความเร็ว (Speed)", Placeholder = "1555", Default = tostring(currentSettings.Speed),
-        Callback = function(v) local n = tonumber(v) if n then currentSettings.Speed = safe(n) applyToTables() end end
-    })
-    TabMain:AddTextbox({
-        Name = "ขีดจำกัดการกระโดด (JumpCap)", Placeholder = "2", Default = tostring(currentSettings.JumpCap),
-        Callback = function(v) local n = tonumber(v) if n then currentSettings.JumpCap = safe(n) applyToTables() end end
-    })
-    TabMain:AddTextbox({
-        Name = "ความเร่งกลางอากาศ (AirStrafe)", Placeholder = "187", Default = tostring(currentSettings.AirStrafeAcceleration),
-        Callback = function(v) local n = tonumber(v) if n then currentSettings.AirStrafeAcceleration = safe(n) applyToTables() end end
-    })
-    TabMain:AddDropdown({
-        Name = "วิธีการปรับค่า", Items = {"Not Optimized", "Optimized"}, Default = "Optimized",
-        Callback = function(v) getgenv().ApplyMode = v cachedTables = nil applyToTables() end
-    })
-    TabMain:AddToggle({
-        Name = "ปรับค่าอัตโนมัติ", Default = true,
-        Callback = function(v) getgenv().AutoApplySettings = v if v then cachedTables = nil applyToTables() end end
-    })
-    TabMain:AddButton({
-        Name = "รีเซ็ตค่าการเคลื่อนไหว",
-        Callback = function()
-            currentSettings.Speed = 1500
-            currentSettings.JumpCap = 2
-            currentSettings.AirStrafeAcceleration = 187
-            cachedTables = nil applyToTables() Notify("รีเซ็ตค่าการเคลื่อนไหวแล้ว", 3)
-        end
-    })
-
+    TabSetting:AddTextbox({ Name = "ความเร็ว", Placeholder = "ใส่ตัวเลข", Default = tostring(currentSettings.Speed), Callback = function(v) local n = tonumber(v) if n then currentSettings.Speed = safe(n) applyToTables() end end })
+    TabSetting:AddTextbox({ Name = "ขีดจำกัดการกระโดด", Placeholder = "ใส่ตัวเลข", Default = tostring(currentSettings.JumpCap), Callback = function(v) local n = tonumber(v) if n then currentSettings.JumpCap = safe(n) applyToTables() end end })
+    TabSetting:AddTextbox({ Name = "ความเร่งกลางอากาศ", Placeholder = "ใส่ตัวเลข", Default = tostring(currentSettings.AirStrafeAcceleration), Callback = function(v) local n = tonumber(v) if n then currentSettings.AirStrafeAcceleration = safe(n) applyToTables() end end })
+    TabSetting:AddDropdown({ Name = "วิธีการปรับค่า", Items = {"Not Optimized", "Optimized"}, Default = "Optimized", Callback = function(v) getgenv().ApplyMode = v cachedTables = nil applyToTables() end })
+    TabSetting:AddToggle({ Name = "ปรับค่าอัตโนมัติ", Default = true, Callback = function(v) getgenv().AutoApplySettings = v if v then cachedTables = nil applyToTables() end end })
+    TabSetting:AddButton({ Name = "รีเซ็ตค่าการเคลื่อนไหว", Callback = function() currentSettings.Speed = 1500 currentSettings.JumpCap = 2 currentSettings.AirStrafeAcceleration = 187 cachedTables = nil applyToTables() Win:Notify({Title = "KRYVEX HUB", Content = "รีเซ็ตค่าการเคลื่อนไหวแล้ว", Duration = 3}) end })
     LocalPlayer.CharacterAdded:Connect(function() task.wait(1) cachedTables = nil if getgenv().AutoApplySettings then applyToTables() end end)
     task.wait()
 
-    -- ══════════════════════════════════════════════════════════
-    -- ส่วนการกระโดด
-    -- ══════════════════════════════════════════════════════════
-    TabMain:AddSection("การกระโดด")
-    local AutoJump, AutoJumpConn = false, nil
+    -- =========================================================
+    -- 📌 TAB: เมนูหลัก (MainTab)
+    -- =========================================================
+    local AutoJump, AutoJumpConnection = false, nil
+    local function DoAutoJump() local Character = LocalPlayer.Character if not Character then return end local Humanoid = Character:FindFirstChild("Humanoid") if Humanoid then Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end
     local function StartAutoJump()
-        if AutoJumpConn then AutoJumpConn:Disconnect() end
-        AutoJumpConn = RunService.Heartbeat:Connect(function()
+        if AutoJumpConnection then AutoJumpConnection:Disconnect() AutoJumpConnection = nil end
+        AutoJumpConnection = RunService.Heartbeat:Connect(function()
             if not AutoJump then return end
-            local c, h, r = GetChar(), GetHum(), GetRoot()
-            if not c or not h or not r then return end
-            if workspace:FindPartOnRay(Ray.new(r.Position, Vector3.new(0, -4, 0)), c) then
-                h:ChangeState(Enum.HumanoidStateType.Jumping)
+            local Character = LocalPlayer.Character if not Character then return end
+            local Humanoid = Character:FindFirstChild("Humanoid") local Root = Character:FindFirstChild("HumanoidRootPart")
+            if not Humanoid or not Root then return end
+            if workspace:FindPartOnRay(Ray.new(Root.Position, Vector3.new(0, -4, 0)), Character) then
+                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end)
     end
+    local function SetAutoJump(Value) AutoJump = Value if Value then DoAutoJump() end end
     StartAutoJump()
-    TabMain:AddToggle({ Name = "ออโต้กระโดด", Default = false, Callback = function(v) AutoJump = v if v then StartAutoJump() end end })
-    TabMain:AddToggle({ Name = "ออโต้กระโดด (ปุ่มลอย)", Default = false, Callback = function(v)
-        if v then MakeFloating("AutoJump", { Name = "ออโต้กระโดด", Mode = "Toggle", Callback = function(a) AutoJump = a if a then StartAutoJump() end end })
-        else KillFloating("AutoJump") AutoJump = false end
-    end })
-    task.wait()
-
-    local ABounce, ABounceH, ABounceD = false, 150, 7
-    local ABounceConn, ABounceCD = nil, false
-    local function StartABounce()
-        if ABounceConn then ABounceConn:Disconnect() end
-        ABounceConn = RunService.Heartbeat:Connect(function()
-            if not ABounce then return end
-            local c, h, r = GetChar(), GetHum(), GetRoot()
-            if not c or not h or not r or h.Health <= 0 then return end
-            local st = h:GetState()
-            if st ~= Enum.HumanoidStateType.Freefall and st ~= Enum.HumanoidStateType.FallingDown then return end
-            if r.AssemblyLinearVelocity.Y >= 0 then return end
-            local params = RaycastParams.new()
-            params.FilterType = Enum.RaycastFilterType.Exclude
-            params.FilterDescendantsInstances = {c}
-            local res = workspace:Raycast(r.Position, Vector3.new(0, -ABounceD, 0), params)
-            if res and (r.Position - res.Position).Magnitude <= ABounceD and not ABounceCD then
-                ABounceCD = true
-                local v = r.AssemblyLinearVelocity
-                r.AssemblyLinearVelocity = Vector3.new(v.X, ABounceH, v.Z)
-                h:ChangeState(Enum.HumanoidStateType.Jumping)
-                task.delay(0.15, function() ABounceCD = false end)
-            end
-        end)
-    end
-    StartABounce()
-    TabMain:AddToggle({ Name = "ออโต้เด้ง", Default = false, Callback = function(v) ABounce = v if v then StartABounce() else if ABounceConn then ABounceConn:Disconnect() end end end })
-    TabMain:AddTextbox({ Name = "ความสูง", Placeholder = "150", Default = "150", Callback = function(v) local n = tonumber(v) if n then ABounceH = math.clamp(n, 1, 1000) end end })
-    task.wait()
-
-    local Hum, StateConn, JumpHeld, BunnyEnabled = nil, nil, false, false
-    local function SetupChar(c)
-        if StateConn then StateConn:Disconnect() end
-        Hum = c:WaitForChild("Humanoid", 5)
-        if not Hum then return end
-        JumpHeld = false
-        StateConn = Hum.StateChanged:Connect(function(_, ns)
-            if ns == Enum.HumanoidStateType.Landed and BunnyEnabled and JumpHeld then
-                task.defer(function()
-                    if Hum and Hum.Parent and BunnyEnabled and JumpHeld then
-                        Hum.Jump = true Hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-                end)
-            end
-        end)
-    end
-    if LocalPlayer.Character then SetupChar(LocalPlayer.Character) end
-    LocalPlayer.CharacterAdded:Connect(SetupChar)
-    UIS.JumpRequest:Connect(function() if not BunnyEnabled then return end JumpHeld = true if Hum and Hum.Parent then Hum.Jump = true end end)
-    UIS.InputBegan:Connect(function(i) if BunnyEnabled and i.KeyCode == Enum.KeyCode.Space then JumpHeld = true end end)
-    UIS.InputEnded:Connect(function(i) if i.KeyCode == Enum.KeyCode.Space or i.UserInputType == Enum.UserInputType.Touch then JumpHeld = false end end)
-    TabMain:AddToggle({ Name = "กระโดดค้าง", Default = false, Callback = function(v) BunnyEnabled = v if not v then JumpHeld = false else Notify("กด Space ค้าง", 3) end end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- อุ้ม / ยูทิลิตี้
-    -- ══════════════════════════════════════════════════════════
-    TabMain:AddSection("อุ้ม / ยูทิลิตี้")
-    local AutoCarry, CarryRange = false, 8
-    local CarryTarget, CarryConn, IsCarrying, LastCarry = nil, nil, false, 0
-    local function FindNearestDowned(range)
-        local c = GetChar() if not c or not PlayerFolder then return nil, nil end
-        local mr = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
-        if not mr then return nil, nil end
-        local t, tag, dist = nil, nil, range
-        for _, o in ipairs(PlayerFolder:GetChildren()) do
-            if o ~= c and o.Name ~= LocalPlayer.Name then
-                local h = o:FindFirstChildOfClass("Humanoid")
-                local r = o:FindFirstChild("HumanoidRootPart") or o.PrimaryPart
-                local tg = GetTag(o)
-                if h and r and tg and h.Health <= 0 then
-                    local d = (mr.Position - r.Position).Magnitude
-                    if d <= dist then dist = d t = o tag = tg end
-                end
-            end
-        end
-        return t, tag
-    end
-    local function DoAutoCarry()
-        if not Interact then return end
-        if IsCarrying then
-            if CarryTarget and CarryTarget.Parent then
-                local h = CarryTarget:FindFirstChildOfClass("Humanoid")
-                if h and h.Health <= 0 then return end
-            end
-            IsCarrying, CarryTarget = false, nil
-        end
-        if tick() - LastCarry < 1.5 then return end
-        local target, tag = FindNearestDowned(CarryRange)
-        if target and tag then IsCarrying, CarryTarget, LastCarry = true, target, tick() Safe(function() Interact:FireServer("Carry", tag) end) end
-    end
-    TabMain:AddToggle({ Name = "ออโต้อุ้ม", Default = false, Callback = function(v)
-        AutoCarry = v
-        if CarryConn then CarryConn:Disconnect() CarryConn = nil end
-        if v then CarryConn = RunService.Heartbeat:Connect(function() if AutoCarry then DoAutoCarry() end end) else CarryTarget, IsCarrying = nil, false end
-    end })
-    
-    local FlexBusy = false
-    local function DoFlexCarry()
-        if FlexBusy or not Interact then return end
-        local c = GetChar() if not c then return end
-        local mr = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
-        if not mr then return end
-        local target, tag = FindNearestDowned(25)
-        if not target or not tag then Notify("ไม่พบเป้าหมายให้อุ้ม") return end
-        local tr = target:FindFirstChild("HumanoidRootPart") or target.PrimaryPart
-        if not tr then return end
-        FlexBusy = true
-        task.spawn(function()
-            local origAnchor = mr.Anchored
-            mr.Anchored = true
-            pcall(function() Interact:FireServer("Carry", tag) end)
-            task.wait(0.15)
-            for i = 1, 12 do
-                if not tr or not tr.Parent then break end
-                local center = tr.Position
-                local ang = (i / 12) * math.rad(360)
-                local goal = center + Vector3.new(math.cos(ang) * 12, 7, math.sin(ang) * 12)
-                local tw = TweenService:Create(mr, TweenInfo.new(0.85/12, Enum.EasingStyle.Linear), {CFrame = CFrame.new(goal, center)})
-                tw:Play() tw.Completed:Wait()
-            end
-            if tr and tr.Parent then mr.CFrame = tr.CFrame + Vector3.new(0, 0.2, 0) end
-            mr.Anchored = origAnchor
-            task.wait(0.08)
-            if tr and tr.Parent then pcall(function() Interact:FireServer("Carry", tag) end) end
-            task.wait(0.2)
-            FlexBusy = false
-        end)
-    end
-    TabMain:AddButton({ Name = "อุ้มแอ็ก (Flex)", Callback = DoFlexCarry })
-    TabMain:AddToggle({
-        Name = "อุ้มแฮ็ก (ปุ่มลอย)", Default = false,
-        Callback = function(v)
-            if v then MakeFloating("FlexCarry", { Name = "อุ้มแฮ็ก", Mode = "Button", ReadyText = "อุ้ม", Callback = function() task.spawn(DoFlexCarry) end }) 
-            else KillFloating("FlexCarry") end
-        end
-    })
-    task.wait()
-
-    getgenv().CrouchRate = getgenv().CrouchRate or 8
-    local CrouchEnabled, CrouchThread = false, nil
-    local function FindCrouchBtn()
-        local ok, b = pcall(function() return PlayerGui.Game.HUD.Mobile.Right.Mobile.CrouchButton end)
-        if ok and b then return b end
-        return PlayerGui:FindFirstChild("CrouchButton", true)
-    end
-    local function FireSig(sig)
-        if firesignal then pcall(firesignal, sig)
-        elseif getconnections then for _, c in ipairs(getconnections(sig)) do pcall(function() c:Fire() end) end end
-    end
-    local function StartCrouchSpam()
-        if CrouchThread then pcall(task.cancel, CrouchThread) end
-        CrouchEnabled = true
-        CrouchThread = task.spawn(function()
-            while CrouchEnabled do
-                local b = FindCrouchBtn()
-                if b then for _, s in ipairs({"MouseButton1Down","MouseButton1Click","MouseButton1Up","Activated"}) do Safe(function() FireSig(b[s]) end) end end
-                task.wait(1 / (getgenv().CrouchRate or 8))
-            end
-        end)
-    end
-    local function StopCrouchSpam() CrouchEnabled = false if CrouchThread then pcall(task.cancel, CrouchThread) CrouchThread = nil end end
-    TabMain:AddTextbox({ Name = "ความรัวย่อ", Placeholder = "1-30", Default = "8", Callback = function(v) local n = tonumber(v) if n then getgenv().CrouchRate = math.clamp(n, 1, 30) end end })
-    TabMain:AddToggle({ Name = "กดย่อรัวๆ", Default = false, Callback = function(v) if v then StartCrouchSpam() else StopCrouchSpam() end end })
-    task.wait()
-
-    TabMain:AddSection("การบิน / หมุน / แลค")
-    local FlyEnabled, FlySpeed = false, 1.5
-    local FlyForce, FlySpin, FlyConn
-    local function StopFly()
-        FlyEnabled = false
-        if FlyConn then FlyConn:Disconnect() FlyConn = nil end
-        if FlyForce then FlyForce:Destroy() FlyForce = nil end
-        if FlySpin then FlySpin:Destroy() FlySpin = nil end
-        local h = GetHum() if h then h.PlatformStand = false h.AutoRotate = true end
-    end
-    local function StartFly()
-        local h, r = GetHum(), GetRoot()
-        local cam = Workspace.CurrentCamera
-        if not h or not r or not cam then return end
-        if FlyForce then FlyForce:Destroy() end
-        if FlySpin then FlySpin:Destroy() end
-        FlyForce = Instance.new("BodyVelocity") FlyForce.Velocity = Vector3.zero FlyForce.P = 1000 FlyForce.MaxForce = Vector3.new(1e5, 1e5, 1e5) FlyForce.Parent = r
-        FlySpin = Instance.new("BodyGyro") FlySpin.P = 10000 FlySpin.MaxTorque = Vector3.new(1e5, 1e5, 1e5) FlySpin.CFrame = r.CFrame FlySpin.Parent = r
-        h.PlatformStand = true h.AutoRotate = false h:ChangeState(Enum.HumanoidStateType.Freefall)
-        FlyConn = RunService.Heartbeat:Connect(function()
-            if not FlyEnabled or not r.Parent or not h.Parent then StopFly() return end
-            local cc = Workspace.CurrentCamera if not cc then return end
-            local fwd = cc.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1))
-            local side = cc.CFrame:VectorToWorldSpace(Vector3.new(-1, 0, 0))
-            local flat = Vector3.new(cc.CFrame.LookVector.X, 0, cc.CFrame.LookVector.Z)
-            if flat.Magnitude > 0 then flat = flat.Unit end
-            local move = CFrame.new(Vector3.zero, flat):VectorToObjectSpace(h.MoveDirection)
-            local push = Vector3.zero
-            push += fwd * (60 * FlySpeed) * -move.Z
-            push += side * (40 * FlySpeed) * -move.X
-            FlySpin.CFrame = CFrame.new(Vector3.zero, fwd)
-            FlyForce.Velocity = FlyForce.Velocity:Lerp(push, 0.2)
-            h.PlatformStand = true h.AutoRotate = false
-        end)
-    end
-    TabMain:AddTextbox({ Name = "ความเร็วบิน", Placeholder = "1.5", Default = "1.5", Callback = function(v) local n = tonumber(v) if n then FlySpeed = math.clamp(n, 0.1, 100) end end })
-    TabMain:AddToggle({ Name = "บิน", Default = false, Callback = function(v) FlyEnabled = v if v then StartFly() Notify("เปิดบิน") else StopFly() Notify("ปิดบิน") end end })
-    LocalPlayer.CharacterAdded:Connect(function() if FlyConn then FlyConn:Disconnect() FlyConn = nil end if FlyForce then FlyForce:Destroy() FlyForce = nil end if FlySpin then FlySpin:Destroy() FlySpin = nil end if FlyEnabled then task.wait(0.3) if FlyEnabled then StartFly() end end end)
-    
-    local SpinEnabled, SpinSpeed = false, 10
-    local SpinConn
-    TabMain:AddTextbox({ Name = "ความเร็วหมุน", Placeholder = "10", Default = "10", Callback = function(v) local n = tonumber(v) if n then SpinSpeed = math.clamp(n, 0, 1000) end end })
-    TabMain:AddToggle({ Name = "หมุนตัวละคร", Default = false, Callback = function(v)
-        SpinEnabled = v
-        if SpinConn then SpinConn:Disconnect() SpinConn = nil end
-        if v then SpinConn = RunService.Heartbeat:Connect(function() if not SpinEnabled then return end local r = GetRoot() if r then r.CFrame = r.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0) end end) end
-    end })
-    task.wait()
 
     local LagBusy = false
     local function RunLagSwitch()
         if LagBusy then return end
         LagBusy = true
         task.spawn(function()
-            local h = GetHum()
-            local oldWS, oldJP, oldAR
-            if h then oldWS, oldJP, oldAR = h.WalkSpeed, h.JumpPower, h.AutoRotate h.WalkSpeed, h.JumpPower, h.AutoRotate = 0, 0, false end
+            local Character = LocalPlayer.Character
+            local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+            local OldWalkSpeed, OldJumpPower, OldAutoRotate
+            if Humanoid then OldWalkSpeed, OldJumpPower, OldAutoRotate = Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate = 0, 0, false end
             task.wait(0.5)
-            if h and h.Parent then h.WalkSpeed, h.JumpPower, h.AutoRotate = oldWS, oldJP, oldAR end
+            if Humanoid and Humanoid.Parent then Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate = OldWalkSpeed, OldJumpPower, OldAutoRotate end
             LagBusy = false
         end)
     end
-    TabMain:AddButton({ Name = "แลคสวิตช์", Callback = RunLagSwitch })
-    task.wait()
 
-    TabMain:AddSection("ระบบเกิดใหม่")
-    local AutoRespawn, RespawnMode = false, "สปาวปกติ"
-    local SavedCF, CharConns, Processed = nil, {}, setmetatable({}, {__mode="k"})
-    local function HandleDeath(c, h)
-        if not AutoRespawn or Processed[c] or h.Health > 0 then return end
-        Processed[c] = true
-        if RespawnMode == "สปาวจุดเดิม" then local r = c:FindFirstChild("HumanoidRootPart") if r then SavedCF = r.CFrame end end
-        task.delay(3, function()
-            if not AutoRespawn or LocalPlayer.Character ~= c then return end
-            if not h.Parent or h.Health > 0 then return end
-            if SetPlayerMode then Safe(function() SetPlayerMode:FireServer(true) end) end
-        end)
-    end
-    local function WatchChar(c)
-        task.spawn(function()
-            local h = c:WaitForChild("Humanoid", 5)
-            if not h then return end
-            if CharConns[c] then CharConns[c]:Disconnect() end
-            CharConns[c] = h.HealthChanged:Connect(function(hp) if hp <= 0 then HandleDeath(c, h) end end)
-            if h.Health <= 0 then HandleDeath(c, h) end
-        end)
-    end
-    LocalPlayer.CharacterAdded:Connect(WatchChar)
-    if LocalPlayer.Character then WatchChar(LocalPlayer.Character) end
-    TabMain:AddDropdown({ Name = "เลือกการสปาว", Items = {"สปาวปกติ", "สปาวจุดเดิม"}, Default = "สปาวปกติ", Callback = function(v) RespawnMode = v Notify("เลือก " .. v) end })
-    TabMain:AddToggle({ Name = "ออโต้รีสปาว", Default = false, Callback = function(v) AutoRespawn = v Notify(v and "เปิดออโต้รีสปาว" or "ปิด") end })
-    TabMain:AddButton({ Name = "เกิดใหม่ทันที", Callback = function() if SetPlayerMode then Safe(function() SetPlayerMode:FireServer(true) end) Notify("ส่งคำสั่งเกิดใหม่") end end })
-    task.wait()
+    local AutoJumpFloatingHandle
+    TabMain:AddToggle({ Name = "ออโต้กระโดด", Default = false, Callback = function(Value) SetAutoJump(Value) end })
+    TabMain:AddToggle({ Name = "ออโต้กระโดด (ปุ่มลอย)", Default = false, Callback = function(Value) if Value then if AutoJumpFloatingHandle then AutoJumpFloatingHandle:Destroy() AutoJumpFloatingHandle = nil end AutoJumpFloatingHandle = Win:CreateFloatingButton({Name = "ออโต้กระโดด", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = function(Active) SetAutoJump(Active) end}) else if AutoJumpFloatingHandle then AutoJumpFloatingHandle:Destroy() AutoJumpFloatingHandle = nil end SetAutoJump(false) end end })
 
-    -- ══════════════════════════════════════════════════════════
-    -- 2️⃣ TAB: แดช
-    -- ══════════════════════════════════════════════════════════
-    local function MakeDash(tag, forward, jump, speedRef)
-        local enabled, velocity, token = false, nil, 0
-        local function Stop()
-            enabled = false token += 1
-            if velocity then Safe(function() velocity:Destroy() end) velocity = nil end
+    local LagFloatingHandle = nil
+    TabMain:AddButton({ Name = "แลคสวิตช์", Callback = function() RunLagSwitch() end })
+    TabMain:AddToggle({ Name = "แลคสวิตช์ (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if LagFloatingHandle then LagFloatingHandle:Destroy() LagFloatingHandle = nil end
+            LagFloatingHandle = Win:CreateFloatingButton({Name = "แลคสวิตช์", Mode = "Button", ReadyText = "กดเพื่อใช้", Cooldown = 0.35, Callback = function() RunLagSwitch() end})
+            Win:Notify({Title = "KRYVEX HUB", Content = "เปิดปุ่มลอยแลคสวิตช์แล้ว", Duration = 3})
+        else
+            if LagFloatingHandle then LagFloatingHandle:Destroy() LagFloatingHandle = nil end
+            Win:Notify({Title = "KRYVEX HUB", Content = "ปิดปุ่มลอยแลคสวิตช์แล้ว", Duration = 3})
         end
-        local function Start()
-            if enabled then return end
-            local c, h, r = GetChar(), GetHum(), GetRoot()
-            if not h or not r or h.Health <= 0 then return end
-            enabled = true token += 1 local myTok = token
-            local v = Instance.new("BodyVelocity")
-            v.Name = "EvadeDash_" .. tag v.MaxForce = Vector3.new(999999, jump and 999999 or 0, 999999)
-            v.P = 1250 v.Velocity = Vector3.zero v.Parent = r
-            velocity = v
-            local lastJump = os.clock()
-            local rayP = RaycastParams.new() rayP.FilterType = Enum.RaycastFilterType.Exclude rayP.FilterDescendantsInstances = {c}
-            if jump then h.Jump = true h:ChangeState(Enum.HumanoidStateType.Jumping) end
-            task.spawn(function()
-                while enabled and token == myTok and velocity == v do
-                    local _, hh, rr = GetChar(), GetHum(), GetRoot()
-                    local cam = Workspace.CurrentCamera
-                    if not hh or not rr or rr ~= r or not cam or hh.Health <= 0 then break end
-                    local look = cam.CFrame.LookVector
-                    local dir = Vector3.new(forward and look.X or -look.X, 0, forward and look.Z or -look.Z)
-                    if dir.Magnitude > 0.001 then v.Velocity = dir.Unit * speedRef.value else v.Velocity = Vector3.zero end
-                    if jump then
-                        local res = workspace:Raycast(rr.Position, Vector3.new(0, -4.5, 0), rayP)
-                        if res and rr.AssemblyLinearVelocity.Y < -2 and os.clock() - lastJump >= 0.45 then
-                            lastJump = os.clock()
-                            hh.Jump = true hh:ChangeState(Enum.HumanoidStateType.Jumping)
-                        end
+    end })
+    TabMain:AddLabel("กดแล้ว Client จะกระตุกชั่วคราว")
+    TabMain:AddLabel("หลังจากนั้นปุ่มจะนับ 3 → 2 → 1")
+    task.wait()
+
+    -- Auto Bounce
+    local AutoBounce, AutoBounceHeight, AutoBounceDistance = false, 150, 7
+    local AutoBounceConnection, AutoBounceCooldown = nil, false
+    local function GetCharacterData() local Character = LocalPlayer.Character if not Character then return nil end local Humanoid = Character:FindFirstChildOfClass("Humanoid") local Root = Character:FindFirstChild("HumanoidRootPart") if not Humanoid or not Root then return nil end return Character, Humanoid, Root end
+    local function CheckGroundDistance(Character, Root) local Params = RaycastParams.new() Params.FilterType = Enum.RaycastFilterType.Exclude Params.FilterDescendantsInstances = {Character} Params.IgnoreWater = true local Result = workspace:Raycast(Root.Position, Vector3.new(0, -AutoBounceDistance, 0), Params) if Result then return (Root.Position - Result.Position).Magnitude end return nil end
+    local function DoAutoBounce(Humanoid, Root) if AutoBounceCooldown then return end AutoBounceCooldown = true local Velocity = Root.AssemblyLinearVelocity Root.AssemblyLinearVelocity = Vector3.new(Velocity.X, AutoBounceHeight, Velocity.Z) Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) task.delay(0.15, function() AutoBounceCooldown = false end) end
+    local function StartAutoBounce()
+        if AutoBounceConnection then AutoBounceConnection:Disconnect() AutoBounceConnection = nil end
+        AutoBounceConnection = RunService.Heartbeat:Connect(function()
+            if not AutoBounce then return end
+            local Character, Humanoid, Root = GetCharacterData() if not Character or not Humanoid or not Root or Humanoid.Health <= 0 then return end
+            local State = Humanoid:GetState() local Falling = State == Enum.HumanoidStateType.Freefall or State == Enum.HumanoidStateType.FallingDown
+            if not Falling or Root.AssemblyLinearVelocity.Y >= 0 then return end
+            local Distance = CheckGroundDistance(Character, Root) if Distance and Distance <= AutoBounceDistance then DoAutoBounce(Humanoid, Root) end
+        end)
+    end
+    local function SetAutoBounce(Value) AutoBounce = Value if Value then StartAutoBounce() else if AutoBounceConnection then AutoBounceConnection:Disconnect() AutoBounceConnection = nil end AutoBounceCooldown = false end end
+    StartAutoBounce()
+
+    TabMain:AddToggle({ Name = "ออโต้เด้ง", Default = false, Callback = function(Value) SetAutoBounce(Value) Win:Notify({Title = "KRYVEX HUB", Content = Value and ("เปิดออโต้เด้ง | ความสูง " .. tostring(AutoBounceHeight)) or "ปิดออโต้เด้ง", Duration = 3}) end })
+    TabMain:AddTextbox({ Name = "ความสูงออโต้เด้ง", Placeholder = "เช่น 150", Default = tostring(AutoBounceHeight), Callback = function(Value) local Number = tonumber(Value) if Number then AutoBounceHeight = math.clamp(Number, 1, 1000) end end })
+    TabMain:AddTextbox({ Name = "ระยะตรวจพื้น", Placeholder = "เช่น 7", Default = tostring(AutoBounceDistance), Callback = function(Value) local Number = tonumber(Value) if Number then AutoBounceDistance = math.clamp(Number, 1, 50) end end })
+    task.wait()
+
+    -- Crouch Spam
+    task.spawn(function()
+        local ok, err = pcall(function()
+            local Env = getgenv() local FloatingButton = nil local NAME = "กดย่อรัวๆ"
+            local function FindCrouchButton() local success, button = pcall(function() return PlayerGui.Game.HUD.Mobile.Right.Mobile.CrouchButton end) if success and button then return button end return PlayerGui:FindFirstChild("CrouchButton", true) end
+            local function StopCrouch() Env.KRYVEX_CrouchEnabled = false if Env.KRYVEX_CrouchThread then pcall(task.cancel, Env.KRYVEX_CrouchThread) Env.KRYVEX_CrouchThread = nil end end
+            local function Fire(signal) if firesignal then firesignal(signal) elseif getconnections then for _, connection in ipairs(getconnections(signal)) do connection:Fire() end end end
+            local function StartCrouch()
+                StopCrouch() Env.KRYVEX_CrouchEnabled = true
+                Env.KRYVEX_CrouchThread = task.spawn(function()
+                    while Env.KRYVEX_CrouchEnabled do
+                        local button = FindCrouchButton()
+                        if button then for _, signalName in ipairs({"MouseButton1Down","MouseButton1Click","MouseButton1Up","Activated"}) do pcall(function() Fire(button[signalName]) end) end end
+                        task.wait(1 / (Env.KRYVEX_CrouchRate or 8))
                     end
-                    task.wait(jump and 0.025 or 0.03)
+                end)
+            end
+            Env.KRYVEX_CrouchRate = Env.KRYVEX_CrouchRate or 8
+            TabMain:AddTextbox({ Name = "ความรัวกดย่อ (ครั้ง/วินาที)", Placeholder = "ใส่ตัวเลข", Default = tostring(Env.KRYVEX_CrouchRate), Callback = function(value) local number = tonumber(value) if number then Env.KRYVEX_CrouchRate = math.clamp(number, 1, 30) end end })
+            TabMain:AddToggle({ Name = "กดย่อรัวๆ", Default = false, Callback = function(value) if value then StartCrouch() else StopCrouch() end end })
+            TabMain:AddToggle({ Name = "กดย่อรัวๆ (ปุ่มลอย)", Default = false, Callback = function(value)
+                if value then
+                    if FloatingButton then return end
+                    FloatingButton = Win:CreateFloatingButton({Name = NAME, Mode = "Toggle", OnText = "กดย่อรัวๆ [ON]", OffText = "กดย่อรัวๆ [OFF]", Callback = function(active) if active then StartCrouch() else StopCrouch() end end})
+                else
+                    if FloatingButton then pcall(function() FloatingButton:Destroy() end) FloatingButton = nil end
+                    StopCrouch()
                 end
-                if velocity == v then velocity = nil end
-                if v.Parent then Safe(function() v:Destroy() end) end
-            end)
-        end
-        LocalPlayer.CharacterAdded:Connect(Stop)
-        return Start, Stop
-    end
-
-    TabDash:AddSection("แดชไปหน้า")
-    local spdFwd = {value = 50}
-    local StartDF, StopDF = MakeDash("Fwd", true, false, spdFwd)
-    TabDash:AddToggle({ Name = "แดชไปหน้า", Default = false, Callback = function(v) if v then StartDF() else StopDF() end end })
-    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdFwd.value = math.clamp(n, 1, 1000) end end })
-    TabDash:AddToggle({ Name = "แดชไปหน้า (ปุ่มลอย)", Default = false, Callback = function(v)
-        if v then MakeFloating("DashFwd", { Name = "แดชไปหน้า", Mode = "Toggle", Callback = function(a) if a then StartDF() else StopDF() end end })
-        else KillFloating("DashFwd") StopDF() end
-    end })
-    task.wait()
-
-    TabDash:AddSection("แดชกระโดด")
-    local spdFwdJmp = {value = 50}
-    local StartDFJ, StopDFJ = MakeDash("FwdJmp", true, true, spdFwdJmp)
-    TabDash:AddToggle({ Name = "แดชไปหน้าพร้อมกระโดด", Default = false, Callback = function(v) if v then StartDFJ() else StopDFJ() end end })
-    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdFwdJmp.value = math.clamp(n, 1, 1000) end end })
-    task.wait()
-
-    TabDash:AddSection("แดชถอยหลัง")
-    local spdBack = {value = 50}
-    local StartDB, StopDB = MakeDash("Back", false, false, spdBack)
-    TabDash:AddToggle({ Name = "แดชถอยหลัง", Default = false, Callback = function(v) if v then StartDB() else StopDB() end end })
-    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdBack.value = math.clamp(n, 1, 1000) end end })
-    task.wait()
-
-    TabDash:AddSection("แดชถอยหลังกระโดด")
-    local spdBackJmp = {value = 50}
-    local StartDBJ, StopDBJ = MakeDash("BackJmp", false, true, spdBackJmp)
-    TabDash:AddToggle({ Name = "แดชถอยหลังกระโดด", Default = false, Callback = function(v) if v then StartDBJ() else StopDBJ() end end })
-    TabDash:AddTextbox({ Name = "ความเร็ว", Placeholder = "50", Default = "50", Callback = function(v) local n = tonumber(v) if n then spdBackJmp.value = math.clamp(n, 1, 1000) end end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- 3️⃣ TAB: วาร์ป
-    -- ══════════════════════════════════════════════════════════
-    TabTP:AddSection("วาร์ปพื้นฐาน")
-    TabTP:AddButton({ Name = "วาร์ปขึ้นบน 1200", Callback = function() local r = GetRoot() if r then r.CFrame = r.CFrame + Vector3.new(0, 1200, 0) Notify("วาร์ปขึ้น") end end })
-    local ClickTpEnabled, ClickTpConn = false, nil
-    TabTP:AddToggle({ Name = "คลิกเทเลพอร์ต", Default = false, Callback = function(v)
-        ClickTpEnabled = v
-        if ClickTpConn then ClickTpConn:Disconnect() ClickTpConn = nil end
-        if not v then Notify("ปิด") return end
-        ClickTpConn = UIS.InputBegan:Connect(function(i, gpe)
-            if gpe or not ClickTpEnabled then return end
-            if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
-            local cam = Workspace.CurrentCamera if not cam then return end
-            local ray = cam:ViewportPointToRay(i.Position.X, i.Position.Y)
-            local p = RaycastParams.new() p.FilterType = Enum.RaycastFilterType.Exclude p.FilterDescendantsInstances = {GetChar()}
-            local res = workspace:Raycast(ray.Origin, ray.Direction * 10000, p)
-            if not res then return end
-            local r = GetRoot()
-            if r then r.CFrame = CFrame.new(res.Position + Vector3.new(0, 3, 0)) end
+            end })
         end)
-        Notify("เปิดคลิกเทเลพอร์ต")
-    end })
+        if not ok then warn("[KRYVEX CROUCH]", err) end
+    end)
     task.wait()
 
-    TabTP:AddSection("วาร์ปหาผู้เล่น")
-    local RescueBusy = false
-    local function RescueDowned()
-        if RescueBusy or not Interact then return end
-        local c, mr = GetChar(), GetRoot()
-        if not c or not mr then return end
-        local targets = {}
-        if PlayerFolder then
-            for _, m in ipairs(PlayerFolder:GetChildren()) do
-                if m:IsA("Model") and m ~= c then
-                    local h = m:FindFirstChildWhichIsA("Humanoid", true)
-                    local r = m:FindFirstChild("HumanoidRootPart", true) or m.PrimaryPart
-                    if h and h.Health <= 0 and r then table.insert(targets, {model = m, humanoid = h, root = r, tag = GetTag(m), dist = (r.Position - mr.Position).Magnitude}) end
+    -- Bunny Hop
+    local Humanoid, StateConnection, JumpHeld, BunnyHopEnabled = nil, nil, false, false
+    local function SetupCharacter(Character)
+        if StateConnection then StateConnection:Disconnect() StateConnection = nil end
+        Humanoid = Character:WaitForChild("Humanoid") JumpHeld = false
+        StateConnection = Humanoid.StateChanged:Connect(function(_, NewState) if NewState == Enum.HumanoidStateType.Landed and BunnyHopEnabled and JumpHeld then task.defer(function() if Humanoid and Humanoid.Parent and BunnyHopEnabled and JumpHeld then Humanoid.Jump = true Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end) end end)
+    end
+    if LocalPlayer.Character then SetupCharacter(LocalPlayer.Character) end
+    LocalPlayer.CharacterAdded:Connect(SetupCharacter)
+    UIS.JumpRequest:Connect(function() if not BunnyHopEnabled then return end JumpHeld = true if Humanoid and Humanoid.Parent then Humanoid.Jump = true end end)
+    UIS.InputBegan:Connect(function(Input) if BunnyHopEnabled and Input.KeyCode == Enum.KeyCode.Space then JumpHeld = true end end)
+    UIS.InputEnded:Connect(function(Input) if Input.KeyCode == Enum.KeyCode.Space or Input.UserInputType == Enum.UserInputType.Touch then JumpHeld = false end end)
+    RunService.Heartbeat:Connect(function()
+        if not BunnyHopEnabled or not JumpHeld or not Humanoid or not Humanoid.Parent then return end
+        local State = Humanoid:GetState()
+        if State == Enum.HumanoidStateType.Landed or State == Enum.HumanoidStateType.Running then Humanoid.Jump = true end
+    end)
+    TabMain:AddToggle({ Name = "กระโดดค้างต่อเนื่อง", Default = false, Callback = function(Value) BunnyHopEnabled = Value if not Value then JumpHeld = false return end Win:Notify({Title = "KRYVEX HUB", Content = "เปิดแล้ว กดปุ่มกระโดดค้างไว้", Duration = 3}) end })
+    task.wait()
+
+    -- Auto Carry
+    local PlayerFolder = Workspace:WaitForChild("Players")
+    local EventsFolder = ReplicatedStorage:WaitForChild("Events")
+    local Interact = EventsFolder:WaitForChild("Interact")
+
+    local AutoCarryEnabled, AutoCarryRange = false, 8
+    local AutoCarryTargetObject, AutoCarryConnection, AutoCarryFloatingHandle = nil, nil, nil
+    local IsCarrying, LastCarryTime, CARRY_COOLDOWN = false, 0, 1.5
+    local function GetCarryRoot(Model) return Model:FindFirstChild("HumanoidRootPart") or Model.PrimaryPart end
+    local function GetCarryHumanoid(Model) return Model:FindFirstChildOfClass("Humanoid") end
+    local function GetObjectTag(Object) local Tag = Object:GetAttribute("Tag") or Object:GetAttribute("ID") or Object.Name return tonumber(Tag) or Tag end
+    local function FindNearestDowned()
+        local Character = LocalPlayer.Character if not Character then return nil, nil end
+        local MyRoot = GetCarryRoot(Character) if not MyRoot then return nil, nil end
+        local Target, TargetTag, Distance = nil, nil, AutoCarryRange
+        for _, Object in ipairs(PlayerFolder:GetChildren()) do
+            if Object ~= Character and Object.Name ~= LocalPlayer.Name then
+                local Humanoid = GetCarryHumanoid(Object) local Root = GetCarryRoot(Object) local Tag = GetObjectTag(Object)
+                if Humanoid and Root and Tag and Humanoid.Health <= 0 then
+                    local CurrentDistance = (MyRoot.Position - Root.Position).Magnitude
+                    if CurrentDistance <= Distance then Distance = CurrentDistance Target = Object TargetTag = Tag end
                 end
             end
-            table.sort(targets, function(a, b) return a.dist < b.dist end)
         end
-        if #targets == 0 then Notify("ไม่พบผู้เล่นที่ล้ม") return end
-        local orig = mr.CFrame
+        return Target, TargetTag
+    end
+    local function DoAutoCarry()
+        if IsCarrying then
+            if AutoCarryTargetObject and AutoCarryTargetObject.Parent then local Humanoid = GetCarryHumanoid(AutoCarryTargetObject) if Humanoid and Humanoid.Health <= 0 then return end end
+            IsCarrying = false AutoCarryTargetObject = nil
+        end
+        if tick() - LastCarryTime < CARRY_COOLDOWN then return end
+        local Target, Tag = FindNearestDowned()
+        if Target and Tag then IsCarrying = true AutoCarryTargetObject = Target LastCarryTime = tick() pcall(function() Interact:FireServer("Carry", Tag) end) end
+    end
+    local function StartAutoCarry() if AutoCarryConnection then AutoCarryConnection:Disconnect() AutoCarryConnection = nil end AutoCarryConnection = RunService.Heartbeat:Connect(function() if not AutoCarryEnabled then return end DoAutoCarry() end) end
+    local function StopAutoCarry() if AutoCarryConnection then AutoCarryConnection:Disconnect() AutoCarryConnection = nil end AutoCarryTargetObject = nil IsCarrying = false end
+    local function SetAutoCarry(Value) AutoCarryEnabled = Value if Value then AutoCarryTargetObject = nil IsCarrying = false StartAutoCarry() else StopAutoCarry() end end
+
+    TabMain:AddToggle({ Name = "ออโต้อุ้ม", Default = false, Callback = function(Value) SetAutoCarry(Value) Win:Notify({Title = "KRYVEX HUB", Content = Value and "เปิดออโต้อุ้มแล้ว" or "ปิดออโต้อุ้มแล้ว", Duration = 3}) end })
+    TabMain:AddToggle({ Name = "ออโต้อุ้ม (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if AutoCarryFloatingHandle then AutoCarryFloatingHandle:Destroy() AutoCarryFloatingHandle = nil end
+            AutoCarryFloatingHandle = Win:CreateFloatingButton({Name = "ออโต้อุ้ม", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = function(Active) SetAutoCarry(Active) end})
+        else
+            if AutoCarryFloatingHandle then AutoCarryFloatingHandle:Destroy() AutoCarryFloatingHandle = nil end
+            SetAutoCarry(false)
+        end
+    end })
+    task.wait()
+
+    -- Round Timer
+    local Enabled, TimerGui, TimerText, StatusText, BorderGradient, RenderConnection, WorkerThread = false, nil, nil, nil, nil, nil, nil
+    local ScanInterval, StableTime = 0.25, 2
+    local function DestroyClock()
+        if RenderConnection then RenderConnection:Disconnect() RenderConnection = nil end
+        if WorkerThread then pcall(task.cancel, WorkerThread) WorkerThread = nil end
+        if TimerGui then TimerGui:Destroy() TimerGui = nil end
+        TimerText, StatusText, BorderGradient = nil, nil, nil
+    end
+    local function CreateClock()
+        local OldGui = PlayerGui:FindFirstChild("KRYVEXRoundSpaceClock") if OldGui then OldGui:Destroy() end
+        TimerGui = Instance.new("ScreenGui") TimerGui.Name = "KRYVEXRoundSpaceClock" TimerGui.ResetOnSpawn = false TimerGui.IgnoreGuiInset = true TimerGui.DisplayOrder = 100 TimerGui.Parent = PlayerGui
+        local Box = Instance.new("Frame") Box.Name = "ClockBox" Box.Size = UDim2.fromOffset(190, 78) Box.Position = UDim2.new(0.5, -95, 0, 14) Box.BackgroundColor3 = Color3.fromRGB(18, 18, 20) Box.BorderSizePixel = 0 Box.ClipsDescendants = true Box.Parent = TimerGui
+        Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 10)
+        local BackgroundGradient = Instance.new("UIGradient") BackgroundGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 16)),ColorSequenceKeypoint.new(0.6, Color3.fromRGB(32, 32, 36)),ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 23))}) BackgroundGradient.Rotation = 35 BackgroundGradient.Parent = Box
+        local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.new(1, 1, 1) Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border Stroke.Parent = Box
+        BorderGradient = Instance.new("UIGradient") BorderGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 90, 96)),ColorSequenceKeypoint.new(0.5, Color3.fromRGB(215, 215, 220)),ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 90, 96))}) BorderGradient.Parent = Stroke
+        local Title = Instance.new("TextLabel") Title.Size = UDim2.new(1, 0, 0, 16) Title.Position = UDim2.fromOffset(0, 5) Title.BackgroundTransparency = 1 Title.Text = "◈ ROUND TIMER ◈" Title.Font = Enum.Font.Code Title.TextSize = 11 Title.TextColor3 = Color3.fromRGB(150, 150, 158) Title.Parent = Box
+        TimerText = Instance.new("TextLabel") TimerText.Size = UDim2.new(1, 0, 0, 34) TimerText.Position = UDim2.fromOffset(0, 20) TimerText.BackgroundTransparency = 1 TimerText.Text = "--:--" TimerText.Font = Enum.Font.Code TimerText.TextSize = 30 TimerText.TextColor3 = Color3.fromRGB(235, 235, 240) TimerText.Parent = Box
+        StatusText = Instance.new("TextLabel") StatusText.Size = UDim2.new(1, 0, 0, 14) StatusText.Position = UDim2.fromOffset(0, 56) StatusText.BackgroundTransparency = 1 StatusText.Text = "SEARCHING FOR GAME TIMER" StatusText.Font = Enum.Font.Code StatusText.TextSize = 9 StatusText.TextColor3 = Color3.fromRGB(125, 125, 132) StatusText.Parent = Box
+    end
+    local function ScanGameTimer()
+        local PreviousText, LastChanged, Candidates, SelectedTimer = {}, {}, {}, nil
+        while Enabled and TimerGui and TimerGui.Parent do
+            pcall(function()
+                local Now = os.clock() local FoundNow = {}
+                for _, Object in ipairs(PlayerGui:GetDescendants()) do
+                    if Object:IsA("TextLabel") and Object.Name == "Timer" and typeof(Object.Text) == "string" then
+                        FoundNow[Object] = true
+                        if PreviousText[Object] == nil then PreviousText[Object] = Object.Text LastChanged[Object] = Now
+                        elseif PreviousText[Object] ~= Object.Text then PreviousText[Object] = Object.Text LastChanged[Object] = Now Candidates[Object] = {ChangedAt = Now} end
+                        if LastChanged[Object] and Now - LastChanged[Object] <= StableTime then Candidates[Object] = Candidates[Object] or {ChangedAt = LastChanged[Object]} end
+                    end
+                end
+                local Best, BestTime = nil, nil
+                for Object, Info in pairs(Candidates) do
+                    if FoundNow[Object] and Now - Info.ChangedAt <= StableTime then if not BestTime or Info.ChangedAt > BestTime then Best = Object BestTime = Info.ChangedAt end else Candidates[Object] = nil end
+                end
+                if Best then SelectedTimer = Best end
+                if SelectedTimer and FoundNow[SelectedTimer] then TimerText.Text = SelectedTimer.Text StatusText.Text = "GAME TIMER // LIVE"
+                else SelectedTimer = nil TimerText.Text = "--:--" StatusText.Text = "SEARCHING FOR GAME TIMER" end
+            end)
+            task.wait(ScanInterval)
+        end
+    end
+    local function StartRoundTimer()
+        if Enabled then return end
+        Enabled = true CreateClock()
+        local Rotation = 0
+        RenderConnection = RunService.RenderStepped:Connect(function(DeltaTime) if not Enabled or not BorderGradient then return end Rotation = (Rotation + 90 * DeltaTime) % 360 BorderGradient.Rotation = Rotation end)
+        WorkerThread = task.spawn(ScanGameTimer)
+    end
+    local function StopRoundTimer() Enabled = false DestroyClock() end
+    TabMain:AddToggle({ Name = "แสดงเวลาในเกม", Default = false, Callback = function(Value) if Value then StartRoundTimer() else StopRoundTimer() end end })
+    task.wait()
+
+    -- Spin & Fly
+    local SpinEnabled, SpinSpeed, SpinConnection = false, 10, nil
+    local function SetSpin(Value)
+        SpinEnabled = Value if SpinConnection then SpinConnection:Disconnect() SpinConnection = nil end
+        if Value then SpinConnection = RunService.Heartbeat:Connect(function() if not SpinEnabled then return end local Character = LocalPlayer.Character local Root = Character and Character:FindFirstChild("HumanoidRootPart") if Root then Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0) end end) Win:Notify({Title = "KRYVEX HUB", Content = "เปิดหมุนตัวละครแล้ว", Duration = 3})
+        else Win:Notify({Title = "KRYVEX HUB", Content = "ปิดหมุนตัวละครแล้ว", Duration = 3}) end
+    end
+    TabMain:AddTextbox({ Name = "ความเร็วหมุน", Placeholder = "ใส่ความเร็ว เช่น 10", Default = "10", Callback = function(Value) local Number = tonumber(Value) if Number then SpinSpeed = math.clamp(Number, 0, 1000) end end })
+    TabMain:AddToggle({ Name = "หมุนตัวละคร", Default = false, Callback = function(Value) SetSpin(Value) end })
+    task.wait()
+
+    local FlyEnabled, FlySpeed, FlyForce, FlySpin, FlyConnection, FlyFloatingHandle = false, 1.5, nil, nil, nil, nil
+    local function StopFly()
+        FlyEnabled = false
+        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+        if FlyForce then FlyForce:Destroy() FlyForce = nil end
+        if FlySpin then FlySpin:Destroy() FlySpin = nil end
+        local Character = LocalPlayer.Character local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        if Humanoid then Humanoid.PlatformStand = false Humanoid.AutoRotate = true end
+    end
+    local function StartFly()
+        local Character = LocalPlayer.Character local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid") local Root = Character and Character:FindFirstChild("HumanoidRootPart") local Camera = workspace.CurrentCamera
+        if not Humanoid or not Root or not Camera then return end
+        if FlyForce then FlyForce:Destroy() end if FlySpin then FlySpin:Destroy() end
+        FlyForce = Instance.new("BodyVelocity") FlyForce.Velocity = Vector3.zero FlyForce.P = 1000 FlyForce.MaxForce = Vector3.new(100000, 100000, 100000) FlyForce.Parent = Root
+        FlySpin = Instance.new("BodyGyro") FlySpin.P = 10000 FlySpin.MaxTorque = Vector3.new(100000, 100000, 100000) FlySpin.CFrame = Root.CFrame FlySpin.Parent = Root
+        Humanoid.PlatformStand = true Humanoid.AutoRotate = false Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+        FlyConnection = RunService.Heartbeat:Connect(function()
+            if not FlyEnabled or not Root.Parent or not Humanoid.Parent then StopFly() return end
+            local CurrentCamera = workspace.CurrentCamera if not CurrentCamera then return end
+            local Forward = CurrentCamera.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1)) local Side = CurrentCamera.CFrame:VectorToWorldSpace(Vector3.new(-1, 0, 0))
+            local CameraFrame = CurrentCamera.CFrame local FlatLook = Vector3.new(CameraFrame.LookVector.X, 0, CameraFrame.LookVector.Z)
+            if FlatLook.Magnitude > 0 then FlatLook = FlatLook.Unit end
+            local Move = CFrame.new(Vector3.zero, FlatLook):VectorToObjectSpace(Humanoid.MoveDirection)
+            local Push = Vector3.zero Push += Forward * (60 * FlySpeed) * -Move.Z Push += Side * (40 * FlySpeed) * -Move.X
+            FlySpin.CFrame = CFrame.new(Vector3.zero, Forward) FlyForce.Velocity = FlyForce.Velocity:Lerp(Push, 0.2)
+            Humanoid.PlatformStand = true Humanoid.AutoRotate = false
+        end)
+    end
+    local function SetFly(Value) FlyEnabled = Value if Value then StartFly() Win:Notify({Title = "KRYVEX HUB", Content = "เปิดบินแล้ว", Duration = 3}) else StopFly() Win:Notify({Title = "KRYVEX HUB", Content = "ปิดบินแล้ว", Duration = 3}) end end
+    TabMain:AddTextbox({ Name = "ความเร็วบิน", Placeholder = "ใส่ความเร็ว เช่น 1.5", Default = "1.5", Callback = function(Value) local Number = tonumber(Value) if Number then FlySpeed = math.clamp(Number, 0.1, 100) end end })
+    TabMain:AddToggle({ Name = "บิน", Default = false, Callback = function(Value) SetFly(Value) end })
+    TabMain:AddToggle({ Name = "บิน (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if FlyFloatingHandle then FlyFloatingHandle:Destroy() FlyFloatingHandle = nil end
+            FlyFloatingHandle = Win:CreateFloatingButton({Name = "บิน", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = function(Active) SetFly(Active) end})
+        else
+            if FlyFloatingHandle then FlyFloatingHandle:Destroy() FlyFloatingHandle = nil end
+            SetFly(false)
+        end
+    end })
+    LocalPlayer.CharacterAdded:Connect(function() if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end if FlyForce then FlyForce:Destroy() FlyForce = nil end if FlySpin then FlySpin:Destroy() FlySpin = nil end if FlyEnabled then task.wait(0.3) if FlyEnabled then StartFly() end end end)
+    task.wait()
+
+    -- Flex Carry (อุ้มแอ็ก)
+    local AutoCarryRange = 25 local FlexFloatingHandle = nil local IsFlexing = false
+    local function DoFlexSpinAndReCarry()
+        local Character = LocalPlayer.Character if not Character or IsFlexing then return end
+        local MyRoot = GetCarryRoot(Character) if not MyRoot then return end
+        local Target, Tag = FindNearestDowned() if not Target or not Tag then return end
+        local TargetRoot = GetCarryRoot(Target) if not TargetRoot then return end
+        IsFlexing = true local OriginalAnchored = MyRoot.Anchored MyRoot.Anchored = true
+        pcall(function() Interact:FireServer("Carry", Tag) end) task.wait(0.15)
+        local FlyHeight, Radius, SpinDuration, Steps = 7, 12, 0.85, 12
+        for Index = 1, Steps do
+            if not TargetRoot or not TargetRoot.Parent then break end
+            local CenterPos = TargetRoot.Position local Angle = (Index / Steps) * math.rad(360)
+            local OffsetX = math.cos(Angle) * Radius local OffsetZ = math.sin(Angle) * Radius
+            local GoalPos = CenterPos + Vector3.new(OffsetX, FlyHeight, OffsetZ)
+            local TweenInfoConfig = TweenInfo.new(SpinDuration / Steps, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local GoalCFrame = CFrame.new(GoalPos, CenterPos)
+            local Tween = TweenService:Create(MyRoot, TweenInfoConfig, { CFrame = GoalCFrame })
+            Tween:Play() Tween.Completed:Wait()
+        end
+        if TargetRoot and TargetRoot.Parent then MyRoot.CFrame = TargetRoot.CFrame + Vector3.new(0, 0.2, 0) end
+        MyRoot.Anchored = OriginalAnchored task.wait(0.08)
+        if TargetRoot and TargetRoot.Parent then pcall(function() Interact:FireServer("Carry", Tag) end) end
+        task.wait(0.2) IsFlexing = false
+    end
+    TabMain:AddToggle({ Name = "อุ้มแอ็ก (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if FlexFloatingHandle then FlexFloatingHandle:Destroy() FlexFloatingHandle = nil end
+            FlexFloatingHandle = Win:CreateFloatingButton({Name = "อุ้มแอ็ก", Mode = "Button", OnText = "แอ็ก", OffText = "แอ็ก", Callback = function() if not IsFlexing then task.spawn(DoFlexSpinAndReCarry) end end})
+        else
+            if FlexFloatingHandle then FlexFloatingHandle:Destroy() FlexFloatingHandle = nil end
+            IsFlexing = false
+        end
+    end })
+    TabMain:AddButton({ Name = "เกิดใหม่", Callback = function()
+        local Success = pcall(function() ReplicatedStorage:WaitForChild("Events"):WaitForChild("SetPlayerMode"):FireServer(true) end)
+        if Success then Win:Notify({Title = "KRYVEX HUB", Content = "ส่งคำสั่งเกิดใหม่แล้ว", Duration = 3})
+        else Win:Notify({Title = "KRYVEX HUB", Content = "ทำงานไม่สำเร็จ ตรวจสอบ Console", Duration = 3}) end
+    end })
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: แดช (DashTab)
+    -- =========================================================
+    local DashEnabled, DashSpeed, DashVelocity, DashFloatingHandle = false, 50, nil, nil
+    local function StopDash() DashEnabled = false if DashVelocity then DashVelocity:Destroy() DashVelocity = nil end end
+    local function StartDash()
+        if DashVelocity then return end
+        local Character = LocalPlayer.Character if not Character then return end
+        local Root = Character:FindFirstChild("HumanoidRootPart") if not Root then return end
+        DashEnabled = true
+        local Velocity = Instance.new("BodyVelocity") Velocity.Name = "KRYVEX_DashVelocity" Velocity.MaxForce = Vector3.new(999999, 0, 999999) Velocity.P = 1250 Velocity.Velocity = Vector3.zero Velocity.Parent = Root
+        DashVelocity = Velocity
+        task.spawn(function()
+            while DashEnabled and DashVelocity == Velocity do
+                local CharacterNow = LocalPlayer.Character local RootNow = CharacterNow and CharacterNow:FindFirstChild("HumanoidRootPart") local Camera = workspace.CurrentCamera
+                if not RootNow or RootNow ~= Root or not Camera then break end
+                local Look = Camera.CFrame.LookVector local Direction = Vector3.new(Look.X, 0, Look.Z)
+                if Direction.Magnitude > 0.001 then Velocity.Velocity = Direction.Unit * DashSpeed else Velocity.Velocity = Vector3.zero end
+                task.wait(0.03)
+            end
+            if DashVelocity == Velocity then DashVelocity = nil end
+            if Velocity.Parent then Velocity:Destroy() end
+        end)
+    end
+    local function SetDash(Value) if Value then StartDash() Win:Notify({Title = "KRYVEX HUB", Content = "เปิดแดชไปหน้า | ความเร็ว " .. tostring(DashSpeed), Duration = 3}) else StopDash() Win:Notify({Title = "KRYVEX HUB", Content = "ปิดแดชไปหน้าแล้ว", Duration = 3}) end end
+    LocalPlayer.CharacterAdded:Connect(function() StopDash() end)
+    TabDash:AddToggle({ Name = "แดชไปหน้า", Default = false, Callback = function(Value) SetDash(Value) end })
+    TabDash:AddTextbox({ Name = "ความเร็วแดช", Placeholder = "เช่น 50", Default = tostring(DashSpeed), Callback = function(Value) local Number = tonumber(Value) if Number then DashSpeed = math.clamp(Number, 1, 1000) end end })
+    TabDash:AddToggle({ Name = "แดชไปหน้า (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if DashFloatingHandle then DashFloatingHandle:Destroy() DashFloatingHandle = nil end
+            DashFloatingHandle = Win:CreateFloatingButton({Name = "แดชไปหน้า", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = function(Active) SetDash(Active) end})
+        else
+            StopDash() if DashFloatingHandle then DashFloatingHandle:Destroy() DashFloatingHandle = nil end
+        end
+    end })
+    task.wait()
+
+    -- Dash Jump
+    local DashJumpEnabled, DashJumpSpeed, DashJumpVelocity, DashJumpFloatingHandle, DashJumpGeneration = false, 50, nil, nil, 0
+    local function StopDashJump() DashJumpEnabled = false DashJumpGeneration += 1 if DashJumpVelocity then DashJumpVelocity:Destroy() DashJumpVelocity = nil end end
+    local function StartDashJump()
+        if DashJumpEnabled then return end
+        local Character = LocalPlayer.Character if not Character then return end
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid") local Root = Character:FindFirstChild("HumanoidRootPart")
+        if not Humanoid or not Root or Humanoid.Health <= 0 then return end
+        DashJumpEnabled = true DashJumpGeneration += 1 local MyGeneration = DashJumpGeneration
+        local Velocity = Instance.new("BodyVelocity") Velocity.Name = "KRYVEX_DashJumpVelocity" Velocity.MaxForce = Vector3.new(999999, 0, 999999) Velocity.P = 1250 Velocity.Velocity = Vector3.zero Velocity.Parent = Root
+        DashJumpVelocity = Velocity
+        local RayParams = RaycastParams.new() RayParams.FilterType = Enum.RaycastFilterType.Exclude RayParams.FilterDescendantsInstances = {Character} RayParams.IgnoreWater = true
+        local LastJumpTime = os.clock()
+        Humanoid.Jump = true Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        task.spawn(function()
+            while DashJumpEnabled and DashJumpGeneration == MyGeneration and DashJumpVelocity == Velocity do
+                local CurrentCharacter = LocalPlayer.Character local CurrentHumanoid = CurrentCharacter and CurrentCharacter:FindFirstChildOfClass("Humanoid") local CurrentRoot = CurrentCharacter and CurrentCharacter:FindFirstChild("HumanoidRootPart") local Camera = workspace.CurrentCamera
+                if not CurrentHumanoid or not CurrentRoot or CurrentRoot ~= Root or not Camera or CurrentHumanoid.Health <= 0 then break end
+                local Look = Camera.CFrame.LookVector local Direction = Vector3.new(Look.X, 0, Look.Z)
+                if Direction.Magnitude > 0.001 then Velocity.Velocity = Direction.Unit * DashJumpSpeed else Velocity.Velocity = Vector3.zero end
+                local Result = workspace:Raycast(CurrentRoot.Position, Vector3.new(0, -4.5, 0), RayParams) local VerticalSpeed = CurrentRoot.AssemblyLinearVelocity.Y
+                if Result and VerticalSpeed < -2 and os.clock() - LastJumpTime >= 0.45 then
+                    LastJumpTime = os.clock() CurrentHumanoid.Jump = true CurrentHumanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+                task.wait(0.025)
+            end
+            if DashJumpVelocity == Velocity then DashJumpVelocity = nil end
+            if Velocity.Parent then Velocity:Destroy() end
+        end)
+    end
+    local function SetDashJump(Value) if Value then StartDashJump() Win:Notify({Title = "KRYVEX HUB", Content = "เปิดแดชกระโดด | ความเร็ว " .. tostring(DashJumpSpeed), Duration = 3}) else StopDashJump() Win:Notify({Title = "KRYVEX HUB", Content = "ปิดแดชกระโดดแล้ว", Duration = 3}) end end
+    LocalPlayer.CharacterAdded:Connect(function() StopDashJump() end)
+    TabDash:AddToggle({ Name = "แดชไปหน้าพร้อมกระโดด", Default = false, Callback = function(Value) SetDashJump(Value) end })
+    TabDash:AddTextbox({ Name = "ความเร็วแดชกระโดด", Placeholder = "เช่น 50", Default = tostring(DashJumpSpeed), Callback = function(Value) local Number = tonumber(Value) if Number then DashJumpSpeed = math.clamp(Number, 1, 1000) end end })
+    TabDash:AddToggle({ Name = "แดชกระโดด (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if DashJumpFloatingHandle then DashJumpFloatingHandle:Destroy() DashJumpFloatingHandle = nil end
+            DashJumpFloatingHandle = Win:CreateFloatingButton({Name = "แดชกระโดด", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = function(Active) SetDashJump(Active) end})
+        else
+            StopDashJump() if DashJumpFloatingHandle then DashJumpFloatingHandle:Destroy() DashJumpFloatingHandle = nil end
+        end
+    end })
+    task.wait()
+
+    -- Back Dash
+    local BackDashEnabled, BackDashSpeed, BackDashVelocity, BackDashFloatingHandle, BackDashToken = false, 50, nil, nil, 0
+    local function StopBackDash() BackDashEnabled = false BackDashToken += 1 if BackDashVelocity then BackDashVelocity:Destroy() BackDashVelocity = nil end end
+    local function StartBackDash()
+        if BackDashEnabled then return end
+        local Character = LocalPlayer.Character local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid") local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+        if not Humanoid or not Root or Humanoid.Health <= 0 then return end
+        BackDashEnabled = true BackDashToken += 1 local MyToken = BackDashToken
+        local Velocity = Instance.new("BodyVelocity") Velocity.Name = "KRYVEX_BackDashVelocity" Velocity.MaxForce = Vector3.new(999999, 0, 999999) Velocity.P = 1250 Velocity.Velocity = Vector3.zero Velocity.Parent = Root
+        BackDashVelocity = Velocity
+        task.spawn(function()
+            while BackDashEnabled and BackDashToken == MyToken and BackDashVelocity == Velocity do
+                local CurrentCharacter = LocalPlayer.Character local CurrentHumanoid = CurrentCharacter and CurrentCharacter:FindFirstChildOfClass("Humanoid") local CurrentRoot = CurrentCharacter and CurrentCharacter:FindFirstChild("HumanoidRootPart") local Camera = workspace.CurrentCamera
+                if not CurrentHumanoid or not CurrentRoot or CurrentRoot ~= Root or not Camera or CurrentHumanoid.Health <= 0 then break end
+                local Look = Camera.CFrame.LookVector local Direction = Vector3.new(-Look.X, 0, -Look.Z)
+                if Direction.Magnitude > 0.001 then Velocity.Velocity = Direction.Unit * BackDashSpeed else Velocity.Velocity = Vector3.zero end
+                task.wait(0.03)
+            end
+            if BackDashVelocity == Velocity then BackDashVelocity = nil end
+            if Velocity.Parent then Velocity:Destroy() end
+        end)
+    end
+    local function SetBackDash(Value) if Value then StartBackDash() else StopBackDash() end end
+    LocalPlayer.CharacterAdded:Connect(StopBackDash)
+    TabDash:AddToggle({ Name = "แดชถอยหลัง", Default = false, Callback = SetBackDash })
+    TabDash:AddTextbox({ Name = "ความเร็วแดชถอยหลัง", Placeholder = "เช่น 50", Default = tostring(BackDashSpeed), Callback = function(Value) local Number = tonumber(Value) if Number then BackDashSpeed = math.clamp(Number, 1, 1000) end end })
+    TabDash:AddToggle({ Name = "แดชถอยหลัง (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if BackDashFloatingHandle then BackDashFloatingHandle:Destroy() end
+            BackDashFloatingHandle = Win:CreateFloatingButton({Name = "แดชถอยหลัง", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = SetBackDash})
+        else
+            SetBackDash(false) if BackDashFloatingHandle then BackDashFloatingHandle:Destroy() BackDashFloatingHandle = nil end
+        end
+    end })
+    task.wait()
+
+    -- Back Dash Jump
+    local BackDashJumpEnabled, BackDashJumpSpeed, BackDashJumpVelocity, BackDashJumpFloatingHandle, BackDashJumpToken = false, 50, nil, nil, 0
+    local function StopBackDashJump() BackDashJumpEnabled = false BackDashJumpToken += 1 if BackDashJumpVelocity then BackDashJumpVelocity:Destroy() BackDashJumpVelocity = nil end end
+    local function StartBackDashJump()
+        if BackDashJumpEnabled then return end
+        local Character = LocalPlayer.Character local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid") local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+        if not Humanoid or not Root or Humanoid.Health <= 0 then return end
+        BackDashJumpEnabled = true BackDashJumpToken += 1 local MyToken = BackDashJumpToken
+        local Velocity = Instance.new("BodyVelocity") Velocity.Name = "KRYVEX_BackDashJumpVelocity" Velocity.MaxForce = Vector3.new(999999, 0, 999999) Velocity.P = 1250 Velocity.Velocity = Vector3.zero Velocity.Parent = Root
+        BackDashJumpVelocity = Velocity
+        local RayParams = RaycastParams.new() RayParams.FilterType = Enum.RaycastFilterType.Exclude RayParams.FilterDescendantsInstances = {Character} RayParams.IgnoreWater = true
+        local LastJumpTime = 0
+        Humanoid.Jump = true Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) LastJumpTime = os.clock()
+        task.spawn(function()
+            while BackDashJumpEnabled and BackDashJumpToken == MyToken and BackDashJumpVelocity == Velocity do
+                local CurrentCharacter = LocalPlayer.Character local CurrentHumanoid = CurrentCharacter and CurrentCharacter:FindFirstChildOfClass("Humanoid") local CurrentRoot = CurrentCharacter and CurrentCharacter:FindFirstChild("HumanoidRootPart") local Camera = workspace.CurrentCamera
+                if not CurrentHumanoid or not CurrentRoot or CurrentRoot ~= Root or not Camera or CurrentHumanoid.Health <= 0 then break end
+                local Look = Camera.CFrame.LookVector local Direction = Vector3.new(-Look.X, 0, -Look.Z)
+                if Direction.Magnitude > 0.001 then Velocity.Velocity = Direction.Unit * BackDashJumpSpeed else Velocity.Velocity = Vector3.zero end
+                local Result = workspace:Raycast(CurrentRoot.Position, Vector3.new(0, -4.5, 0), RayParams) local VerticalSpeed = CurrentRoot.AssemblyLinearVelocity.Y
+                if Result and VerticalSpeed < -2 and os.clock() - LastJumpTime >= 0.45 then
+                    LastJumpTime = os.clock() CurrentHumanoid.Jump = true CurrentHumanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+                task.wait(0.025)
+            end
+            if BackDashJumpVelocity == Velocity then BackDashJumpVelocity = nil end
+            if Velocity.Parent then Velocity:Destroy() end
+        end)
+    end
+    local function SetBackDashJump(Value) if Value then StartBackDashJump() else StopBackDashJump() end end
+    LocalPlayer.CharacterAdded:Connect(StopBackDashJump)
+    TabDash:AddToggle({ Name = "แดชถอยหลังกระโดด", Default = false, Callback = SetBackDashJump })
+    TabDash:AddTextbox({ Name = "ความเร็วแดชถอยหลังกระโดด", Placeholder = "เช่น 50", Default = tostring(BackDashJumpSpeed), Callback = function(Value) local Number = tonumber(Value) if Number then BackDashJumpSpeed = math.clamp(Number, 1, 1000) end end })
+    TabDash:AddToggle({ Name = "แดชถอยหลังกระโดด (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if BackDashJumpFloatingHandle then BackDashJumpFloatingHandle:Destroy() end
+            BackDashJumpFloatingHandle = Win:CreateFloatingButton({Name = "แดชถอยหลังกระโดด", Mode = "Toggle", OnText = "เปิด", OffText = "ปิด", Callback = SetBackDashJump})
+        else
+            SetBackDashJump(false) if BackDashJumpFloatingHandle then BackDashJumpFloatingHandle:Destroy() BackDashJumpFloatingHandle = nil end
+        end
+    end })
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: วาร์ป (TeleportTab)
+    -- =========================================================
+    local WarpBotActive, WarpBotConnection, SavedCFrame, IsEscaping = false, nil, nil, false
+    local function StartWarpBot()
+        if WarpBotConnection then return end
+        local LastCheck = 0
+        WarpBotConnection = RunService.Heartbeat:Connect(function()
+            if not WarpBotActive then return end
+            local Now = os.clock() if Now - LastCheck < 0.05 then return end LastCheck = Now
+            local Character = LocalPlayer.Character if not Character then return end
+            local Root = Character:FindFirstChild("HumanoidRootPart") if not Root then return end
+            if not IsEscaping then
+                local Folder = workspace:FindFirstChild("Rigs") if not Folder then return end
+                local NearestBot, NearestDistance = nil, 10
+                for _, Rig in ipairs(Folder:GetChildren()) do
+                    local Hitbox = Rig:FindFirstChild("Hitbox")
+                    if Hitbox and Hitbox:IsA("BasePart") then
+                        local Distance = (Hitbox.Position - Root.Position).Magnitude
+                        if Distance <= NearestDistance then NearestDistance = Distance NearestBot = Rig end
+                    end
+                end
+                if NearestBot then
+                    SavedCFrame = Root.CFrame IsEscaping = true
+                    Root.CFrame = SavedCFrame + Vector3.new(0, 120, 0) Root.AssemblyLinearVelocity = Vector3.zero
+                end
+                return
+            end
+            Root.AssemblyLinearVelocity = Vector3.zero
+            if not SavedCFrame then IsEscaping = false return end
+            local Folder = workspace:FindFirstChild("Rigs") if not Folder then return end
+            local BotNear = false
+            for _, Rig in ipairs(Folder:GetChildren()) do
+                local Hitbox = Rig:FindFirstChild("Hitbox")
+                if Hitbox and Hitbox:IsA("BasePart") and (Hitbox.Position - SavedCFrame.Position).Magnitude <= 12 then BotNear = true break end
+            end
+            if not BotNear then Root.CFrame = SavedCFrame SavedCFrame = nil IsEscaping = false end
+        end)
+    end
+    local function StopWarpBot() if WarpBotConnection then WarpBotConnection:Disconnect() WarpBotConnection = nil end SavedCFrame = nil IsEscaping = false end
+    TabTP:AddToggle({ Name = "วาร์ปหนีบอท", Default = false, Callback = function(Value) WarpBotActive = Value if Value then StartWarpBot() Win:Notify({Title = "KRYVEX HUB", Content = "เปิดวาร์ปหนีบอทแล้ว", Duration = 3}) else StopWarpBot() Win:Notify({Title = "KRYVEX HUB", Content = "ปิดวาร์ปหนีบอทแล้ว", Duration = 3}) end end })
+    TabTP:AddButton({ Name = "วาร์ปขึ้นบน", Callback = function() local Character = LocalPlayer.Character if not Character then return end local Root = Character:FindFirstChild("HumanoidRootPart") if not Root then return end Root.CFrame = Root.CFrame + Vector3.new(0, 1200, 0) Win:Notify({Title = "KRYVEX HUB", Content = "วาร์ปขึ้นบน 1200 studs แล้ว", Duration = 3}) end })
+    task.wait()
+
+    local SelectedTeleportPlayer, PlayerDropdown = nil, nil
+    local function GetPlayerNames() local Names = {} for _, Player in ipairs(Players:GetPlayers()) do if Player ~= LocalPlayer then table.insert(Names, Player.Name) end end table.sort(Names) return Names end
+    PlayerDropdown = TabTP:AddDropdown({ Name = "เลือกผู้เล่น", Items = GetPlayerNames(), Default = nil, Callback = function(Value) SelectedTeleportPlayer = Value end })
+    Players.PlayerAdded:Connect(function() task.wait(0.1) if PlayerDropdown and PlayerDropdown.SetItems then PlayerDropdown:SetItems(GetPlayerNames()) end end)
+    Players.PlayerRemoving:Connect(function(Player) if SelectedTeleportPlayer == Player.Name then SelectedTeleportPlayer = nil end task.wait(0.1) if PlayerDropdown and PlayerDropdown.SetItems then PlayerDropdown:SetItems(GetPlayerNames()) end end)
+    TabTP:AddButton({ Name = "วาร์ปไปหาผู้เล่น", Callback = function()
+        if not SelectedTeleportPlayer then Win:Notify({Title = "KRYVEX HUB", Content = "กรุณาเลือกผู้เล่นก่อน", Duration = 3}) return end
+        local Target = Players:FindFirstChild(SelectedTeleportPlayer)
+        if not Target or not Target.Character then Win:Notify({Title = "KRYVEX HUB", Content = "ไม่พบผู้เล่นหรือ Character", Duration = 3}) return end
+        local Character = LocalPlayer.Character local MyRoot = Character and Character:FindFirstChild("HumanoidRootPart") local TargetRoot = Target.Character:FindFirstChild("HumanoidRootPart")
+        if not MyRoot or not TargetRoot then return end
+        MyRoot.CFrame = TargetRoot.CFrame Win:Notify({Title = "KRYVEX HUB", Content = "วาร์ปไปหา " .. Target.Name .. " แล้ว", Duration = 3})
+    end })
+    local TeleportPlayerFloatingHandle = nil
+    TabTP:AddToggle({ Name = "วาร์ปไปหาผู้เล่น (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if TeleportPlayerFloatingHandle then TeleportPlayerFloatingHandle:Destroy() TeleportPlayerFloatingHandle = nil end
+            TeleportPlayerFloatingHandle = Win:CreateFloatingButton({Name = "วาร์ปไปหาผู้เล่น", Mode = "Button", OnText = "วาร์ป", OffText = "วาร์ป", Callback = function()
+                if not SelectedTeleportPlayer then Win:Notify({Title = "KRYVEX HUB", Content = "กรุณาเลือกผู้เล่นก่อน", Duration = 3}) return end
+                local Target = Players:FindFirstChild(SelectedTeleportPlayer) local Character = LocalPlayer.Character
+                if not Target or not Target.Character or not Character then Win:Notify({Title = "KRYVEX HUB", Content = "ไม่พบผู้เล่น", Duration = 3}) return end
+                local MyRoot = Character:FindFirstChild("HumanoidRootPart") local TargetRoot = Target.Character:FindFirstChild("HumanoidRootPart")
+                if not MyRoot or not TargetRoot then return end
+                MyRoot.CFrame = TargetRoot.CFrame Win:Notify({Title = "KRYVEX HUB", Content = "วาร์ปไปหา " .. Target.Name .. " แล้ว", Duration = 3})
+            end})
+        else
+            if TeleportPlayerFloatingHandle then TeleportPlayerFloatingHandle:Destroy() TeleportPlayerFloatingHandle = nil end
+        end
+    end })
+    task.wait()
+
+    TabTP:AddButton({ Name = "วาร์ปสุ่มผู้เล่น", Callback = function()
+        local Character = LocalPlayer.Character if not Character then return end local Root = Character:FindFirstChild("HumanoidRootPart") if not Root then return end
+        local Targets = {} for _, Player in ipairs(Players:GetPlayers()) do if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then table.insert(Targets, Player) end end
+        if #Targets == 0 then Win:Notify({Title = "KRYVEX HUB", Content = "ไม่พบผู้เล่นให้สุ่มวาร์ป", Duration = 3}) return end
+        local Target = Targets[math.random(1, #Targets)] local TargetRoot = Target.Character:FindFirstChild("HumanoidRootPart")
+        if TargetRoot then Root.CFrame = TargetRoot.CFrame + Vector3.new(0, 3, 0) Win:Notify({Title = "KRYVEX HUB", Content = "วาร์ปไปหา " .. Target.DisplayName .. " แล้ว", Duration = 3}) end
+    end })
+    task.wait()
+
+    local ClickTPEnabled, ClickTPConnection = false, nil
+    TabTP:AddToggle({ Name = "คลิกเทเลพอร์ต", Default = false, Callback = function(State)
+        ClickTPEnabled = State if ClickTPConnection then ClickTPConnection:Disconnect() ClickTPConnection = nil end
+        if not ClickTPEnabled then return end
+        ClickTPConnection = UIS.InputBegan:Connect(function(Input, Processed)
+            if Processed or not ClickTPEnabled then return end
+            if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then return end
+            local Camera = workspace.CurrentCamera if not Camera then return end
+            local Ray = Camera:ViewportPointToRay(Input.Position.X, Input.Position.Y)
+            local Params = RaycastParams.new() Params.FilterType = Enum.RaycastFilterType.Exclude Params.FilterDescendantsInstances = {LocalPlayer.Character}
+            local Result = workspace:Raycast(Ray.Origin, Ray.Direction * 10000, Params) if not Result then return end
+            local Character = LocalPlayer.Character local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+            if Root then Root.CFrame = CFrame.new(Result.Position + Vector3.new(0, 3, 0)) end
+        end)
+        Win:Notify({Title = "KRYVEX HUB", Content = "เปิดคลิกเทเลพอร์ตแล้ว", Duration = 3})
+    end })
+    task.wait()
+
+    local RescueBusy, RescueDelay, RescueFloatingHandle = false, 3, nil
+    local function RescueDownedPlayers()
+        if RescueBusy then Win:Notify({Title = "KRYVEX HUB", Content = "กำลังช่วยผู้เล่นอยู่", Duration = 3}) return end
+        local Character = LocalPlayer.Character if not Character then return end
+        local Root = Character:FindFirstChild("HumanoidRootPart") or Character.PrimaryPart if not Root then return end
+        local OriginCFrame = Root.CFrame
+        local Folder = workspace:FindFirstChild("Players") if not Folder then return end
+        local Targets = {}
+        for _, Model in ipairs(Folder:GetChildren()) do
+            if Model:IsA("Model") and Model ~= LocalPlayer.Character then
+                local Humanoid = Model:FindFirstChildWhichIsA("Humanoid", true) local TRoot = Model:FindFirstChild("HumanoidRootPart", true) or Model.PrimaryPart
+                if Humanoid and Humanoid.Health <= 0 and TRoot then
+                    local Tag = Model:GetAttribute("Tag") or Model:GetAttribute("ID") or Model.Name
+                    table.insert(Targets, {Model = Model, Humanoid = Humanoid, Root = TRoot, Tag = tonumber(Tag) or Tag, Distance = (TRoot.Position - Root.Position).Magnitude})
+                end
+            end
+        end
+        table.sort(Targets, function(A, B) return A.Distance < B.Distance end)
+        if #Targets == 0 then Win:Notify({Title = "KRYVEX HUB", Content = "ไม่พบผู้เล่นที่เลือดเหลือ 0", Duration = 3}) return end
         RescueBusy = true
         task.spawn(function()
-            local carried = false
-            for _, t in ipairs(targets) do
-                if LocalPlayer.Character ~= c then break end
-                if not t.model.Parent or not t.humanoid.Parent or not t.root.Parent or t.humanoid.Health > 0 then continue end
-                if not t.tag then continue end
-                pcall(function() mr.CFrame = t.root.CFrame * CFrame.new(0, 0, 3) end)
-                task.wait(0.2)
-                if LocalPlayer.Character ~= c then break end
-                if not t.model.Parent or t.humanoid.Health > 0 then continue end
-                Safe(function() Interact:FireServer("Carry", t.tag) end)
-                task.wait(3)
-                local linked = false
-                for _, d in ipairs(c:GetDescendants()) do
-                    if d:IsA("JointInstance") or d:IsA("WeldConstraint") or d:IsA("Constraint") then
-                        local p0 = d.Part0 or (d.Attachment0 and d.Attachment0.Parent)
-                        local p1 = d.Part1 or (d.Attachment1 and d.Attachment1.Parent)
-                        if p0 and p1 and ((p0:IsDescendantOf(c) and p1:IsDescendantOf(t.model)) or (p1:IsDescendantOf(c) and p0:IsDescendantOf(t.model))) then linked = true break end
+            local Carried = false
+            for _, Info in ipairs(Targets) do
+                if LocalPlayer.Character ~= Character then break end
+                if not Info.Model.Parent or not Info.Humanoid.Parent or not Info.Root.Parent or Info.Humanoid.Health > 0 then continue end
+                if Info.Tag == nil then continue end
+                Win:Notify({Title = "KRYVEX HUB", Content = "กำลังไปหา: " .. Info.Model.Name, Duration = 3})
+                pcall(function() Root.CFrame = Info.Root.CFrame * CFrame.new(0, 0, 3) end)
+                task.wait(0.2) if LocalPlayer.Character ~= Character then break end
+                if not Info.Model.Parent or Info.Humanoid.Health > 0 then continue end
+                pcall(function() Interact:FireServer("Carry", Info.Tag) end)
+                local Started = os.clock()
+                while os.clock() - Started < RescueDelay do
+                    if LocalPlayer.Character ~= Character then break end
+                    local linked = false
+                    for _, d in ipairs(Character:GetDescendants()) do
+                        if d:IsA("JointInstance") or d:IsA("WeldConstraint") then
+                            if (d.Part0 and d.Part0:IsDescendantOf(Info.Model) and d.Part1 and d.Part1:IsDescendantOf(Character)) or (d.Part1 and d.Part1:IsDescendantOf(Info.Model) and d.Part0 and d.Part0:IsDescendantOf(Character)) then linked = true break end
+                        end
                     end
+                    if linked then Carried = true break end
+                    task.wait(0.15)
                 end
-                if linked then carried = true break end
+                if Carried then break end
             end
-            if LocalPlayer.Character == c and mr.Parent then mr.CFrame = orig end
+            if LocalPlayer.Character == Character then Root.CFrame = OriginCFrame end
             RescueBusy = false
-            Notify(carried and "อุ้มสำเร็จ" or "ไม่มีเป้าหมาย")
+            Win:Notify({Title = "KRYVEX HUB", Content = Carried and "อุ้มสำเร็จ กำลังกลับจุดเดิม" or "ไม่มีเป้าหมายที่อุ้มสำเร็จ", Duration = 3})
         end)
     end
-    TabTP:AddButton({ Name = "ช่วยผู้เล่นที่ล้ม (Rescue)", Callback = RescueDowned })
+    TabTP:AddButton({ Name = "วาร์ปไปเก็บผู้เล่นที่ล้ม", Callback = RescueDownedPlayers })
+    TabTP:AddToggle({ Name = "ช่วยผู้เล่นที่ล้ม (ปุ่มลอย)", Default = false, Callback = function(Value)
+        if Value then
+            if RescueFloatingHandle then RescueFloatingHandle:Destroy() RescueFloatingHandle = nil end
+            RescueFloatingHandle = Win:CreateFloatingButton({Name = "ช่วยคนล้ม", Mode = "Button", OnText = "ช่วยคนล้ม", OffText = "ช่วยคนล้ม", Callback = RescueDownedPlayers})
+        else
+            if RescueFloatingHandle then RescueFloatingHandle:Destroy() RescueFloatingHandle = nil end
+        end
+    end })
     task.wait()
 
-    -- ══════════════════════════════════════════════════════════
-    -- 4️⃣ TAB: มองเห็น (ESP)
-    -- ══════════════════════════════════════════════════════════
-    TabVisual:AddSection("ESP ผู้เล่น")
-    local ESP_HL = {}
-    local function CreateHL(model, color, tag)
-        if not model or not model:IsA("Model") or ESP_HL[model] then return end
-        local hl = Instance.new("Highlight")
-        hl.Name = "EvadeESP_" .. tag hl.Adornee = model hl.FillColor = color hl.FillTransparency = 0.5
-        hl.OutlineColor = color hl.OutlineTransparency = 0 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop hl.Parent = model
-        ESP_HL[model] = hl
-    end
-    local function RemoveHL(model) if ESP_HL[model] then Safe(function() ESP_HL[model]:Destroy() end) ESP_HL[model] = nil end end
-    local ESP_P, ESP_D, ESP_B = false, false, false
-    RunService.Heartbeat:Connect(function()
-        if not (ESP_P or ESP_D or ESP_B) then return end
-        if ESP_P then for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then local h = p.Character:FindFirstChildOfClass("Humanoid") if h and h.Health > 0 then CreateHL(p.Character, Color3.fromRGB(220, 220, 220), "P_" .. p.Name) end end end end
-        if ESP_D and PlayerFolder then for _, m in ipairs(PlayerFolder:GetChildren()) do if m:IsA("Model") and m ~= LocalPlayer.Character then local h = m:FindFirstChildOfClass("Humanoid") if h and h.Health <= 0 then CreateHL(m, Color3.fromRGB(255, 220, 45), "D_" .. m.Name) end end end end
-        if ESP_B then local rigs = Workspace:FindFirstChild("Rigs") if rigs then for _, rig in ipairs(rigs:GetChildren()) do if rig:IsA("Model") then CreateHL(rig, Color3.fromRGB(255, 65, 65), "B_" .. rig.Name) end end end end
-    end)
-    TabVisual:AddToggle({ Name = "ผู้เล่นทั้งหมด", Default = false, Callback = function(v) ESP_P = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_P" then RemoveHL(m) end end end end })
-    TabVisual:AddToggle({ Name = "ผู้เล่นที่ล้ม", Default = false, Callback = function(v) ESP_D = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_D" then RemoveHL(m) end end end end })
-    TabVisual:AddToggle({ Name = "บอท (NextBot)", Default = false, Callback = function(v) ESP_B = v if not v then for m, hl in pairs(ESP_HL) do if hl.Name:sub(1, 10) == "EvadeESP_B" then RemoveHL(m) end end end end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- 5️⃣ TAB: ฟาร์ม
-    -- ══════════════════════════════════════════════════════════
-    TabFarm:AddSection("ฟาร์มเวลา")
-    local FarmHeight, FarmImg = 1200, "rbxassetid://72855254938167"
-    local FarmEnabled, FarmGuard, FarmPart, FarmOrigin, FarmPlatformCF = false, nil, nil, nil, nil
-    local FarmToken = 0
-    local function StopFarm(restore)
-        FarmEnabled = false FarmToken += 1
-        if FarmGuard then pcall(task.cancel, FarmGuard) FarmGuard = nil end
-        if FarmPart then Safe(function() FarmPart:Destroy() end) FarmPart = nil end
-        if restore and FarmOrigin then local r = GetRoot() if r then r.CFrame = FarmOrigin r.AssemblyLinearVelocity = Vector3.zero end end
-        FarmOrigin, FarmPlatformCF = nil, nil
-    end
-    local function StartFarm()
-        local r = GetRoot() if not r then Notify("ไม่พบตัวละคร") return false end
-        if FarmEnabled then return true end
-        FarmEnabled = true FarmOrigin = r.CFrame FarmPlatformCF = FarmOrigin + Vector3.new(0, FarmHeight, 0)
-        local p = Instance.new("Part") p.Name = "Evade_FarmPart" p.Size = Vector3.new(12, 1, 12)
-        p.CFrame = FarmPlatformCF p.Anchored = true p.CanCollide = true p.CanTouch = false p.CanQuery = false p.CastShadow = false
-        p.Material = Enum.Material.SmoothPlastic p.Color = Color3.fromRGB(235, 235, 235) p.Transparency = 0.05 p.Parent = Workspace
-        local d = Instance.new("Decal") d.Texture = FarmImg d.Face = Enum.NormalId.Top d.Parent = p
-        FarmPart = p
-        r.CFrame = FarmPlatformCF + Vector3.new(0, 4, 0) r.AssemblyLinearVelocity = Vector3.zero
-        FarmToken += 1 local tok = FarmToken
-        FarmGuard = task.spawn(function()
-            while FarmEnabled and tok == FarmToken do
-                local r2 = GetRoot()
-                if r2 and FarmPlatformCF then
-                    local safe = FarmPlatformCF.Position + Vector3.new(0, 4, 0)
-                    if (r2.Position - safe).Magnitude > 18 then r2.CFrame = safe r2.AssemblyLinearVelocity = Vector3.zero end
+    -- =========================================================
+    -- 📌 TAB: ภาพจอ (ScreenTab)
+    -- =========================================================
+    local LowGraphicsEnabled, LowGraphicsConnection, LowGraphicsGeneration = false, nil, 0
+    local function OptimizePart(Object) if not LowGraphicsEnabled or not Object:IsA("BasePart") then return end pcall(function() if Object.Material ~= Enum.Material.SmoothPlastic then Object.Material = Enum.Material.SmoothPlastic end if Object.Reflectance ~= 0 then Object.Reflectance = 0 end end) end
+    TabScreen:AddToggle({ Name = "ลดกราฟฟิค", Default = false, Callback = function(Value)
+        if Value then
+            if LowGraphicsEnabled then return end
+            LowGraphicsEnabled = true LowGraphicsGeneration += 1 local Generation = LowGraphicsGeneration
+            if LowGraphicsConnection then LowGraphicsConnection:Disconnect() LowGraphicsConnection = nil end
+            LowGraphicsConnection = workspace.DescendantAdded:Connect(function(Object) if LowGraphicsEnabled then task.defer(function() if LowGraphicsEnabled and Generation == LowGraphicsGeneration then OptimizePart(Object) end end) end end)
+            task.spawn(function()
+                local Queue = workspace:GetChildren() local Index = 1
+                while LowGraphicsEnabled and Generation == LowGraphicsGeneration and Index <= #Queue do
+                    local Object = Queue[Index] Index += 1
+                    if Object then OptimizePart(Object) for _, Child in ipairs(Object:GetChildren()) do Queue[#Queue + 1] = Child end end
+                    if Index % 80 == 0 then task.wait(0.03) end
                 end
-                task.wait(0.5)
+            end)
+        else
+            LowGraphicsEnabled = false LowGraphicsGeneration += 1
+            if LowGraphicsConnection then LowGraphicsConnection:Disconnect() LowGraphicsConnection = nil end
+        end
+    end })
+    task.wait()
+
+    local FogEnabled, OriginalFogStart, OriginalFogEnd, OriginalAtmospheres, AtmosphereAddedConnection = false, nil, nil, {}, nil
+    local function EnableFogRemoval()
+        if FogEnabled then return end
+        FogEnabled = true OriginalFogStart = Lighting.FogStart OriginalFogEnd = Lighting.FogEnd OriginalAtmospheres = {}
+        Lighting.FogStart = 0 Lighting.FogEnd = 1000000
+        for _, Object in ipairs(Lighting:GetDescendants()) do if Object:IsA("Atmosphere") then OriginalAtmospheres[Object] = {Density = Object.Density, Haze = Object.Haze, Glare = Object.Glare} Object.Density = 0 Object.Haze = 0 Object.Glare = 0 end end
+        AtmosphereAddedConnection = Lighting.DescendantAdded:Connect(function(Object) if FogEnabled and Object:IsA("Atmosphere") then OriginalAtmospheres[Object] = {Density = Object.Density, Haze = Object.Haze, Glare = Object.Glare} Object.Density = 0 Object.Haze = 0 Object.Glare = 0 end end)
+    end
+    local function RestoreFog()
+        if not FogEnabled then return end
+        FogEnabled = false if AtmosphereAddedConnection then AtmosphereAddedConnection:Disconnect() AtmosphereAddedConnection = nil end
+        if OriginalFogStart ~= nil then Lighting.FogStart = OriginalFogStart end if OriginalFogEnd ~= nil then Lighting.FogEnd = OriginalFogEnd end
+        for AtmosphereObject, Original in pairs(OriginalAtmospheres) do if AtmosphereObject.Parent and AtmosphereObject:IsDescendantOf(Lighting) then pcall(function() AtmosphereObject.Density = Original.Density AtmosphereObject.Haze = Original.Haze AtmosphereObject.Glare = Original.Glare end) end end
+        OriginalAtmospheres = {} OriginalFogStart = nil OriginalFogEnd = nil
+    end
+    TabScreen:AddToggle({ Name = "ลบหมอก", Default = false, Callback = function(Value) if Value then EnableFogRemoval() else RestoreFog() end end })
+    task.wait()
+
+    -- Boost FPS
+    local BoostFPSEnabled, BoostFPSGeneration, SavedProperties, WorkspaceAddedConnection, LightingAddedConnection = false, 0, {}, nil, nil
+    local function RememberAndSet(Object, Property, NewValue)
+        local Success, OriginalValue = pcall(function() return Object[Property] end) if not Success then return end
+        local Properties = SavedProperties[Object] if not Properties then Properties = {} SavedProperties[Object] = Properties end
+        if Properties[Property] == nil then Properties[Property] = OriginalValue end
+        pcall(function() Object[Property] = NewValue end)
+    end
+    TabScreen:AddToggle({ Name = "บูสFPS", Default = false, Callback = function(Value)
+        if Value then
+            if BoostFPSEnabled then return end
+            BoostFPSEnabled = true BoostFPSGeneration += 1 local Generation = BoostFPSGeneration
+            RememberAndSet(Lighting, "FogStart", 0) RememberAndSet(Lighting, "FogEnd", 1000000)
+            LightingAddedConnection = Lighting.DescendantAdded:Connect(function(Object) if BoostFPSEnabled and Object:IsA("Atmosphere") then RememberAndSet(Object, "Density", 0) RememberAndSet(Object, "Haze", 0) RememberAndSet(Object, "Glare", 0) end end)
+            WorkspaceAddedConnection = workspace.DescendantAdded:Connect(function(Object) task.defer(function() if BoostFPSEnabled and Generation == BoostFPSGeneration then pcall(function() if Object:IsA("BasePart") then RememberAndSet(Object, "Material", Enum.Material.SmoothPlastic) RememberAndSet(Object, "Reflectance", 0) end end) end end) end)
+            task.spawn(function() local Queue = workspace:GetChildren() local Index = 1 while BoostFPSEnabled and Generation == BoostFPSGeneration and Index <= #Queue do local Object = Queue[Index] Index += 1 if Object then pcall(function() if Object:IsA("BasePart") then RememberAndSet(Object, "Material", Enum.Material.SmoothPlastic) RememberAndSet(Object, "Reflectance", 0) end end) for _, Child in ipairs(Object:GetChildren()) do Queue[#Queue + 1] = Child end end if Index % 80 == 0 then task.wait(0.03) end end end)
+        else
+            if not BoostFPSEnabled then return end
+            BoostFPSEnabled = false BoostFPSGeneration += 1
+            if WorkspaceAddedConnection then WorkspaceAddedConnection:Disconnect() WorkspaceAddedConnection = nil end if LightingAddedConnection then LightingAddedConnection:Disconnect() LightingAddedConnection = nil end
+            for Object, Properties in pairs(SavedProperties) do if Object == Lighting or Object.Parent then for Property, OriginalValue in pairs(Properties) do pcall(function() Object[Property] = OriginalValue end) end end end
+            SavedProperties = {}
+        end
+    end })
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: มองเห็น (VisualTab)
+    -- =========================================================
+    local ESPPlayers, ESPPlayer, ESPRunService = Players, LocalPlayer, RunService
+    local ShowAllPlayers, ShowDownedPlayers, ShowBots = false, false, false
+    local Visuals, OverlayGui, LineHolder, ProxyHolder, RenderConnection, ScanElapsed, SCAN_INTERVAL = {}, nil, nil, nil, nil, 0, 0.4
+    local ESPColors = { Player = Color3.fromRGB(220, 220, 220), Downed = Color3.fromRGB(255, 220, 45), Bot = Color3.fromRGB(255, 65, 65) }
+    local BOX_SIZE = Vector3.new(4, 5.5, 2)
+    local function AnyESPEnabled() return ShowAllPlayers or ShowDownedPlayers or ShowBots end
+    local function GetOverlayParent() if type(gethui) == "function" then local OK, Parent = pcall(gethui) if OK and Parent then return Parent end end local OK, Parent = pcall(function() return game:GetService("CoreGui") end) if OK and Parent then return Parent end return ESPPlayer:WaitForChild("PlayerGui") end
+    local function EnsureOverlay()
+        if OverlayGui and OverlayGui.Parent then return end
+        local Parent = GetOverlayParent() local Old = Parent:FindFirstChild("KRYVEX_VisualESP") if Old then Old:Destroy() end
+        OverlayGui = Instance.new("ScreenGui") OverlayGui.Name = "KRYVEX_VisualESP" OverlayGui.ResetOnSpawn = false OverlayGui.IgnoreGuiInset = true OverlayGui.DisplayOrder = 999 OverlayGui.Parent = Parent
+        LineHolder = Instance.new("Folder") LineHolder.Name = "Lines" LineHolder.Parent = OverlayGui
+        ProxyHolder = Instance.new("Folder") ProxyHolder.Name = "Boxes" ProxyHolder.Parent = OverlayGui
+    end
+    local function GetRoot(Model) if not Model then return nil end local Root = Model:FindFirstChild("HumanoidRootPart", true) or Model:FindFirstChild("Hitbox", true) if Root and Root:IsA("BasePart") then return Root end if Model:IsA("Model") and Model.PrimaryPart then return Model.PrimaryPart end return nil end
+    local function GetHumanoid(Model) return Model and Model:FindFirstChildWhichIsA("Humanoid", true) end
+    local function IsDowned(Model) local Humanoid = GetHumanoid(Model) if Humanoid and Humanoid.Health <= 0 then return true end for _, AttributeName in ipairs({"Downed", "IsDowned", "Knocked", "IsKnocked"}) do if Model:GetAttribute(AttributeName) == true then return true end if Humanoid and Humanoid:GetAttribute(AttributeName) == true then return true end end return false end
+    local function MakeVisual(Model, Root, Kind, Label)
+        EnsureOverlay() local Camera = workspace.CurrentCamera if not Camera then return nil end
+        local Proxy = Instance.new("Part") Proxy.Name = "KRYVEX_ESP_Proxy" Proxy.Size = BOX_SIZE Proxy.Transparency = 1 Proxy.Anchored = true Proxy.CanCollide = false Proxy.CanTouch = false Proxy.CanQuery = false Proxy.CastShadow = false Proxy.CFrame = Root.CFrame Proxy.Parent = Camera
+        local Color = ESPColors[Kind]
+        local Box = Instance.new("BoxHandleAdornment") Box.Name = "KRYVEX_ESP_Box" Box.Adornee = Proxy Box.Size = BOX_SIZE Box.Color3 = Color Box.Transparency = 0.55 Box.AlwaysOnTop = true Box.ZIndex = 5 Box.Parent = ProxyHolder
+        local Outline = Instance.new("SelectionBox") Outline.Name = "KRYVEX_ESP_Outline" Outline.Adornee = Proxy Outline.Color3 = Color Outline.LineThickness = 0.05 Outline.SurfaceTransparency = 1 Outline.Parent = ProxyHolder
+        local Billboard = Instance.new("BillboardGui") Billboard.Name = "KRYVEX_ESP_Label" Billboard.Adornee = Proxy Billboard.Size = UDim2.fromOffset(180, 32) Billboard.StudsOffset = Vector3.new(0, 3.7, 0) Billboard.AlwaysOnTop = true Billboard.Parent = ProxyHolder
+        local Text = Instance.new("TextLabel") Text.Name = "Label" Text.BackgroundTransparency = 1 Text.Size = UDim2.fromScale(1, 1) Text.Font = Enum.Font.GothamBold Text.Text = Label Text.TextColor3 = Color Text.TextSize = 14 Text.TextStrokeColor3 = Color3.new(0, 0, 0) Text.TextStrokeTransparency = 0.2 Text.TextWrapped = true Text.Parent = Billboard
+        local Line = Instance.new("Frame") Line.Name = "KRYVEX_ESP_Line" Line.AnchorPoint = Vector2.new(0.5, 0.5) Line.BackgroundColor3 = Color Line.BorderSizePixel = 0 Line.Visible = false Line.Parent = LineHolder
+        return { Model = Model, Root = Root, Kind = Kind, Label = Label, Proxy = Proxy, Box = Box, Outline = Outline, Billboard = Billboard, Text = Text, Line = Line }
+    end
+    local function RemoveVisual(Model) local Item = Visuals[Model] if not Item then return end for _, Object in ipairs({Item.Proxy, Item.Box, Item.Outline, Item.Billboard, Item.Line}) do if Object then pcall(function() Object:Destroy() end) end end Visuals[Model] = nil end
+    local function ClearVisuals() local Models = {} for Model in pairs(Visuals) do Models[#Models + 1] = Model end for _, Model in ipairs(Models) do RemoveVisual(Model) end end
+    local function BuildTargets()
+        local Targets = {}
+        if ShowAllPlayers then for _, Player in ipairs(ESPPlayers:GetPlayers()) do if Player ~= ESPPlayer then local Character = Player.Character local Root = GetRoot(Character) if Character and Root then Targets[Character] = {Root = Root, Kind = "Player", Label = Player.Name} end end end end
+        if ShowDownedPlayers then
+            local PlayerFolder = workspace:FindFirstChild("Players") if PlayerFolder then for _, Model in ipairs(PlayerFolder:GetChildren()) do if Model:IsA("Model") and Model ~= ESPPlayer.Character and IsDowned(Model) then local Root = GetRoot(Model) if Root then Targets[Model] = {Root = Root, Kind = "Downed", Label = "ล้ม"} end end end end
+            for _, Player in ipairs(ESPPlayers:GetPlayers()) do if Player ~= ESPPlayer and Player.Character and IsDowned(Player.Character) then local Root = GetRoot(Player.Character) if Root then Targets[Player.Character] = {Root = Root, Kind = "Downed", Label = "ล้ม"} end end end
+        end
+        if ShowBots then local Rigs = workspace:FindFirstChild("Rigs") if Rigs then for _, Rig in ipairs(Rigs:GetChildren()) do if Rig:IsA("Model") or Rig:IsA("Folder") then local Root = GetRoot(Rig) if Root and Root:IsA("BasePart") then Targets[Rig] = {Root = Root, Kind = "Bot", Label = "บอท"} end end end end end
+        return Targets
+    end
+    local function SyncTargets()
+        local Targets = BuildTargets()
+        for Model in pairs(Visuals) do if not Targets[Model] or not Model.Parent then RemoveVisual(Model) end end
+        for Model, Data in pairs(Targets) do
+            local Item = Visuals[Model]
+            if not Item then Item = MakeVisual(Model, Data.Root, Data.Kind, Data.Label) if Item then Visuals[Model] = Item end
+            else Item.Root = Data.Root Item.Kind = Data.Kind Item.Label = Data.Label local Color = ESPColors[Data.Kind] Item.Box.Color3 = Color Item.Outline.Color3 = Color Item.Text.TextColor3 = Color Item.Text.Text = Data.Label Item.Line.BackgroundColor3 = Color end
+        end
+    end
+    local function StopVisuals() if RenderConnection then RenderConnection:Disconnect() RenderConnection = nil end ClearVisuals() if OverlayGui then OverlayGui:Destroy() OverlayGui = nil LineHolder = nil ProxyHolder = nil end end
+    local function UpdateVisuals(DeltaTime)
+        if not AnyESPEnabled() then StopVisuals() return end
+        ScanElapsed += DeltaTime if ScanElapsed >= SCAN_INTERVAL then ScanElapsed = 0 SyncTargets() end
+        local Camera = workspace.CurrentCamera if not Camera then return end local TopCenter = Vector2.new(Camera.ViewportSize.X / 2, 0)
+        for Model, Item in pairs(Visuals) do
+            local Root = Item.Root if not Model.Parent or not Root or not Root.Parent then RemoveVisual(Model)
+            else
+                if Item.Proxy.Parent ~= Camera then Item.Proxy.Parent = Camera end Item.Proxy.CFrame = Root.CFrame
+                local Position, OnScreen = Camera:WorldToViewportPoint(Root.Position)
+                if OnScreen and Position.Z > 0 then
+                    local Target = Vector2.new(Position.X, Position.Y) local Difference = Target - TopCenter
+                    Item.Line.Size = UDim2.fromOffset(Difference.Magnitude, 2) Item.Line.Position = UDim2.fromOffset((TopCenter.X + Target.X) / 2, (TopCenter.Y + Target.Y) / 2) Item.Line.Rotation = math.deg(math.atan2(Difference.Y, Difference.X)) Item.Line.Visible = true
+                else Item.Line.Visible = false end
             end
-        end)
+        end
+    end
+    local function SetESPMode(Mode, Value)
+        if Mode == "Players" then ShowAllPlayers = Value elseif Mode == "Downed" then ShowDownedPlayers = Value elseif Mode == "Bots" then ShowBots = Value end
+        if not AnyESPEnabled() then StopVisuals() ScanElapsed = 0 return end
+        EnsureOverlay() SyncTargets() if not RenderConnection then ScanElapsed = 0 RenderConnection = ESPRunService.RenderStepped:Connect(UpdateVisuals) end
+    end
+    TabVisual:AddToggle({ Name = "มองหาผู้เล่นทั้งหมด", Default = false, Callback = function(Value) SetESPMode("Players", Value) end })
+    TabVisual:AddToggle({ Name = "มองหาผู้เล่นล้ม", Default = false, Callback = function(Value) SetESPMode("Downed", Value) end })
+    TabVisual:AddToggle({ Name = "มองหาบอท", Default = false, Callback = function(Value) SetESPMode("Bots", Value) end })
+    task.wait()
+
+    -- =========================================================
+    -- 📌 TAB: ฟาร์ม (FarmTab)
+    -- =========================================================
+    local farmEnabled, farmGuardThread, farmCharacterConnection, farmPlatform, farmOriginCFrame, farmPlatformCFrame, farmToken = false, nil, nil, nil, nil, nil, 0
+    local FARM_HEIGHT, FARM_IMAGE_ID = 1200, "rbxassetid://72855254938167"
+    local function FarmNotify(text) pcall(function() Win:Notify({Title = "KRYVEX HUB", Content = text, Duration = 3}) end) end
+    local function GetFarmRoot(character) character = character or LocalPlayer.Character if not character then return nil end return character:FindFirstChild("HumanoidRootPart") end
+    local function CreateFarmPlatform(platformCFrame)
+        if farmPlatform then farmPlatform:Destroy() farmPlatform = nil end
+        local part = Instance.new("Part") part.Name = "KRYVEX_FarmTimePart" part.Size = Vector3.new(12, 1, 12) part.CFrame = platformCFrame part.Anchored = true part.CanCollide = true part.CanTouch = false part.CanQuery = false part.CastShadow = false part.Material = Enum.Material.SmoothPlastic part.Color = Color3.fromRGB(235, 235, 235) part.Transparency = 0.05 part.Parent = workspace
+        local image = Instance.new("Decal") image.Name = "KRYVEX_FarmPlatformImage" image.Texture = FARM_IMAGE_ID image.Face = Enum.NormalId.Top image.Transparency = 0 image.Parent = part
+        farmPlatform = part
+    end
+    local function MoveCharacterToFarm(character) if not farmPlatformCFrame then return false end local root = GetFarmRoot(character) if not root then return false end root.CFrame = farmPlatformCFrame + Vector3.new(0, 4, 0) root.AssemblyLinearVelocity = Vector3.zero root.AssemblyAngularVelocity = Vector3.zero return true end
+    local function StopFarmTime(restorePosition)
+        farmEnabled = false farmToken += 1
+        if farmGuardThread then pcall(task.cancel, farmGuardThread) farmGuardThread = nil end if farmCharacterConnection then farmCharacterConnection:Disconnect() farmCharacterConnection = nil end if farmPlatform then farmPlatform:Destroy() farmPlatform = nil end
+        if restorePosition and farmOriginCFrame then local root = GetFarmRoot() if root then root.CFrame = farmOriginCFrame root.AssemblyLinearVelocity = Vector3.zero root.AssemblyAngularVelocity = Vector3.zero end end
+        farmOriginCFrame = nil farmPlatformCFrame = nil
+    end
+    local function StartFarmTime()
+        local character = LocalPlayer.Character local root = GetFarmRoot(character)
+        if not root then FarmNotify("ยังไม่พบตัวละคร ลองเปิดอีกครั้งหลังเกิดใหม่") return false end if farmEnabled then return true end
+        farmEnabled = true farmOriginCFrame = root.CFrame farmPlatformCFrame = farmOriginCFrame + Vector3.new(0, FARM_HEIGHT, 0)
+        CreateFarmPlatform(farmPlatformCFrame) MoveCharacterToFarm(character)
+        farmToken += 1 local myToken = farmToken
+        farmGuardThread = task.spawn(function() while farmEnabled and myToken == farmToken do local currentCharacter = LocalPlayer.Character local currentRoot = GetFarmRoot(currentCharacter) if currentRoot and farmPlatformCFrame then local safePosition = farmPlatformCFrame.Position + Vector3.new(0, 4, 0) if (currentRoot.Position - safePosition).Magnitude > 18 then MoveCharacterToFarm(currentCharacter) end end task.wait(0.5) end end)
+        farmCharacterConnection = LocalPlayer.CharacterAdded:Connect(function(characterAdded) task.delay(0.6, function() if farmEnabled and characterAdded == LocalPlayer.Character then MoveCharacterToFarm(characterAdded) end end) end)
         return true
     end
-    TabFarm:AddToggle({ Name = "ฟาร์มเวลา", Default = false, Callback = function(v) if v then if StartFarm() then Notify("เปิดฟาร์ม") end else StopFarm(true) Notify("ปิด") end end })
+    TabFarm:AddToggle({ Name = "ฟาร์มเวลา", Default = false, Callback = function(value) if value then if StartFarmTime() then FarmNotify("เปิดฟาร์มเวลาแล้ว") end else StopFarmTime(true) FarmNotify("ปิดฟาร์มเวลาและคืนตำแหน่งเดิมแล้ว") end end })
     task.wait()
 
-    local AntiAfkConn = nil
-    TabFarm:AddToggle({ Name = "กันโดนเตะ (Anti-AFK)", Default = true, Callback = function(v)
-        if AntiAfkConn then AntiAfkConn:Disconnect() AntiAfkConn = nil end
-        if not v then return end
-        AntiAfkConn = LocalPlayer.Idled:Connect(function()
-            Safe(function()
-                local vu = game:GetService("VirtualUser")
-                local cam = Workspace.CurrentCamera
-                vu:Button2Down(Vector2.new(0,0), cam and cam.CFrame or CFrame.new())
-                task.wait(1)
-                vu:Button2Up(Vector2.new(0,0), cam and cam.CFrame or CFrame.new())
-            end)
-        end)
-    end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- 6️⃣ TAB: อีเว้นท์
-    -- ══════════════════════════════════════════════════════════
-    TabEvent:AddSection("NPC อีเว้นท์")
-    TabEvent:AddButton({ Name = "แลกโค้ดอัตโนมัติ", Callback = function()
-        if not RedeemRemote then Notify("ไม่พบ Redeem") return end
-        local codes = {"Summer2026","HAPPY4THBIRTHDAYEVADE","isurviveddatahaul","HALLOWEEN2026","iloveevade"}
-        for _, c in ipairs(codes) do Safe(function() RedeemRemote:FireServer(c) end) task.wait(0.15) end
-        Notify("ส่งโค้ดแล้ว")
-    end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- 7️⃣ TAB: หน้าจอ
-    -- ══════════════════════════════════════════════════════════
-    TabScreen:AddSection("แสงและหมอก")
-    local FogOn = false
-    TabScreen:AddToggle({ Name = "ลบหมอก", Default = false, Callback = function(v)
-        FogOn = v
-        if v then Lighting.FogStart = 0 Lighting.FogEnd = 1000000
-        else Lighting.FogStart = 0 Lighting.FogEnd = 1000 end
-    end })
-    TabScreen:AddToggle({ Name = "Full Bright", Default = false, Callback = function(v)
-        if v then Lighting.Brightness = 3 Lighting.GlobalShadows = false Lighting.ExposureCompensation = 0.5 Lighting.FogEnd = 1000000
-        else Lighting.Brightness = 1 Lighting.GlobalShadows = true end
-    end })
-    TabScreen:AddDropdown({ Name = "กลางวัน/กลางคืน", Items = {"กลางวัน", "กลางคืน"}, Default = "กลางวัน", Callback = function(v) Lighting.ClockTime = v == "กลางวัน" and 14 or 0 Notify("ปรับเป็น" .. v) end })
-    task.wait()
-
-    TabScreen:AddSection("กราฟฟิค")
-    local BoostOn, BoostConn = false, nil
-    local SavedProps = {}
-    TabScreen:AddToggle({ Name = "บูส FPS", Default = false, Callback = function(v)
-        BoostOn = v
-        if v then
-            task.spawn(function()
-                for _, o in ipairs(Workspace:GetDescendants()) do
-                    if not BoostOn then break end
-                    if o:IsA("BasePart") then Safe(function() if o.Material ~= Enum.Material.SmoothPlastic then SavedProps[o] = {Material = o.Material} o.Material = Enum.Material.SmoothPlastic end if o.Reflectance ~= 0 then o.Reflectance = 0 end end) end
-                    task.wait()
-                end
-            end)
-            BoostConn = Workspace.DescendantAdded:Connect(function(o) if BoostOn and o:IsA("BasePart") then Safe(function() o.Material = Enum.Material.SmoothPlastic o.Reflectance = 0 end) end end)
-        else
-            if BoostConn then BoostConn:Disconnect() BoostConn = nil end
-            for o, p in pairs(SavedProps) do if o.Parent then Safe(function() for k, val in pairs(p) do o[k] = val end end) end end
-            SavedProps = {}
-        end
-    end })
-    task.wait()
-
-    -- ══════════════════════════════════════════════════════════
-    -- 8️⃣ TAB: แมพ
-    -- ══════════════════════════════════════════════════════════
-    TabMap:AddSection("ขยายแมพ")
-    local MapScale, MapEnabled = 2, false
-    local MapTarget, MapParts, MapOriginal, MapCenter = nil, {}, {}, Vector3.zero
-    local function FindMap() local g = Workspace:FindFirstChild("Game") local m = g and g:FindFirstChild("Map") return m or Workspace:FindFirstChild("Map", true) end
-    local function RestoreMap() for part, o in pairs(MapOriginal) do if part and part.Parent then Safe(function() part.Size = o.Size part.CFrame = o.CFrame end) end end end
-    local function CaptureMap()
-        RestoreMap() MapTarget = FindMap() MapParts, MapOriginal = {}, {}
-        if not MapTarget then return false, "ไม่พบ Map" end
-        for _, o in ipairs(MapTarget:GetDescendants()) do
-            if o:IsA("BasePart") then MapParts[#MapParts+1] = o MapOriginal[o] = {Size = o.Size, CFrame = o.CFrame} end
-        end
-        if #MapParts == 0 then return false, "ไม่พบชิ้นส่วน" end
-        local sum = Vector3.zero for _, p in ipairs(MapParts) do sum += p.Position end MapCenter = sum / #MapParts return true
+    local antiAfkEnabled, antiAfkConnection, antiAfkBusy = false, nil, false
+    local function SetAntiAfk(value)
+        if value and antiAfkEnabled and antiAfkConnection then return end
+        antiAfkEnabled = value if antiAfkConnection then antiAfkConnection:Disconnect() antiAfkConnection = nil end
+        if not value then FarmNotify("ปิดกันโดนเตะแล้ว") return end
+        local connected, connectionOrError = pcall(function() return LocalPlayer.Idled:Connect(function() if not antiAfkEnabled or antiAfkBusy then return end antiAfkBusy = true pcall(function() local virtualUser = game:GetService("VirtualUser") local camera = workspace.CurrentCamera local cameraCFrame = camera and camera.CFrame or CFrame.new() virtualUser:Button2Down(Vector2.new(0, 0), cameraCFrame) task.wait(1) virtualUser:Button2Up(Vector2.new(0, 0), cameraCFrame) end) antiAfkBusy = false end) end)
+        if connected then antiAfkConnection = connectionOrError FarmNotify("เปิดกันโดนเตะแล้ว") else antiAfkEnabled = false FarmNotify("เชื่อมต่อระบบ AFK ไม่สำเร็จ") end
     end
-    TabMap:AddToggle({ Name = "เปิดขยายแมพ", Default = false, Callback = function(v)
-        if v then 
-            local ok, msg = CaptureMap() 
-            if not ok then Notify(msg) return end 
-            MapEnabled = true 
-            for _, p in ipairs(MapParts) do 
-                local o = MapOriginal[p] 
-                if p.Parent and o then 
-                    Safe(function() 
-                        local off = o.CFrame.Position - MapCenter 
-                        local np = MapCenter + off * MapScale 
-                        local rot = o.CFrame - o.CFrame.Position 
-                        p.Size = o.Size * MapScale 
-                        p.CFrame = CFrame.new(np) * rot 
-                    end) 
-                end 
-            end 
-            Notify("ขยายแมพแล้ว")
-        else 
-            MapEnabled = false 
-            RestoreMap() 
-            Notify("คืนขนาด") 
-        end
-    end })
+    TabFarm:AddToggle({ Name = "กันโดนเตะ", Default = true, Callback = function(value) SetAntiAfk(value) end })
+    SetAntiAfk(true)
     task.wait()
 
-    -- ══════════════════════════════════════════════════════════
-    -- 9️⃣ TAB: ตั้งค่า
-    -- ══════════════════════════════════════════════════════════
-    TabSetting:AddSection("ธีม UI")
-    for _, t in ipairs({"Hello","Ocean","Mint","Sunset","Christmas","Valentine","Summer","Halloween","Dark"}) do
-        TabSetting:AddButton({ Name = "→ " .. t, Callback = function() Safe(function() Win:SetTheme(t) end) Notify("ธีม " .. t) end })
-        task.wait()
-    end
-
-    -- ══════════════════════════════════════════════════════════
-    -- 🔟 TAB: อื่นๆ
-    -- ══════════════════════════════════════════════════════════
-    TabOther:AddSection("การเคลื่อนไหว")
-    local NoclipOn, NoclipConn = false, nil
-    TabOther:AddToggle({ Name = "ทะลุกำแพง", Default = false, Callback = function(v)
-        NoclipOn = v
-        if NoclipConn then NoclipConn:Disconnect() NoclipConn = nil end
-        if v then 
-            NoclipConn = RunService.Stepped:Connect(function() 
-                if not NoclipOn then return end 
-                local c = GetChar() 
-                if not c then return end 
-                for _, p in ipairs(c:GetDescendants()) do 
-                    if p:IsA("BasePart") then p.CanCollide = false end 
-                end 
-            end) 
-            Notify("เปิดทะลุกำแพง")
-        else 
-            local c = GetChar() 
-            if c then 
-                for _, p in ipairs(c:GetDescendants()) do 
-                    if p:IsA("BasePart") then p.CanCollide = true end 
-                end 
-            end 
-            Notify("ปิดทะลุกำแพง") 
-        end
-    end })
-    task.wait()
-
-    TabOther:AddButton({ Name = "Rejoin Server", Callback = function() Notify("Rejoining...") task.wait(1) Safe(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end) end })
-
-    -- ✅ โหลดฟีเจอร์ครบแล้ว
-    Notify("Evade Hub (Full) พร้อมใช้งาน!", 5)
-    print("✅ โหลดฟีเจอร์ทั้งหมดเสร็จสมบูรณ์")
-end)
+    -- =========================================================
+    -- 📌 TAB: อีเว้นท์ (EventTab)
+    -- =========================================================
+    local Env = getgenv()
+    if Env.KOMAT_EventFarm_Stop then pcall(Env.KOMAT_EventFarm_Stop) end
+    local PART_HEIGHT, PART_SIZE, PART_IMAGE, UNDER_OFFSET, NPC_WORD, NPC_OFFSET, MIN_NPC_Y = 1000, Vector3.new(60, 2, 60), "rbxassetid://72855254938167", 6, "cat", Vector3.new(0, 0, 0), -100
+    local FarmOn, NpcOn, FarmToggle, NpcToggle, FarmPart, CurrentVisual, CatNpc, CatSeen, CurrentMode, ReturnCF, Moved, WasActive = false, false, nil, nil, nil, nil, nil, false, nil, nil, false, false
+    local NoclipSaved, NpcSet, LastNpcScan, LastVisualScan, LastVisualEmpty, HbConn, StConn, ScanConn = {}, {}, 0, 0, false, nil, nil, nil
+    local Refresh, FinishNpc
+    local function EventNotify(text) pcall(function() Win:Notify({Title = "KRYVEX HUB", Content = text, Duration = 3}) end) end
+    local function GetChar() local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") local hum = char and char:FindFirstChildOfClass("Humanoid") return char, root, hum end
+    local function EnsurePart()
+        if FarmPart and FarmPart.Parent then return FarmPart end
+        local _, root = GetChar() local base = root and root.Position or Vector3.zero
+        local p = Instance.new("Part") p.Name = "KRYVEX_EventPart" p.Size = PART_SIZE p.Anchored = true p.CanCollide = true p.Material = Enum.Material.SmoothPlastic p.Color = Color3.fromRGB(60, 60, 70) p.CFrame = CFrame.new(base.X, PART_HEIGHT, base.Z) p.Parent = Workspace
+        for _, face in ipairs({Enum.NormalId.Top, Enum.NormalId.Bottom}) do local d = Instance.new("Decal") d.Face = face d.Texture = PART_IMAGE d.Parent = p end
+        FarmPart = p return p
