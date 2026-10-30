@@ -1,7 +1,8 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
-    ║  Evade Hub v3 FINAL  |  FULL FEATURES + EASY SPEED          ║
-    ║  ✅ เพิ่มระบบปรับความเร็ว (WalkSpeed) กดใช้ได้เลย              ║
+    ║  Evade Hub v3 FINAL  |  GETGC SPEED + FULL FEATURES         ║
+    ║  ✅ ระบบปรับความเร็วแบบ getgc (Speed, JumpCap, AirStrafe)      ║
+    ║  ✅ ครบทุกฟีเจอร์ (Tabs 1-10)                                  ║
     ║  ✅ แก้บั๊ก Delta Mobile Timeout                               ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
@@ -180,7 +181,7 @@ local TabSetting = Win:CreateTab("ตั้งค่า")
 local TabOther   = Win:CreateTab("อื่นๆ")
 
 -- ══════════════════════════════════════════════════════════════
---  🚀 ADDING FEATURES (Full Version)
+--  🚀 ADDING FEATURES
 -- ══════════════════════════════════════════════════════════════
 task.spawn(function()
     local PlayerFolder = Workspace:FindFirstChild("Players")
@@ -193,50 +194,115 @@ task.spawn(function()
         and ReplicatedStorage.Shared.UserData.Remotes:FindFirstChild("RedeemCode")
 
     -- ══════════════════════════════════════════════════════════
-    --  1️⃣ TAB: เมนูหลัก (เริ่มด้วยระบบความเร็วก่อนเลย!)
+    --  1️⃣ TAB: เมนูหลัก (ระบบ getgc Speed)
     -- ══════════════════════════════════════════════════════════
-    
-    -- ⭐ [ใหม่] ระบบปรับความเร็ว (WalkSpeed) ใช้งานง่าย
-    TabMain:AddSection("⚡ ปรับความเร็ว (Speed)")
-    local SpeedEnabled = false
-    local SpeedValue = 100
+    TabMain:AddSection("⚡ ปรับความเร็ว (getgc)")
 
-    local function ApplySpeed()
-        local h = GetHum()
-        if h then
-            h.WalkSpeed = SpeedEnabled and SpeedValue or 16
+    local currentSettings = { Speed = 1555, JumpCap = 2, AirStrafeAcceleration = 187 }
+    getgenv().ApplyMode = "Optimized"
+    getgenv().AutoApplySettings = true
+    local MAX_VALUE = 30000
+
+    local function safe(Value)
+        Value = tonumber(Value) or 0
+        if Value > MAX_VALUE then return MAX_VALUE end
+        if Value < 0 then return 0 end
+        return Value
+    end
+
+    local requiredFields = {
+        Friction = true, AirStrafeAcceleration = true, JumpHeight = true, RunDeaccel = true,
+        JumpSpeedMultiplier = true, JumpCap = true, SprintCap = true, WalkSpeedMultiplier = true,
+        BhopEnabled = true, Speed = true, AirAcceleration = true, RunAccel = true, SprintAcceleration = true
+    }
+
+    local cachedTables
+
+    local function getMatchingTables()
+        if cachedTables then return cachedTables end
+        local Result = {}
+        pcall(function()
+            for _, Object in ipairs(getgc(true)) do
+                if typeof(Object) == "table" then
+                    local Valid = true
+                    for Field in pairs(requiredFields) do
+                        if rawget(Object, Field) == nil then Valid = false break end
+                    end
+                    if Valid then table.insert(Result, Object) end
+                end
+            end
+        end)
+        cachedTables = Result
+        return Result
+    end
+
+    local function applyToTables()
+        local Mode = getgenv().ApplyMode
+        local Tables = getMatchingTables()
+        for _, Table in ipairs(Tables) do
+            pcall(function()
+                if Mode == "Not Optimized" then
+                    Table.Speed = currentSettings.Speed
+                    Table.JumpCap = currentSettings.JumpCap
+                    Table.AirStrafeAcceleration = currentSettings.AirStrafeAcceleration
+                else
+                    if Table.Speed ~= currentSettings.Speed then Table.Speed = currentSettings.Speed end
+                    if Table.JumpCap ~= currentSettings.JumpCap then Table.JumpCap = currentSettings.JumpCap end
+                    if Table.AirStrafeAcceleration ~= currentSettings.AirStrafeAcceleration then
+                        Table.AirStrafeAcceleration = currentSettings.AirStrafeAcceleration
+                    end
+                end
+            end)
         end
     end
 
-    TabMain:AddToggle({
-        Name = "เปิดความเร็ว", Default = false,
-        Callback = function(v)
-            SpeedEnabled = v
-            ApplySpeed()
-            Notify(v and ("เปิดความเร็ว: " .. SpeedValue) or "ปิดความเร็ว", 2)
+    -- Auto Apply Loop
+    getgenv().Evade_AutoGen = (getgenv().Evade_AutoGen or 0) + 1
+    local myGen = getgenv().Evade_AutoGen
+    task.spawn(function()
+        while getgenv().Evade_AutoGen == myGen do
+            if getgenv().AutoApplySettings then applyToTables() end
+            task.wait(1)
         end
+    end)
+
+    -- UI Elements
+    TabMain:AddTextbox({
+        Name = "ความเร็ว (Speed)", Placeholder = "1555", Default = tostring(currentSettings.Speed),
+        Callback = function(v) local n = tonumber(v) if n then currentSettings.Speed = safe(n) applyToTables() end end
     })
-    TabMain:AddSlider({
-        Name = "ระดับความเร็ว", Min = 16, Max = 500, Default = 100, Increment = 1,
-        Callback = function(v)
-            SpeedValue = v
-            if SpeedEnabled then ApplySpeed() end
-        end
+    TabMain:AddTextbox({
+        Name = "ขีดจำกัดการกระโดด (JumpCap)", Placeholder = "2", Default = tostring(currentSettings.JumpCap),
+        Callback = function(v) local n = tonumber(v) if n then currentSettings.JumpCap = safe(n) applyToTables() end end
+    })
+    TabMain:AddTextbox({
+        Name = "ความเร่งกลางอากาศ (AirStrafe)", Placeholder = "187", Default = tostring(currentSettings.AirStrafeAcceleration),
+        Callback = function(v) local n = tonumber(v) if n then currentSettings.AirStrafeAcceleration = safe(n) applyToTables() end end
+    })
+    TabMain:AddDropdown({
+        Name = "วิธีการปรับค่า", Items = {"Not Optimized", "Optimized"}, Default = "Optimized",
+        Callback = function(v) getgenv().ApplyMode = v cachedTables = nil applyToTables() end
+    })
+    TabMain:AddToggle({
+        Name = "ปรับค่าอัตโนมัติ", Default = true,
+        Callback = function(v) getgenv().AutoApplySettings = v if v then cachedTables = nil applyToTables() end end
     })
     TabMain:AddButton({
-        Name = "🚀 一键ความเร็วสูงสุด (300)",
+        Name = "รีเซ็ตค่าการเคลื่อนไหว",
         Callback = function()
-            SpeedEnabled = true
-            SpeedValue = 300
-            ApplySpeed()
-            Notify("เปิดความเร็วสูงสุด: 300", 2)
+            currentSettings.Speed = 1500
+            currentSettings.JumpCap = 2
+            currentSettings.AirStrafeAcceleration = 187
+            cachedTables = nil
+            applyToTables()
+            Notify("รีเซ็ตค่าการเคลื่อนไหวแล้ว", 3)
         end
     })
-    
-    -- อัปเดตความเร็วเมื่อเกิดใหม่
+
     LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1)
-        if SpeedEnabled then ApplySpeed() end
+        cachedTables = nil
+        if getgenv().AutoApplySettings then applyToTables() end
     end)
     task.wait()
 
