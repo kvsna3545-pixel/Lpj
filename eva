@@ -20,11 +20,18 @@ local function LoadHelloHub()
     src = src:gsub("(_TEST_MODE%s*=%s*)true", "%1false")
     src = src:gsub("(_TEST_MODE%s*=%s*)[Tt][Rr][Uu][Ee]", "%1false")
     
-    local success, result = pcall(function() return loadstring(src)() end)
-    if success and type(result) == "table" and result.CreateWindow then
+    local compileOK, chunkOrError = pcall(loadstring, src)
+    if not compileOK or type(chunkOrError) ~= "function" then
+        warn("[HelloHub] ❌ Compile UI ไม่สำเร็จ: " .. tostring(chunkOrError))
+        return nil
+    end
+
+    local runOK, result = pcall(chunkOrError)
+    if runOK and type(result) == "table" and type(result.CreateWindow) == "function" then
         return result
     end
-    warn("[HelloHub] ❌ โหลด API ไม่สำเร็จ หรือไม่ใช่ตาราง UI Library")
+
+    warn("[HelloHub] ❌ เรียกใช้ UI API ไม่สำเร็จ: " .. tostring(result))
     return nil
 end
 
@@ -87,13 +94,7 @@ local function ForceShow()
     end)
 end
 
-task.spawn(function()
-    while true do
-        if Win.Gui and Win.Gui.Parent ~= PlayerGui then Win.Gui.Parent = PlayerGui end
-        task.wait(1)
-    end
-end)
-
+-- ไม่บังคับย้าย Parent ซ้ำทุกวินาที เพราะอาจชนกับระบบจัดการ GUI ของ Library
 ForceShow()
 Win:Toggle(true)
 
@@ -199,19 +200,38 @@ task.spawn(function()
     local AutoJump, AutoJumpConnection = false, nil
     local function DoAutoJump() local Character = LocalPlayer.Character if not Character then return end local Humanoid = Character:FindFirstChild("Humanoid") if Humanoid then Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end
     local function StartAutoJump()
-        if AutoJumpConnection then AutoJumpConnection:Disconnect() AutoJumpConnection = nil end
+        if AutoJumpConnection then return end
         AutoJumpConnection = RunService.Heartbeat:Connect(function()
             if not AutoJump then return end
-            local Character = LocalPlayer.Character if not Character then return end
-            local Humanoid = Character:FindFirstChild("Humanoid") local Root = Character:FindFirstChild("HumanoidRootPart")
-            if not Humanoid or not Root then return end
-            if workspace:FindPartOnRay(Ray.new(Root.Position, Vector3.new(0, -4, 0)), Character) then
+            local Character = LocalPlayer.Character
+            if not Character then return end
+
+            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+            local Root = Character:FindFirstChild("HumanoidRootPart")
+            if not Humanoid or not Root or Humanoid.Health <= 0 then return end
+
+            local Params = RaycastParams.new()
+            Params.FilterType = Enum.RaycastFilterType.Exclude
+            Params.FilterDescendantsInstances = {Character}
+            Params.IgnoreWater = true
+
+            local Ground = workspace:Raycast(Root.Position, Vector3.new(0, -4, 0), Params)
+            if Ground then
                 Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end)
     end
-    local function SetAutoJump(Value) AutoJump = Value if Value then DoAutoJump() end end
-    StartAutoJump()
+
+    local function SetAutoJump(Value)
+        AutoJump = Value
+        if Value then
+            StartAutoJump()
+            DoAutoJump()
+        elseif AutoJumpConnection then
+            AutoJumpConnection:Disconnect()
+            AutoJumpConnection = nil
+        end
+    end
 
     local LagBusy = false
     local function RunLagSwitch()
@@ -221,9 +241,22 @@ task.spawn(function()
             local Character = LocalPlayer.Character
             local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
             local OldWalkSpeed, OldJumpPower, OldAutoRotate
-            if Humanoid then OldWalkSpeed, OldJumpPower, OldAutoRotate = Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate = 0, 0, false end
+            if Humanoid then
+                OldWalkSpeed = Humanoid.WalkSpeed
+                OldJumpPower = Humanoid.JumpPower
+                OldAutoRotate = Humanoid.AutoRotate
+                Humanoid.WalkSpeed = 0
+                Humanoid.JumpPower = 0
+                Humanoid.AutoRotate = false
+            end
+
             task.wait(0.5)
-            if Humanoid and Humanoid.Parent then Humanoid.WalkSpeed, Humanoid.JumpPower, Humanoid.AutoRotate = OldWalkSpeed, OldJumpPower, OldAutoRotate end
+
+            if Humanoid and Humanoid.Parent then
+                Humanoid.WalkSpeed = OldWalkSpeed
+                Humanoid.JumpPower = OldJumpPower
+                Humanoid.AutoRotate = OldAutoRotate
+            end
             LagBusy = false
         end)
     end
@@ -265,8 +298,6 @@ task.spawn(function()
         end)
     end
     local function SetAutoBounce(Value) AutoBounce = Value if Value then StartAutoBounce() else if AutoBounceConnection then AutoBounceConnection:Disconnect() AutoBounceConnection = nil end AutoBounceCooldown = false end end
-    StartAutoBounce()
-
     TabMain:AddToggle({ Name = "ออโต้เด้ง", Default = false, Callback = function(Value) SetAutoBounce(Value) Win:Notify({Title = "HelloHub", Content = Value and ("เปิดออโต้เด้ง | ความสูง " .. tostring(AutoBounceHeight)) or "ปิดออโต้เด้ง", Duration = 3}) end })
     TabMain:AddTextbox({ Name = "ความสูงออโต้เด้ง", Placeholder = "เช่น 150", Default = tostring(AutoBounceHeight), Callback = function(Value) local Number = tonumber(Value) if Number then AutoBounceHeight = math.clamp(Number, 1, 1000) end end })
     TabMain:AddTextbox({ Name = "ระยะตรวจพื้น", Placeholder = "เช่น 7", Default = tostring(AutoBounceDistance), Callback = function(Value) local Number = tonumber(Value) if Number then AutoBounceDistance = math.clamp(Number, 1, 50) end end })
@@ -327,43 +358,100 @@ task.spawn(function()
     task.wait()
 
     -- Auto Carry
-    local PlayerFolder = Workspace:WaitForChild("Players")
-    local EventsFolder = ReplicatedStorage:WaitForChild("Events")
-    local Interact = EventsFolder:WaitForChild("Interact")
+    local PlayerFolder = Workspace:WaitForChild("Players", 10)
+    local EventsFolder = ReplicatedStorage:WaitForChild("Events", 10)
+    local Interact = EventsFolder and EventsFolder:WaitForChild("Interact", 10)
 
+    if not PlayerFolder or not Interact or not Interact:IsA("RemoteEvent") then
+        warn("[HelloHub] Auto Carry ปิดใช้งาน: ไม่พบ Workspace.Players หรือ Events.Interact (RemoteEvent)")
+    else
     local AutoCarryEnabled, AutoCarryRange = false, 8
     local AutoCarryTargetObject, AutoCarryConnection, AutoCarryFloatingHandle = nil, nil, nil
-    local IsCarrying, LastCarryTime, CARRY_COOLDOWN = false, 0, 1.5
+    local LastCarryTime, CARRY_COOLDOWN = 0, 1.5
+    local LastCarryScan = 0
+    local LastAttemptedTarget = nil
     local function GetCarryRoot(Model) return Model:FindFirstChild("HumanoidRootPart") or Model.PrimaryPart end
     local function GetCarryHumanoid(Model) return Model:FindFirstChildOfClass("Humanoid") end
     local function GetObjectTag(Object) local Tag = Object:GetAttribute("Tag") or Object:GetAttribute("ID") or Object.Name return tonumber(Tag) or Tag end
-    local function FindNearestDowned()
-        local Character = LocalPlayer.Character if not Character then return nil, nil end
-        local MyRoot = GetCarryRoot(Character) if not MyRoot then return nil, nil end
+    local function FindNearestDowned(ExcludeObject)
+        local Character = LocalPlayer.Character
+        if not Character then return nil, nil end
+
+        local MyRoot = GetCarryRoot(Character)
+        if not MyRoot then return nil, nil end
+
         local Target, TargetTag, Distance = nil, nil, AutoCarryRange
         for _, Object in ipairs(PlayerFolder:GetChildren()) do
-            if Object ~= Character and Object.Name ~= LocalPlayer.Name then
-                local Humanoid = GetCarryHumanoid(Object) local Root = GetCarryRoot(Object) local Tag = GetObjectTag(Object)
+            if Object ~= Character and Object ~= ExcludeObject and Object.Name ~= LocalPlayer.Name then
+                local Humanoid = GetCarryHumanoid(Object)
+                local Root = GetCarryRoot(Object)
+                local Tag = GetObjectTag(Object)
                 if Humanoid and Root and Tag and Humanoid.Health <= 0 then
                     local CurrentDistance = (MyRoot.Position - Root.Position).Magnitude
-                    if CurrentDistance <= Distance then Distance = CurrentDistance Target = Object TargetTag = Tag end
+                    if CurrentDistance <= Distance then
+                        Distance = CurrentDistance
+                        Target = Object
+                        TargetTag = Tag
+                    end
                 end
             end
         end
         return Target, TargetTag
     end
+
     local function DoAutoCarry()
-        if IsCarrying then
-            if AutoCarryTargetObject and AutoCarryTargetObject.Parent then local Humanoid = GetCarryHumanoid(AutoCarryTargetObject) if Humanoid and Humanoid.Health <= 0 then return end end
-            IsCarrying = false AutoCarryTargetObject = nil
+        local Now = tick()
+        if Now - LastCarryScan < 0.15 then return end
+        LastCarryScan = Now
+
+        -- อย่าล็อกอยู่กับเป้าหมายเดิม: เลือกเป้าหมายอื่นได้ และล้างเป้าหมายเมื่อหายไป/ฟื้นแล้ว
+        if LastAttemptedTarget then
+            local PreviousHumanoid = GetCarryHumanoid(LastAttemptedTarget)
+            if not LastAttemptedTarget.Parent or not PreviousHumanoid or PreviousHumanoid.Health > 0 then
+                LastAttemptedTarget = nil
+            end
         end
-        if tick() - LastCarryTime < CARRY_COOLDOWN then return end
-        local Target, Tag = FindNearestDowned()
-        if Target and Tag then IsCarrying = true AutoCarryTargetObject = Target LastCarryTime = tick() pcall(function() Interact:FireServer("Carry", Tag) end) end
+
+        if Now - LastCarryTime < CARRY_COOLDOWN then return end
+
+        local Target, Tag = FindNearestDowned(LastAttemptedTarget)
+        if Target and Tag then
+            LastAttemptedTarget = Target
+            LastCarryTime = Now
+            local ok, err = pcall(function()
+                Interact:FireServer("Carry", Tag)
+            end)
+            if not ok then
+                warn("[HelloHub] Auto Carry remote error: " .. tostring(err))
+                LastAttemptedTarget = nil
+            end
+        end
     end
-    local function StartAutoCarry() if AutoCarryConnection then AutoCarryConnection:Disconnect() AutoCarryConnection = nil end AutoCarryConnection = RunService.Heartbeat:Connect(function() if not AutoCarryEnabled then return end DoAutoCarry() end) end
-    local function StopAutoCarry() if AutoCarryConnection then AutoCarryConnection:Disconnect() AutoCarryConnection = nil end AutoCarryTargetObject = nil IsCarrying = false end
-    local function SetAutoCarry(Value) AutoCarryEnabled = Value if Value then AutoCarryTargetObject = nil IsCarrying = false StartAutoCarry() else StopAutoCarry() end end
+
+    local function StartAutoCarry()
+        if AutoCarryConnection then AutoCarryConnection:Disconnect() end
+        AutoCarryConnection = RunService.Heartbeat:Connect(function()
+            if AutoCarryEnabled then DoAutoCarry() end
+        end)
+    end
+
+    local function StopAutoCarry()
+        if AutoCarryConnection then
+            AutoCarryConnection:Disconnect()
+            AutoCarryConnection = nil
+        end
+        LastAttemptedTarget = nil
+    end
+
+    local function SetAutoCarry(Value)
+        AutoCarryEnabled = Value
+        if Value then
+            LastAttemptedTarget = nil
+            StartAutoCarry()
+        else
+            StopAutoCarry()
+        end
+    end
 
     TabMain:AddToggle({ Name = "ออโต้อุ้ม", Default = false, Callback = function(Value) SetAutoCarry(Value) Win:Notify({Title = "HelloHub", Content = Value and "เปิดออโต้อุ้มแล้ว" or "ปิดออโต้อุ้มแล้ว", Duration = 3}) end })
     TabMain:AddToggle({ Name = "ออโต้อุ้ม (ปุ่มลอย)", Default = false, Callback = function(Value)
@@ -375,22 +463,7 @@ task.spawn(function()
             SetAutoCarry(false)
         end
     end })
+    end -- AutoCarry dependencies available
     task.wait()
 
-    -- Round Timer
-    local Enabled, TimerGui, TimerText, StatusText, BorderGradient, RenderConnection, WorkerThread = false, nil, nil, nil, nil, nil, nil
-    local ScanInterval, StableTime = 0.25, 2
-    local function DestroyClock()
-        if RenderConnection then RenderConnection:Disconnect() RenderConnection = nil end
-        if WorkerThread then pcall(task.cancel, WorkerThread) WorkerThread = nil end
-        if TimerGui then TimerGui:Destroy() TimerGui = nil end
-        TimerText, StatusText, BorderGradient = nil, nil, nil
-    end
-    local function CreateClock()
-        local OldGui = PlayerGui:FindFirstChild("HelloHub_RoundTimer") if OldGui then OldGui:Destroy() end
-        TimerGui = Instance.new("ScreenGui") TimerGui.Name = "HelloHub_RoundTimer" TimerGui.ResetOnSpawn = false TimerGui.IgnoreGuiInset = true TimerGui.DisplayOrder = 100 TimerGui.Parent = PlayerGui
-        local Box = Instance.new("Frame") Box.Name = "ClockBox" Box.Size = UDim2.fromOffset(190, 78) Box.Position = UDim2.new(0.5, -95, 0, 14) Box.BackgroundColor3 = Color3.fromRGB(18, 18, 20) Box.BorderSizePixel = 0 Box.ClipsDescendants = true Box.Parent = TimerGui
-        Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 10)
-        local BackgroundGradient = Instance.new("UIGradient") BackgroundGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 16)),ColorSequenceKeypoint.new(0.6, Color3.fromRGB(32, 32, 36)),ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 23))}) BackgroundGradient.Rotation = 35 BackgroundGradient.Parent = Box
-        local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.new(1, 1, 1) Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border Stroke.Parent = Box
-        BorderGradient = Instance.new("UIGradient") BorderGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 90, 96)),ColorSequenceKeypoint.new(0.5, Color3.fromRGB(215, 215,
+end) -- ปิด task.spawn ของการสร้างฟีเจอร์ทั้งหมด
