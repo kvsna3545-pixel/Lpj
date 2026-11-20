@@ -1,16 +1,20 @@
 --[[
 ========================================================
- HELLOHUB | UI LIBRARY v6.1.0 (Fixed Tabs & Clipping)
+ HELLOHUB | v6.2.0 (All-in-One & Test Suite)
  Runtime: Roblox Studio | Executor (loadstring)
 ========================================================
  Features:
- - Top Tabs (Fully functional + and X buttons)
- - No UI Overflow (Strict Clipping)
+ - Top Tabs (No + button, fully functional)
+ - Strict UI Clipping (No overflow)
  - Draggable Floating Button
- - Randomly Sized Stars (Inside UI only)
+ - Randomly Sized Stars
  - All Components & Effects
 ========================================================
 ]]
+
+-- =====================================================================
+-- PART 1: UI LIBRARY
+-- =====================================================================
 
 local HelloHub = {}
 local Effects = {}
@@ -27,37 +31,20 @@ local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- CONFIG
 local CONFIG = {
-    Name = "HelloHub",
-    Version = "v6.1.0",
-    Logo = "rbxassetid://75164736067854", 
+    Name = "HelloHub", Version = "v6.2.0", Logo = "rbxassetid://75164736067854", 
     Window = { Width = 750, Height = 500, MinimumWidth = 500, MinimumHeight = 350, Margin = 20 },
     Animation = { Intro = 0.85, Normal = 0.22, Fast = 0.14 },
-    Effects = {
-        Stars = true,
-        StarCount = 40,
-        GlassTransparency = 0.4,
-    },
+    Effects = { Stars = true, StarCount = 40, GlassTransparency = 0.4 },
     Theme = {
-        Background = Color3.fromRGB(15, 15, 20),
-        CardBg = Color3.fromRGB(20, 20, 26),
-        CardTransparency = 0.3,
-        Element = Color3.fromRGB(30, 30, 38),
-        Hover = Color3.fromRGB(45, 45, 55),
-        Accent = Color3.fromRGB(110, 160, 255),
-        Accent2 = Color3.fromRGB(174, 112, 255),
-        Text = Color3.fromRGB(240, 240, 245),
-        SubText = Color3.fromRGB(160, 160, 175),
-        Stroke = Color3.fromRGB(60, 60, 70),
-        Success = Color3.fromRGB(90, 220, 155),
-        Warning = Color3.fromRGB(255, 200, 0),
-        Error = Color3.fromRGB(255, 95, 115),
+        Background = Color3.fromRGB(15, 15, 20), CardBg = Color3.fromRGB(20, 20, 26), CardTransparency = 0.3,
+        Element = Color3.fromRGB(30, 30, 38), Hover = Color3.fromRGB(45, 45, 55), Accent = Color3.fromRGB(110, 160, 255),
+        Accent2 = Color3.fromRGB(174, 112, 255), Text = Color3.fromRGB(240, 240, 245), SubText = Color3.fromRGB(160, 160, 175),
+        Stroke = Color3.fromRGB(60, 60, 70), Success = Color3.fromRGB(90, 220, 155), Warning = Color3.fromRGB(255, 200, 0), Error = Color3.fromRGB(255, 95, 115),
     },
 }
 local Theme = table.clone(CONFIG.Theme)
 
--- HELPERS
 local function create(className, props, parent)
     local obj = Instance.new(className)
     for key, value in pairs(props or {}) do obj[key] = value end
@@ -87,7 +74,6 @@ local function connect(owner, signal, callback)
     return connection
 end
 
--- STAR SYSTEM (Clipped to UI)
 local function startStarSystem(container, isMainVisible)
     if not CONFIG.Effects.Stars then return end
     task.spawn(function()
@@ -95,66 +81,37 @@ local function startStarSystem(container, isMainVisible)
             if isMainVisible() then
                 local size = math.random(4, 18)
                 local star = create("TextLabel", {
-                    Size = UDim2.fromOffset(size, size),
-                    Position = UDim2.new(math.random(), 0, math.random(), 0),
-                    BackgroundTransparency = 1,
-                    Text = math.random(1, 2) == 1 and "✦" or "✧",
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
-                    TextSize = size,
-                    Font = Enum.Font.GothamBold,
-                    TextTransparency = math.random(30, 80) / 100,
-                    Rotation = math.random(0, 360),
-                    ZIndex = 2, -- ต่ำกว่า UI หลักเพื่อไม่ให้ทับปุ่ม
+                    Size = UDim2.fromOffset(size, size), Position = UDim2.new(math.random(), 0, math.random(), 0),
+                    BackgroundTransparency = 1, Text = math.random(1, 2) == 1 and "✦" or "✧", TextColor3 = Color3.fromRGB(255, 255, 255),
+                    TextSize = size, Font = Enum.Font.GothamBold, TextTransparency = math.random(30, 80) / 100, Rotation = math.random(0, 360), ZIndex = 2,
                 }, container)
-                
-                local twinkle = TweenService:Create(star, TweenInfo.new(math.random(10, 25)/10, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-                    TextTransparency = 1,
-                    Rotation = star.Rotation + math.random(-90, 90)
-                })
+                local twinkle = TweenService:Create(star, TweenInfo.new(math.random(10, 25)/10, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { TextTransparency = 1, Rotation = star.Rotation + math.random(-90, 90) })
                 twinkle:Play()
-                
-                task.delay(math.random(5, 15), function()
-                    if isAlive(star) then
-                        local fadeOut = tween(star, 1, { TextTransparency = 1 })
-                        if fadeOut then fadeOut.Completed:Wait(); star:Destroy() end
-                    end
-                end)
+                task.delay(math.random(5, 15), function() if isAlive(star) then local fadeOut = tween(star, 1, { TextTransparency = 1 }); if fadeOut then fadeOut.Completed:Wait(); star:Destroy() end end end)
             end
             task.wait(math.random(1, 3) / 10)
         end
     end)
 end
 
--- EFFECTS ENGINE
 function Effects.Glow(target, color, speed)
     local glowStroke = create("UIStroke", { Color = color or Theme.Accent, Thickness = 2, Transparency = 0.5 }, target)
     task.spawn(function() while isAlive(target) do tween(glowStroke, speed or 1, { Transparency = 0.8 }, Enum.EasingStyle.Sine); task.wait(speed or 1); tween(glowStroke, speed or 1, { Transparency = 0.2 }, Enum.EasingStyle.Sine); task.wait(speed or 1) end end)
     return glowStroke
 end
-function Effects.Pulse(target)
-    task.spawn(function() while isAlive(target) do tween(target, 0.8, { Size = target.Size + UDim2.fromOffset(4, 4) }, Enum.EasingStyle.Sine); task.wait(0.8); tween(target, 0.8, { Size = target.Size - UDim2.fromOffset(4, 4) }, Enum.EasingStyle.Sine); task.wait(0.8) end end)
-end
-function Effects.Shake(target)
-    local originalPos = target.Position
-    task.spawn(function() for _ = 1, 5 do target.Position = originalPos + UDim2.fromOffset(math.random(-5, 5), math.random(-5, 5)); task.wait(0.05) end; target.Position = originalPos end)
-end
-function Effects.Rainbow(target, property, speed)
-    property = property or "BackgroundColor3"
-    task.spawn(function() while isAlive(target) do local hue = (tick() * (speed or 0.2)) % 1; local color = Color3.fromHSV(hue, 1, 1); if target[property] then target[property] = color end; RunService.RenderStepped:Wait() end end)
-end
+function Effects.Pulse(target) task.spawn(function() while isAlive(target) do tween(target, 0.8, { Size = target.Size + UDim2.fromOffset(4, 4) }, Enum.EasingStyle.Sine); task.wait(0.8); tween(target, 0.8, { Size = target.Size - UDim2.fromOffset(4, 4) }, Enum.EasingStyle.Sine); task.wait(0.8) end end) end
+function Effects.Shake(target) local originalPos = target.Position; task.spawn(function() for _ = 1, 5 do target.Position = originalPos + UDim2.fromOffset(math.random(-5, 5), math.random(-5, 5)); task.wait(0.05) end; target.Position = originalPos end) end
+function Effects.Rainbow(target, property, speed) property = property or "BackgroundColor3"; task.spawn(function() while isAlive(target) do local hue = (tick() * (speed or 0.2)) % 1; local color = Color3.fromHSV(hue, 1, 1); if target[property] then target[property] = color end; RunService.RenderStepped:Wait() end end) end
 function Effects.Fire(target)
     task.spawn(function()
         while isAlive(target) do
             local ember = create("TextLabel", { Size = UDim2.fromOffset(6, 6), Position = UDim2.new(math.random(), 0, 1, 0), BackgroundTransparency = 1, Text = "•", TextColor3 = Color3.fromRGB(255, math.random(100, 200), 0), TextSize = 14, Font = Enum.Font.GothamBold, ZIndex = 10 }, target)
             local t = TweenService:Create(ember, TweenInfo.new(math.random(5, 10)/10, Enum.EasingStyle.Linear), { Position = UDim2.new(ember.Position.X.Scale + (math.random(-10, 10)/100), 0, 0, 0), TextTransparency = 1, TextColor3 = Color3.fromRGB(255, 0, 0) })
-            t:Play()
-            t.Completed:Connect(function() if isAlive(ember) then ember:Destroy() end end)
-            task.wait(0.1)
+            t:Play(); t.Completed:Connect(function() if isAlive(ember) then ember:Destroy() end end); task.wait(0.1)
         end
     end)
 end
 
--- WINDOW CLASS
 function HelloHub.new(options)
     options = options or {}
     local self = setmetatable({}, Window)
@@ -173,132 +130,79 @@ function HelloHub.new(options)
 
     local screen = create("ScreenGui", { Name = "HelloHub_UI", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 100, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, PlayerGui)
     self.Screen = screen
-
     create("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = "rbxassetid://13540752864", ImageTransparency = 0.5, ScaleType = Enum.ScaleType.Crop, ZIndex = 0 }, screen)
     
-    -- Main Window (Strict Clipping)
     local main = create("Frame", { Name = "Main", AnchorPoint = Vector2.zero, Position = self.NormalPosition, Size = self.NormalSize, BackgroundColor3 = Theme.Background, BackgroundTransparency = CONFIG.Effects.GlassTransparency, BorderSizePixel = 0, ClipsDescendants = true, Visible = false }, screen)
     self.Main = main
-    corner(main, 16)
-    create("UIStroke", { Thickness = 1.2, Color = Theme.Stroke, Transparency = 0.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, main)
+    corner(main, 16); create("UIStroke", { Thickness = 1.2, Color = Theme.Stroke, Transparency = 0.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, main)
     self.UIScale = create("UIScale", { Scale = 1 }, main)
 
-    -- RESIZE HANDLE
     local resizeHandle = create("TextButton", { Name = "ResizeHandle", Size = UDim2.fromOffset(15, 15), Position = UDim2.new(1, -15, 1, -15), BackgroundTransparency = 1, Text = "◢", TextColor3 = Theme.SubText, TextSize = 10, ZIndex = 10 }, main)
     local resizing, resizeStart, startSize = false, nil, nil
-    connect(self, resizeHandle.InputBegan, function(input) 
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
-            resizing = true; resizeStart = input.Position; startSize = main.Size 
-        end 
-    end)
+    connect(self, resizeHandle.InputBegan, function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then resizing = true; resizeStart = input.Position; startSize = main.Size end end)
 
-    -- STAR LAYER (Inside main, strictly clipped)
     local starContainer = create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 1 }, main)
     startStarSystem(starContainer, function() return isAlive(main) and main.Visible and not self.Hidden and not self.Minimized end)
 
-    -- HEADER
     local header = create("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, BorderSizePixel = 0, ZIndex = 5 }, main)
     create("TextLabel", { Name = "Title", Size = UDim2.new(0, 200, 1, 0), Position = UDim2.fromOffset(15, 0), BackgroundTransparency = 1, Text = options.Title or CONFIG.Name, TextColor3 = Theme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 }, header)
 
     local minBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -80, 0, 0), BackgroundTransparency = 1, Text = "−", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, header)
-    connect(self, minBtn.MouseEnter, function() tween(minBtn, 0.1, { TextColor3 = Theme.Text }) end)
-    connect(self, minBtn.MouseLeave, function() tween(minBtn, 0.1, { TextColor3 = Theme.SubText }) end)
+    connect(self, minBtn.MouseEnter, function() tween(minBtn, 0.1, { TextColor3 = Theme.Text }) end); connect(self, minBtn.MouseLeave, function() tween(minBtn, 0.1, { TextColor3 = Theme.SubText }) end)
     
     local closeBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -40, 0, 0), BackgroundTransparency = 1, Text = "×", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, header)
-    connect(self, closeBtn.MouseEnter, function() tween(closeBtn, 0.1, { TextColor3 = Theme.Text }) end)
-    connect(self, closeBtn.MouseLeave, function() tween(closeBtn, 0.1, { TextColor3 = Theme.SubText }) end)
+    connect(self, closeBtn.MouseEnter, function() tween(closeBtn, 0.1, { TextColor3 = Theme.Text }) end); connect(self, closeBtn.MouseLeave, function() tween(closeBtn, 0.1, { TextColor3 = Theme.SubText }) end)
     connect(self, closeBtn.Activated, function() self:ToggleWindow(false) end)
 
-    -- TAB BAR (Horizontal Scrolling enabled to prevent overflow)
-    local tabBar = create("ScrollingFrame", { Name = "TabBar", Size = UDim2.new(1, -50, 0, 40), Position = UDim2.fromOffset(0, 40), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 5, ScrollBarThickness = 0, CanvasSize = UDim2.new() }, main)
+    -- TAB BAR (กว้างเต็ม 100% ไม่มีปุ่ม +)
+    local tabBar = create("ScrollingFrame", { Name = "TabBar", Size = UDim2.new(1, 0, 0, 40), Position = UDim2.fromOffset(0, 40), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 5, ScrollBarThickness = 0, CanvasSize = UDim2.new() }, main)
     self.TabHolder = tabBar
     create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }, tabBar)
     padding(tabBar, 10, 10, 0, 0)
-    
-    -- ปุ่ม + สำหรับเพิ่มแท็บ (ลอยอยู่ขวาสุด)
-    local plusBtn = create("TextButton", { Name = "PlusButton", Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -38, 0, 46), BackgroundColor3 = Theme.CardBg, Text = "+", TextColor3 = Theme.Text, TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, main)
-    corner(plusBtn, 6); stroke(plusBtn, Theme.Stroke, 0.8)
-    connect(self, plusBtn.MouseEnter, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.Hover }) end)
-    connect(self, plusBtn.MouseLeave, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.CardBg }) end)
-    connect(self, plusBtn.Activated, function()
-        local newTabName = "Tab " .. (#self:GetTabNames() + 1)
-        self:CreateTab({ Name = newTabName })
-        self:SelectTab(newTabName)
-    end)
 
-    -- BODY (Strict Clipping)
     local body = create("Frame", { Name = "Body", Size = UDim2.new(1, 0, 1, -80), Position = UDim2.fromOffset(0, 80), BackgroundTransparency = 1, ZIndex = 3, ClipsDescendants = true }, main)
     self.Body = body
-    
     local search = create("TextBox", { Name = "Search", Size = UDim2.new(1, -20, 0, 32), Position = UDim2.fromOffset(10, 8), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.3, Text = "", PlaceholderText = "Search...", PlaceholderColor3 = Theme.SubText, TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.Gotham, ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, body)
     corner(search, 10); stroke(search, Theme.Stroke, 0.7); padding(search, 12, 12, 0, 0)
     self.Search = search
-
     self.PageHolder = create("Frame", { Name = "Pages", Size = UDim2.new(1, -20, 1, -50), Position = UDim2.fromOffset(10, 48), BackgroundTransparency = 1, ZIndex = 4, ClipsDescendants = true }, body)
     create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, self.PageHolder)
 
-    -- LAUNCHER (Floating, Draggable)
     local launcher = create("ImageButton", { Name = "Launcher", Size = UDim2.fromOffset(54, 54), AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 20, 1, -20), BackgroundColor3 = Theme.CardBg, Image = options.Logo or CONFIG.Logo, ScaleType = Enum.ScaleType.Crop, Visible = false, AutoButtonColor = false, ZIndex = 50 }, screen)
     self.Launcher = launcher
     corner(launcher, 100); stroke(launcher, Theme.Accent)
-    connect(self, launcher.MouseEnter, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(60, 60) }, Enum.EasingStyle.Back) end)
-    connect(self, launcher.MouseLeave, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(54, 54) }, Enum.EasingStyle.Back) end)
+    connect(self, launcher.MouseEnter, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(60, 60) }, Enum.EasingStyle.Back) end); connect(self, launcher.MouseLeave, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(54, 54) }, Enum.EasingStyle.Back) end)
     
     local launcherDragging, launcherDragStart, launcherStartPos, launcherMovedDist = false, nil, nil, 0
-    connect(self, launcher.InputBegan, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            launcherDragging = true; launcherDragStart = input.Position; launcherStartPos = launcher.Position; launcherMovedDist = 0
-        end
-    end)
+    connect(self, launcher.InputBegan, function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then launcherDragging = true; launcherDragStart = input.Position; launcherStartPos = launcher.Position; launcherMovedDist = 0 end end)
     connect(self, UserInputService.InputChanged, function(input)
         if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - launcherDragStart
-            launcherMovedDist += math.abs(delta.X) + math.abs(delta.Y)
-            local viewport = workspace.CurrentCamera.ViewportSize
-            local size = launcher.AbsoluteSize
-            local newX = launcherStartPos.X.Offset + delta.X
-            local newY = launcherStartPos.Y.Offset + delta.Y
-            newX = math.clamp(newX, 0, viewport.X - size.X)
-            newY = math.clamp(newY, -viewport.Y + size.Y, -10)
-            launcher.Position = UDim2.new(0, newX, 1, newY)
+            local delta = input.Position - launcherDragStart; launcherMovedDist += math.abs(delta.X) + math.abs(delta.Y)
+            local viewport = workspace.CurrentCamera.ViewportSize; local size = launcher.AbsoluteSize
+            local newX = launcherStartPos.X.Offset + delta.X; local newY = launcherStartPos.Y.Offset + delta.Y
+            launcher.Position = UDim2.new(0, math.clamp(newX, 0, viewport.X - size.X), 1, math.clamp(newY, -viewport.Y + size.Y, -10))
         end
     end)
-    connect(self, UserInputService.InputEnded, function(input)
-        if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            launcherDragging = false
-            if launcherMovedDist < 10 then self:ToggleWindow(self.Hidden) end
-        end
-    end)
+    connect(self, UserInputService.InputEnded, function(input) if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then launcherDragging = false; if launcherMovedDist < 10 then self:ToggleWindow(self.Hidden) end end end)
 
-    -- SPLASH
     local splash = create("ImageLabel", { Name = "IntroLogo", Size = UDim2.fromOffset(90, 90), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = Theme.CardBg, Image = options.Logo or CONFIG.Logo, ScaleType = Enum.ScaleType.Crop, ZIndex = 60, Rotation = -120 }, screen)
     corner(splash, 100); stroke(splash, Theme.Accent)
 
     local function getViewport() return workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(800, 600) end
     
-    -- MINIMIZE
     local function setMinimized(state)
         self.Minimized = state
-        body.Visible = not state
-        tabBar.Visible = not state
-        plusBtn.Visible = not state
-        if state then
-            tween(main, 0.25, { Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset, 0, 40) })
-            minBtn.Text = "+"
-        else
-            tween(main, 0.25, { Size = self.NormalSize })
-            minBtn.Text = "−"
-        end
+        body.Visible = not state; tabBar.Visible = not state
+        if state then tween(main, 0.25, { Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset, 0, 40) }); minBtn.Text = "+"
+        else tween(main, 0.25, { Size = self.NormalSize }); minBtn.Text = "−" end
     end
     connect(self, minBtn.Activated, function() setMinimized(not self.Minimized) end)
 
-    -- TOGGLE WINDOW
     function self:ToggleWindow(show)
         if self.Destroyed or self._transitioning or self.Hidden == not show then return end
         self._transitioning = true; self.Hidden = not show
         if show then
-            main.Visible = true
-            self.UIScale.Scale = 0.6
+            main.Visible = true; self.UIScale.Scale = 0.6
             main.Position = UDim2.new(self.NormalPosition.X.Scale, self.NormalPosition.X.Offset, self.NormalPosition.Y.Scale, self.NormalPosition.Y.Offset + 30)
             tween(self.UIScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
             local tw = tween(main, 0.4, { BackgroundTransparency = CONFIG.Effects.GlassTransparency, Position = self.NormalPosition }, Enum.EasingStyle.Quint)
@@ -319,42 +223,18 @@ function HelloHub.new(options)
         splash:Destroy(); launcher.Visible = true; self:ToggleWindow(true)
     end)
 
-    -- WINDOW DRAG & RESIZE
     local dragging, dragStart, startPosition = false, nil, nil
-    connect(self, header.InputBegan, function(input)
-        if self.Destroyed or self.Hidden then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; dragStart = input.Position; startPosition = main.Position end
-    end)
-    
+    connect(self, header.InputBegan, function(input) if self.Destroyed or self.Hidden then return end; if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; dragStart = input.Position; startPosition = main.Position end end)
     connect(self, UserInputService.InputChanged, function(input)
         if self.Destroyed then return end
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            if dragging and not self.Minimized then
-                local delta = input.Position - dragStart
-                main.Position = UDim2.fromOffset(startPosition.X.Offset + delta.X, startPosition.Y.Offset + delta.Y)
-                self.NormalPosition = main.Position
-            end
-            if resizing and not self.Minimized then
-                local delta = input.Position - resizeStart
-                local newWidth = math.max(CONFIG.Window.MinimumWidth, startSize.X.Offset + delta.X)
-                local newHeight = math.max(CONFIG.Window.MinimumHeight, startSize.Y.Offset + delta.Y)
-                main.Size = UDim2.fromOffset(newWidth, newHeight)
-                self.NormalSize = main.Size
-            end
+            if dragging and not self.Minimized then local delta = input.Position - dragStart; main.Position = UDim2.fromOffset(startPosition.X.Offset + delta.X, startPosition.Y.Offset + delta.Y); self.NormalPosition = main.Position end
+            if resizing and not self.Minimized then local delta = input.Position - resizeStart; main.Size = UDim2.fromOffset(math.max(CONFIG.Window.MinimumWidth, startSize.X.Offset + delta.X), math.max(CONFIG.Window.MinimumHeight, startSize.Y.Offset + delta.Y)); self.NormalSize = main.Size end
         end
     end)
-    
-    connect(self, UserInputService.InputEnded, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false; resizing = false end
-    end)
+    connect(self, UserInputService.InputEnded, function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false; resizing = false end end)
 
-    -- KEYBIND TOGGLE (RightShift)
-    connect(self, UserInputService.InputBegan, function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.RightShift then
-            self:ToggleWindow(self.Hidden)
-        end
-    end)
+    connect(self, UserInputService.InputBegan, function(input, gameProcessed) if gameProcessed then return end; if input.KeyCode == Enum.KeyCode.RightShift then self:ToggleWindow(self.Hidden) end end)
 
     function self:Notify(data) return Window.Notify(self, data) end
     function self:Destroy() return Window.Destroy(self) end
@@ -362,92 +242,45 @@ function HelloHub.new(options)
     return self
 end
 
--- TAB SYSTEM (Fixed & Works perfectly)
 function Window:CreateTab(options)
-    assert(not self.Destroyed, "Window destroyed")
-    options = options or {}
-    local name = options.Name or "Tab"
-    assert(not self.Tabs[name], "Tab already exists: " .. name)
-
+    assert(not self.Destroyed, "Window destroyed"); options = options or {}; local name = options.Name or "Tab"; assert(not self.Tabs[name], "Tab already exists: " .. name)
     local tab = setmetatable({ Window = self, Name = name, Connections = {}, Components = {} }, Tab)
-    
-    -- Page Container (Strict clipping)
     tab.Page = create("Frame", { Name = "Page_" .. name, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ClipsDescendants = true }, self.PageHolder)
-    
     tab.LeftCol = create("ScrollingFrame", { Name = "LeftCol", Size = UDim2.new(0.5, -5, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true }, tab.Page)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, tab.LeftCol)
-
     tab.RightCol = create("ScrollingFrame", { Name = "RightCol", Size = UDim2.new(0.5, -5, 1, 0), Position = UDim2.new(0.5, 5, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true }, tab.Page)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, tab.RightCol)
-
-    -- Tab Button
     tab.Button = create("TextButton", { Name = "Tab_" .. name, Size = UDim2.new(0, 120, 0, 28), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, Text = "", AutoButtonColor = false, ZIndex = 5 }, self.TabHolder)
     corner(tab.Button, 6); stroke(tab.Button, Theme.Stroke, 0.8)
-    
     create("TextLabel", { Size = UDim2.new(1, -30, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 }, tab.Button)
-
     local closeBtn = create("TextButton", { Size = UDim2.fromOffset(20, 20), Position = UDim2.new(1, -24, 0.5, -10), BackgroundTransparency = 1, Text = "×", TextColor3 = Theme.SubText, TextSize = 14, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, tab.Button)
-    
     tab.Glow = create("Frame", { Size = UDim2.new(0.8, 0, 0, 2), Position = UDim2.new(0.5, 0, 1, 0), AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = Theme.Accent, BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 5 }, tab.Button)
     corner(tab.Glow, 2)
-
     self.Tabs[name] = tab
     connect(tab, tab.Button.Activated, function() self:SelectTab(name) end)
     connect(tab, closeBtn.Activated, function() self:RemoveTab(name) end)
     if not self.ActiveTab then self:SelectTab(name) end
-    
-    -- อัปเดต CanvasSize ของ TabBar ให้สกรอลล์ได้หากมีแท็บเยอะ
-    task.defer(function()
-        if self.TabHolder then
-            local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout")
-            if layout then
-                self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0)
-            end
-        end
-    end)
-    
+    task.defer(function() if self.TabHolder then local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout"); if layout then self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0) end end end)
     return tab
 end
 
 function Window:RemoveTab(name)
     if not self.Tabs[name] then return end
-    if #self:GetTabNames() <= 1 then
-        self:Notify({ Title = "Warning", Content = "ต้องมีอย่างน้อย 1 แท็บ", Duration = 2 })
-        return
-    end
-    local tab = self.Tabs[name]
-    for _, c in ipairs(tab.Connections) do c:Disconnect() end
-    tab.Page:Destroy(); tab.Button:Destroy()
-    self.Tabs[name] = nil
-    if self.ActiveTab == name then
-        self.ActiveTab = nil
-        for tabName, _ in pairs(self.Tabs) do self:SelectTab(tabName); break end
-    end
-    task.defer(function()
-        if self.TabHolder then
-            local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout")
-            if layout then
-                self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0)
-            end
-        end
-    end)
+    if #self:GetTabNames() <= 1 then self:Notify({ Title = "Warning", Content = "ต้องมีอย่างน้อย 1 แท็บ", Duration = 2 }); return end
+    local tab = self.Tabs[name]; for _, c in ipairs(tab.Connections) do c:Disconnect() end
+    tab.Page:Destroy(); tab.Button:Destroy(); self.Tabs[name] = nil
+    if self.ActiveTab == name then self.ActiveTab = nil; for tabName, _ in pairs(self.Tabs) do self:SelectTab(tabName); break end end
+    task.defer(function() if self.TabHolder then local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout"); if layout then self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0) end end end)
 end
 
-function Window:GetTabNames()
-    local names = {}
-    for name, _ in pairs(self.Tabs) do table.insert(names, name) end
-    return names
-end
-
+function Window:GetTabNames() local names = {}; for name, _ in pairs(self.Tabs) do table.insert(names, name) end; return names end
 function Window:SelectTab(name)
     if self.Destroyed or not self.Tabs[name] then return false end
     self.ActiveTab = name
     for tabName, tab in pairs(self.Tabs) do
-        local active = tabName == name
-        tab.Page.Visible = active
+        local active = tabName == name; tab.Page.Visible = active
         tween(tab.Button, 0.2, { BackgroundTransparency = active and 0 or 0.7, BackgroundColor3 = active and Theme.Background or Theme.CardBg, TextColor3 = active and Theme.Text or Theme.SubText }, Enum.EasingStyle.Quint)
-        local textLabel = tab.Button:FindFirstChildOfClass("TextLabel")
-        if textLabel then tween(textLabel, 0.2, { TextColor3 = active and Theme.Text or Theme.SubText }) end
+        local textLabel = tab.Button:FindFirstChildOfClass("TextLabel"); if textLabel then tween(textLabel, 0.2, { TextColor3 = active and Theme.Text or Theme.SubText }) end
         tween(tab.Glow, 0.2, { BackgroundTransparency = active and 0 or 1 })
     end
     return true
@@ -456,29 +289,22 @@ end
 local function getTarget(tab, options) return options.Column == "Right" and tab.RightCol or tab.LeftCol end
 
 function Tab:AddSection(icon, name, options)
-    options = options or {}
-    local target = getTarget(self, options)
+    options = options or {}; local target = getTarget(self, options)
     local section = create("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1 }, target)
     create("TextLabel", { Size = UDim2.new(0, 25, 1, 0), BackgroundTransparency = 1, Text = icon or "📌", TextColor3 = Theme.Accent, TextSize = 16, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, section)
     create("TextLabel", { Size = UDim2.new(1, -25, 1, 0), Position = UDim2.fromOffset(25, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, section)
-    section:SetAttribute("HH_SearchName", tostring(name or ""))
-    self.Components[#self.Components + 1] = section
-    return section
+    section:SetAttribute("HH_SearchName", tostring(name or "")); self.Components[#self.Components + 1] = section; return section
 end
 
 function Tab:CreateCard(name, height, options)
     local target = getTarget(self, options)
     local card = create("Frame", { Size = UDim2.new(1, 0, 0, height or 45), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = Theme.CardTransparency, BorderSizePixel = 0 }, target)
     corner(card, 10); stroke(card, Theme.Stroke, 0.8, 1)
-    card:SetAttribute("HH_Component", true)
-    card:SetAttribute("HH_SearchName", name or "")
-    self.Components[#self.Components + 1] = card
-    return card
+    card:SetAttribute("HH_Component", true); card:SetAttribute("HH_SearchName", name or ""); self.Components[#self.Components + 1] = card; return card
 end
 
 function Tab:AddInfoCard(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "InfoCard", options.Height or 70, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "InfoCard", options.Height or 70, options)
     create("TextLabel", { Size = UDim2.new(0, 30, 0, 30), Position = UDim2.fromOffset(10, 10), BackgroundTransparency = 1, Text = options.Icon or "ℹ️", TextSize = 20, Font = Enum.Font.GothamBold }, card)
     create("TextLabel", { Size = UDim2.new(1, -50, 0, 20), Position = UDim2.fromOffset(45, 10), BackgroundTransparency = 1, Text = options.Title or "Title", TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, card)
     create("TextLabel", { Size = UDim2.new(1, -50, 0, 30), Position = UDim2.fromOffset(45, 30), BackgroundTransparency = 1, Text = options.Desc or "Description here...", TextColor3 = Theme.SubText, TextSize = 10, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true }, card)
@@ -486,8 +312,7 @@ function Tab:AddInfoCard(options)
 end
 
 function Tab:AddProfileCard(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "ProfileCard", 80, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "ProfileCard", 80, options)
     local avatar = create("ImageLabel", { Size = UDim2.fromOffset(50, 50), Position = UDim2.fromOffset(10, 15), BackgroundColor3 = Theme.Element, Image = options.Image or "rbxthumb://type=AvatarHeadShot&id=" .. Player.UserId .. "&w=150&h=150", ScaleType = Enum.ScaleType.Crop }, card)
     corner(avatar, 100); stroke(avatar, Theme.Accent, 0.2)
     create("TextLabel", { Size = UDim2.new(1, -70, 0, 20), Position = UDim2.fromOffset(70, 15), BackgroundTransparency = 1, Text = options.Username or Player.Name, TextColor3 = Theme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, card)
@@ -497,8 +322,7 @@ function Tab:AddProfileCard(options)
 end
 
 function Tab:AddStatus(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "Status", 35, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "Status", 35, options)
     local dot = create("Frame", { Size = UDim2.fromOffset(10, 10), Position = UDim2.fromOffset(12, 12), BackgroundColor3 = options.Color or Theme.Success, BorderSizePixel = 0 }, card)
     corner(dot, 100); Effects.Glow(dot, options.Color or Theme.Success, 0.5)
     create("TextLabel", { Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(30, 0), BackgroundTransparency = 1, Text = options.Text or "System Online", TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
@@ -506,21 +330,17 @@ function Tab:AddStatus(options)
 end
 
 function Tab:AddFeatureCard(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "Feature", 70, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "Feature", 70, options)
     create("TextLabel", { Size = UDim2.new(0, 40, 0, 40), Position = UDim2.fromOffset(10, 15), BackgroundTransparency = 1, Text = options.Icon or "🔥", TextSize = 24, Font = Enum.Font.GothamBold }, card)
     create("TextLabel", { Size = UDim2.new(1, -60, 0, 20), Position = UDim2.fromOffset(55, 15), BackgroundTransparency = 1, Text = options.Title or "Feature", TextColor3 = Theme.Text, TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, card)
     create("TextLabel", { Size = UDim2.new(1, -60, 0, 25), Position = UDim2.fromOffset(55, 35), BackgroundTransparency = 1, Text = options.Desc or "Click to enable", TextColor3 = Theme.SubText, TextSize = 10, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true }, card)
     local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, card)
-    connect(self, btn.MouseEnter, function() tween(card, 0.15, { BackgroundColor3 = Theme.Hover }) end)
-    connect(self, btn.MouseLeave, function() tween(card, 0.15, { BackgroundColor3 = Theme.CardBg }) end)
-    connect(self, btn.Activated, function() safeCallback(options.Callback) end)
-    return card
+    connect(self, btn.MouseEnter, function() tween(card, 0.15, { BackgroundColor3 = Theme.Hover }) end); connect(self, btn.MouseLeave, function() tween(card, 0.15, { BackgroundColor3 = Theme.CardBg }) end)
+    connect(self, btn.Activated, function() safeCallback(options.Callback) end); return card
 end
 
 function Tab:AddSearchBox(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "Search", 40, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "Search", 40, options)
     create("TextLabel", { Size = UDim2.new(0, 30, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Text = "🔍", TextSize = 14 }, card)
     local box = create("TextBox", { Size = UDim2.new(1, -50, 1, 0), Position = UDim2.fromOffset(40, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = options.Placeholder or "Type to search...", PlaceholderColor3 = Theme.SubText, TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.Gotham, ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left }, card)
     connect(self, box:GetPropertyChangedSignal("Text"), function() safeCallback(options.Callback, box.Text) end)
@@ -528,8 +348,7 @@ function Tab:AddSearchBox(options)
 end
 
 function Tab:AddCommandBox(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "Command", 45, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "Command", 45, options)
     create("TextLabel", { Size = UDim2.new(0, 20, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Text = ">", TextColor3 = Theme.Accent, TextSize = 14, Font = Enum.Font.Code }, card)
     local box = create("TextBox", { Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(30, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = options.Placeholder or "Enter command...", PlaceholderColor3 = Theme.SubText, TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.Code, ClearTextOnFocus = true, TextXAlignment = Enum.TextXAlignment.Left }, card)
     connect(self, box.FocusLost, function(enterPressed) if enterPressed and box.Text ~= "" then safeCallback(options.Callback, box.Text); box.Text = "" end end)
@@ -537,81 +356,48 @@ function Tab:AddCommandBox(options)
 end
 
 function Tab:AddText(text, options)
-    options = options or {}
-    local target = getTarget(self, options)
+    options = options or {}; local target = getTarget(self, options)
     local lbl = create("TextLabel", { Size = UDim2.new(1, 0, 0, options.Height or 20), BackgroundTransparency = 1, Text = text, TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.Gotham, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left }, target)
-    lbl:SetAttribute("HH_SearchName", tostring(text))
-    self.Components[#self.Components + 1] = lbl
-    return { Set = function(_, v) lbl.Text = tostring(v) end }
+    lbl:SetAttribute("HH_SearchName", tostring(text)); self.Components[#self.Components + 1] = lbl; return { Set = function(_, v) lbl.Text = tostring(v) end }
 end
 
-function Tab:AddDivider(options)
-    options = options or {}
-    local target = getTarget(self, options)
-    local line = create("Frame", { Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Theme.Stroke, BorderSizePixel = 0 }, target)
-    return line
-end
+function Tab:AddDivider(options) options = options or {}; local target = getTarget(self, options); return create("Frame", { Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Theme.Stroke, BorderSizePixel = 0 }, target) end
 
 function Tab:AddStat(options)
-    options = options or {}
-    local name = options.Name or "Stat"
-    local card = self:CreateCard(name, 40, options)
+    options = options or {}; local name = options.Name or "Stat"; local card = self:CreateCard(name, 40, options)
     create("TextLabel", { Size = UDim2.new(1, -80, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local valLabel = create("TextLabel", { Size = UDim2.new(0, 70, 1, 0), Position = UDim2.new(1, -80, 0, 0), BackgroundTransparency = 1, Text = tostring(options.Default or "0"), TextColor3 = Theme.Accent, TextSize = 11, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right }, card)
     return { Set = function(_, v) valLabel.Text = tostring(v) end }
 end
 
 function Tab:AddProgress(options)
-    options = options or {}
-    local name = options.Name or "Progress"
-    local card = self:CreateCard(name, 50, options)
+    options = options or {}; local name = options.Name or "Progress"; local card = self:CreateCard(name, 50, options)
     local label = create("TextLabel", { Size = UDim2.new(1, -20, 0, 20), Position = UDim2.fromOffset(10, 5), BackgroundTransparency = 1, Text = name .. " (0%)", TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local bar = create("Frame", { Size = UDim2.new(1, -20, 0, 6), Position = UDim2.fromOffset(10, 30), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.5 }, card)
-    corner(bar, 10)
-    local fill = create("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Theme.Accent }, bar)
-    corner(fill, 10)
-    local function setValue(val)
-        val = math.clamp(tonumber(val) or 0, 0, 100)
-        fill.Size = UDim2.new(val / 100, 0, 1, 0)
-        label.Text = name .. " (" .. math.floor(val) .. "%)"
-    end
-    if options.Default then setValue(options.Default) end
-    return { Set = function(_, v) setValue(v) end }
+    corner(bar, 10); local fill = create("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Theme.Accent }, bar); corner(fill, 10)
+    local function setValue(val) val = math.clamp(tonumber(val) or 0, 0, 100); fill.Size = UDim2.new(val / 100, 0, 1, 0); label.Text = name .. " (" .. math.floor(val) .. "%)" end
+    if options.Default then setValue(options.Default) end; return { Set = function(_, v) setValue(v) end }
 end
 
 function Tab:AddConsole(options)
-    options = options or {}
-    local card = self:CreateCard("Console", 120, options)
+    options = options or {}; local card = self:CreateCard("Console", 120, options)
     local scroll = create("ScrollingFrame", { Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromOffset(5, 5), BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, CanvasSize = UDim2.new(), ClipsDescendants = true }, card)
     local layout = create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, scroll)
     local function addLine(text, color)
         local lbl = create("TextLabel", { Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = "> " .. tostring(text), TextColor3 = color or Theme.SubText, TextSize = 10, Font = Enum.Font.Code, TextXAlignment = Enum.TextXAlignment.Left }, scroll)
-        layout:ApplyLayout()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
-        scroll.CanvasPosition = Vector2.new(0, math.huge)
+        layout:ApplyLayout(); scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10); scroll.CanvasPosition = Vector2.new(0, math.huge)
     end
-    if options.WelcomeText then addLine(options.WelcomeText, Theme.Accent) end
-    return { AddLine = function(_, text, color) addLine(text, color) end }
+    if options.WelcomeText then addLine(options.WelcomeText, Theme.Accent) end; return { AddLine = function(_, text, color) addLine(text, color) end }
 end
 
 function Tab:AddKeybind(options)
-    options = options or {}
-    local name = options.Name or "Keybind"
-    local flag = options.Flag or name
-    local currentKey = options.Default or "None"
-    local card = self:CreateCard(name, 45, options)
+    options = options or {}; local name = options.Name or "Keybind"; local flag = options.Flag or name; local currentKey = options.Default or "None"; local card = self:CreateCard(name, 45, options)
     create("TextLabel", { Size = UDim2.new(1, -80, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local btn = create("TextButton", { Size = UDim2.new(0, 60, 0, 26), Position = UDim2.new(1, -70, 0.5, -13), BackgroundColor3 = Theme.Background, Text = tostring(currentKey), TextColor3 = Theme.Text, TextSize = 10, Font = Enum.Font.GothamBold, AutoButtonColor = false }, card)
-    corner(btn, 6); stroke(btn, Theme.Stroke, 0.5)
-    local listening = false
-    local connection
-    local function setKey(key)
-        currentKey = key; btn.Text = tostring(key); self.Window.Flags[flag] = key
-        safeCallback(options.Callback, key)
-    end
+    corner(btn, 6); stroke(btn, Theme.Stroke, 0.5); local listening = false; local connection
+    local function setKey(key) currentKey = key; btn.Text = tostring(key); self.Window.Flags[flag] = key; safeCallback(options.Callback, key) end
     connect(self, btn.Activated, function()
-        if listening then return end
-        listening = true; btn.Text = "Listening..."; btn.TextColor3 = Theme.Accent
+        if listening then return end; listening = true; btn.Text = "Listening..."; btn.TextColor3 = Theme.Accent
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseButton1 then
                 local keyName = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode.Name or input.UserInputType.Name
@@ -619,19 +405,14 @@ function Tab:AddKeybind(options)
             end
         end)
     end)
-    self.Window.Flags[flag] = currentKey
-    return { Get = function() return currentKey end, Set = function(_, key) setKey(key) end }
+    self.Window.Flags[flag] = currentKey; return { Get = function() return currentKey end, Set = function(_, key) setKey(key) end }
 end
 
 function Tab:AddColorPicker(options)
-    options = options or {}
-    local name = options.Name or "Color Picker"
-    local currentColor = options.Default or Color3.fromRGB(255, 255, 255)
-    local card = self:CreateCard(name, 45, options)
+    options = options or {}; local name = options.Name or "Color Picker"; local currentColor = options.Default or Color3.fromRGB(255, 255, 255); local card = self:CreateCard(name, 45, options)
     create("TextLabel", { Size = UDim2.new(1, -80, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local colorPreview = create("Frame", { Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(1, -40, 0.5, -15), BackgroundColor3 = currentColor }, card)
-    corner(colorPreview, 6); stroke(colorPreview, Theme.Stroke, 0.5)
-    local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, card)
+    corner(colorPreview, 6); stroke(colorPreview, Theme.Stroke, 0.5); local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, card)
     local opened = false
     local paletteColors = {
         Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 0, 255),
@@ -640,23 +421,14 @@ function Tab:AddColorPicker(options)
         Color3.fromRGB(0, 0, 0), Color3.fromRGB(128, 128, 128), Color3.fromRGB(200, 200, 200), Color3.fromRGB(255, 192, 203),
     }
     local optionConnections = {}
-    local function close()
-        opened = false
-        for _, c in ipairs(optionConnections) do c:Disconnect() end
-        table.clear(optionConnections)
-        for _, child in ipairs(card:GetChildren()) do if child:GetAttribute("HH_Option") then child:Destroy() end end
-        tween(card, 0.18, { Size = UDim2.new(1, 0, 0, 45) })
-    end
+    local function close() opened = false; for _, c in ipairs(optionConnections) do c:Disconnect() end; table.clear(optionConnections); for _, child in ipairs(card:GetChildren()) do if child:GetAttribute("HH_Option") then child:Destroy() end end; tween(card, 0.18, { Size = UDim2.new(1, 0, 0, 45) }) end
     connect(self, btn.Activated, function()
-        if opened then close(); return end
-        opened = true
+        if opened then close(); return end; opened = true
         for i, col in ipairs(paletteColors) do
             local row = math.floor((i-1) / 4); local colIndex = (i-1) % 4
             local colorBtn = create("TextButton", { Size = UDim2.new(0, 24, 0, 24), Position = UDim2.fromOffset(12 + colIndex * 28, 50 + row * 28), BackgroundColor3 = col, Text = "", AutoButtonColor = false }, card)
             corner(colorBtn, 4); colorBtn:SetAttribute("HH_Option", true)
-            optionConnections[#optionConnections + 1] = colorBtn.Activated:Connect(function()
-                currentColor = col; colorPreview.BackgroundColor3 = col; close(); safeCallback(options.Callback, col)
-            end)
+            optionConnections[#optionConnections + 1] = colorBtn.Activated:Connect(function() currentColor = col; colorPreview.BackgroundColor3 = col; close(); safeCallback(options.Callback, col) end)
         end
         tween(card, 0.2, { Size = UDim2.new(1, 0, 0, 50 + math.ceil(#paletteColors / 4) * 28) })
     end)
@@ -664,64 +436,35 @@ function Tab:AddColorPicker(options)
 end
 
 function Tab:AddToggle(options)
-    options = options or {}
-    local name = options.Name or "Toggle"
-    local flag = options.Flag or name
-    local state = self.Window.Flags[flag] == nil and (options.Default == true) or (self.Window.Flags[flag] == true)
-    local card = self:CreateCard(name, 45, options)
+    options = options or {}; local name = options.Name or "Toggle"; local flag = options.Flag or name; local state = self.Window.Flags[flag] == nil and (options.Default == true) or (self.Window.Flags[flag] == true); local card = self:CreateCard(name, 45, options)
     create("TextLabel", { Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local switch = create("Frame", { Size = UDim2.fromOffset(40, 22), Position = UDim2.new(1, -52, 0.5, -11), BackgroundColor3 = state and Theme.Element or Theme.Stroke }, card)
-    corner(switch, 20)
-    local knob = create("Frame", { Size = UDim2.fromOffset(18, 18), Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.fromOffset(2, 2), BackgroundColor3 = Color3.fromRGB(255, 255, 255) }, switch)
-    corner(knob, 20)
+    corner(switch, 20); local knob = create("Frame", { Size = UDim2.fromOffset(18, 18), Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.fromOffset(2, 2), BackgroundColor3 = Color3.fromRGB(255, 255, 255) }, switch); corner(knob, 20)
     local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, card)
-    local function set(value, silent)
-        state = value == true; self.Window.Flags[flag] = state
-        tween(switch, 0.2, { BackgroundColor3 = state and Theme.Element or Theme.Stroke })
-        tween(knob, 0.2, { Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.fromOffset(2, 2) }, Enum.EasingStyle.Quint)
-        if not silent then safeCallback(options.Callback, state) end
-    end
-    connect(self, btn.Activated, function() set(not state) end)
-    self.Window.Flags[flag] = state
-    return { Get = function() return state end, Set = function(_, v) set(v) end }
+    local function set(value, silent) state = value == true; self.Window.Flags[flag] = state; tween(switch, 0.2, { BackgroundColor3 = state and Theme.Element or Theme.Stroke }); tween(knob, 0.2, { Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.fromOffset(2, 2) }, Enum.EasingStyle.Quint); if not silent then safeCallback(options.Callback, state) end end
+    connect(self, btn.Activated, function() set(not state) end); self.Window.Flags[flag] = state; return { Get = function() return state end, Set = function(_, v) set(v) end }
 end
 
 function Tab:AddInput(options)
-    options = options or {}
-    local name = options.Name or "Input"
-    local card = self:CreateCard(name, 55, options)
+    options = options or {}; local name = options.Name or "Input"; local card = self:CreateCard(name, 55, options)
     create("TextLabel", { Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(10, 4), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.SubText, TextSize = 10, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local box = create("TextBox", { Size = UDim2.new(1, -20, 0, 26), Position = UDim2.fromOffset(10, 22), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.5, Text = tostring(options.Default or ""), PlaceholderText = options.Placeholder or "Enter value...", TextColor3 = Theme.Text, TextSize = 12, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Center }, card)
-    corner(box, 6); stroke(box, Theme.Stroke, 0.7)
-    connect(self, box.FocusLost, function(enterPressed) safeCallback(options.Callback, box.Text, enterPressed) end)
-    return { Get = function() return box.Text end, Set = function(_, v) box.Text = tostring(v) end }
+    corner(box, 6); stroke(box, Theme.Stroke, 0.7); connect(self, box.FocusLost, function(enterPressed) safeCallback(options.Callback, box.Text, enterPressed) end); return { Get = function() return box.Text end, Set = function(_, v) box.Text = tostring(v) end }
 end
 
 function Tab:AddDropdown(options)
-    options = options or {}
-    local choices = options.Options or {}
-    local selected = options.Default or choices[1]
-    local card = self:CreateCard(options.Name or "Dropdown", 45, options)
+    options = options or {}; local choices = options.Options or {}; local selected = options.Default or choices[1]; local card = self:CreateCard(options.Name or "Dropdown", 45, options)
     local btnText = create("TextLabel", { Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = tostring(selected or "None"), TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
     local chevron = create("TextLabel", { Size = UDim2.fromOffset(30, 30), Position = UDim2.new(1, -35, 0.5, -15), BackgroundTransparency = 1, Text = ">", TextColor3 = Theme.Text, TextSize = 16, Font = Enum.Font.GothamBold }, card)
     local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, card)
     local opened, optionConnections = false, {}
-    local function close()
-        opened = false; chevron.Text = ">"
-        for _, c in ipairs(optionConnections) do c:Disconnect() end
-        table.clear(optionConnections)
-        for _, child in ipairs(card:GetChildren()) do if child:GetAttribute("HH_Option") then child:Destroy() end end
-        tween(card, 0.18, { Size = UDim2.new(1, 0, 0, 45) })
-    end
+    local function close() opened = false; chevron.Text = ">"; for _, c in ipairs(optionConnections) do c:Disconnect() end; table.clear(optionConnections); for _, child in ipairs(card:GetChildren()) do if child:GetAttribute("HH_Option") then child:Destroy() end end; tween(card, 0.18, { Size = UDim2.new(1, 0, 0, 45) }) end
     connect(self, btn.Activated, function()
-        if opened then close(); return end
-        opened = true; chevron.Text = "v"
+        if opened then close(); return end; opened = true; chevron.Text = "v"
         for i, choice in ipairs(choices) do
             local opt = create("TextButton", { Size = UDim2.new(1, -20, 0, 30), Position = UDim2.fromOffset(10, 45 + (i - 1) * 32), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.5, Text = tostring(choice), TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.Gotham, AutoButtonColor = false }, card)
             corner(opt, 6); opt:SetAttribute("HH_Option", true)
-            optionConnections[#optionConnections + 1] = opt.Activated:Connect(function()
-                selected = choice; btnText.Text = tostring(choice); close(); safeCallback(options.Callback, choice)
-            end)
+            optionConnections[#optionConnections + 1] = opt.Activated:Connect(function() selected = choice; btnText.Text = tostring(choice); close(); safeCallback(options.Callback, choice) end)
         end
         tween(card, 0.2, { Size = UDim2.new(1, 0, 0, 45 + #choices * 32) })
     end)
@@ -729,26 +472,16 @@ function Tab:AddDropdown(options)
 end
 
 function Tab:AddSlider(options)
-    options = options or {}
-    local minimum, maximum = options.Min or 0, options.Max or 100
-    local decimals = options.Decimals or 0
-    local multiplier = 10 ^ decimals
-    local value = math.clamp(options.Default or minimum, minimum, maximum)
-    value = math.floor(value * multiplier + 0.5) / multiplier
-    local card = self:CreateCard(options.Name or "Slider", 60, options)
+    options = options or {}; local minimum, maximum = options.Min or 0, options.Max or 100; local decimals = options.Decimals or 0; local multiplier = 10 ^ decimals
+    local value = math.clamp(options.Default or minimum, minimum, maximum); value = math.floor(value * multiplier + 0.5) / multiplier; local card = self:CreateCard(options.Name or "Slider", 60, options)
     local label = create("TextLabel", { Size = UDim2.new(1, -20, 0, 20), Position = UDim2.fromOffset(10, 2), BackgroundTransparency = 1, Text = (options.Name or "Slider") .. " : " .. tostring(value), TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left }, card)
-    local bar = create("Frame", { Size = UDim2.new(1, -20, 0, 6), Position = UDim2.fromOffset(10, 42), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.5 }, card)
-    corner(bar, 10)
-    local fill = create("Frame", { Size = UDim2.new((value - minimum) / (maximum - minimum), 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255) }, bar)
-    corner(fill, 10)
+    local bar = create("Frame", { Size = UDim2.new(1, -20, 0, 6), Position = UDim2.fromOffset(10, 42), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.5 }, card); corner(bar, 10)
+    local fill = create("Frame", { Size = UDim2.new((value - minimum) / (maximum - minimum), 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255) }, bar); corner(fill, 10)
     local hitbox = create("TextButton", { Size = UDim2.new(1, 0, 0, 25), Position = UDim2.fromOffset(0, -10), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, bar)
     local dragging = false
     local function setValue(x, silent)
-        local pct = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
-        value = minimum + (maximum - minimum) * pct
-        value = math.floor(value * multiplier + 0.5) / multiplier
-        fill.Size = UDim2.new((value - minimum) / (maximum - minimum), 0, 1, 0)
-        label.Text = (options.Name or "Slider") .. " : " .. tostring(value)
+        local pct = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1); value = minimum + (maximum - minimum) * pct; value = math.floor(value * multiplier + 0.5) / multiplier
+        fill.Size = UDim2.new((value - minimum) / (maximum - minimum), 0, 1, 0); label.Text = (options.Name or "Slider") .. " : " .. tostring(value)
         if not silent then safeCallback(options.Callback, value) end
     end
     connect(self, hitbox.InputBegan, function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; setValue(input.Position.X) end end)
@@ -758,31 +491,20 @@ function Tab:AddSlider(options)
 end
 
 function Tab:AddButton(options)
-    options = options or {}
-    local card = self:CreateCard(options.Name or "Button", options.Height or 42, options)
+    options = options or {}; local card = self:CreateCard(options.Name or "Button", options.Height or 42, options)
     local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = options.Name or "Button", TextColor3 = Theme.Text, TextSize = 11, Font = Enum.Font.GothamMedium, AutoButtonColor = false }, card)
-    connect(self, btn.MouseEnter, function() tween(card, 0.15, { BackgroundColor3 = Theme.Hover }) end)
-    connect(self, btn.MouseLeave, function() tween(card, 0.15, { BackgroundColor3 = Theme.CardBg }) end)
-    connect(self, btn.Activated, function() safeCallback(options.Callback) end)
-    return { Instance = btn, SetText = function(_, v) btn.Text = tostring(v) end }
+    connect(self, btn.MouseEnter, function() tween(card, 0.15, { BackgroundColor3 = Theme.Hover }) end); connect(self, btn.MouseLeave, function() tween(card, 0.15, { BackgroundColor3 = Theme.CardBg }) end)
+    connect(self, btn.Activated, function() safeCallback(options.Callback) end); return { Instance = btn, SetText = function(_, v) btn.Text = tostring(v) end }
 end
 
 function Tab:SetSearch(query)
     query = string.lower(tostring(query or ""))
-    for _, component in ipairs(self.Components) do
-        if isAlive(component) then
-            local name = string.lower(component:GetAttribute("HH_SearchName") or "")
-            component.Visible = query == "" or string.find(name, query, 1, true) ~= nil
-        end
-    end
+    for _, component in ipairs(self.Components) do if isAlive(component) then local name = string.lower(component:GetAttribute("HH_SearchName") or ""); component.Visible = query == "" or string.find(name, query, 1, true) ~= nil end end
 end
 
--- SYSTEM
 function Window:Notify(options)
-    if self.Destroyed then return end
-    self.NotificationQueue[#self.NotificationQueue + 1] = options or {}
-    if self.NotificationBusy then return end
-    self.NotificationBusy = true
+    if self.Destroyed then return end; self.NotificationQueue[#self.NotificationQueue + 1] = options or {}
+    if self.NotificationBusy then return end; self.NotificationBusy = true
     task.spawn(function()
         local holder = self.Screen:FindFirstChild("Notifications")
         if not holder then
@@ -795,8 +517,7 @@ function Window:Notify(options)
             corner(card, 12); stroke(card)
             create("TextLabel", { Size = UDim2.new(1, -20, 0, 23), Position = UDim2.fromOffset(10, 7), BackgroundTransparency = 1, Text = data.Title or "HelloHub", TextColor3 = Theme.Accent, TextSize = 12, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left }, card)
             create("TextLabel", { Size = UDim2.new(1, -20, 0, 25), Position = UDim2.fromOffset(10, 33), BackgroundTransparency = 1, Text = data.Content or "", TextColor3 = Theme.SubText, TextSize = 10, Font = Enum.Font.Gotham, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true }, card)
-            tween(card, 0.22, { BackgroundTransparency = Theme.CardTransparency })
-            task.wait(tonumber(data.Duration) or 3)
+            tween(card, 0.22, { BackgroundTransparency = Theme.CardTransparency }); task.wait(tonumber(data.Duration) or 3)
             if isAlive(card) then local out = tween(card, 0.2, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0) }); if out then out.Completed:Wait() end; card:Destroy() end
         end
         self.NotificationBusy = false
@@ -805,15 +526,12 @@ end
 
 function Window:ConnectSearch()
     if self._searchConnection then self._searchConnection:Disconnect() end
-    self._searchConnection = self.Search:GetPropertyChangedSignal("Text"):Connect(function()
-        for _, tab in pairs(self.Tabs) do tab:SetSearch(self.Search.Text) end
-    end)
+    self._searchConnection = self.Search:GetPropertyChangedSignal("Text"):Connect(function() for _, tab in pairs(self.Tabs) do tab:SetSearch(self.Search.Text) end end)
     self.Connections[#self.Connections + 1] = self._searchConnection
 end
 
 function Window:Destroy()
-    if self.Destroyed then return end
-    self.Destroyed = true
+    if self.Destroyed then return end; self.Destroyed = true
     for _, tab in pairs(self.Tabs) do for _, c in ipairs(tab.Connections) do pcall(function() c:Disconnect() end) end end
     for _, c in ipairs(self.Connections) do pcall(function() c:Disconnect() end) end
     if isAlive(self.Screen) then self.Screen:Destroy() end
@@ -822,42 +540,97 @@ end
 HelloHub.Effects = Effects
 
 -- =====================================================================
--- DEMO SCRIPT (ทดสอบการใช้งาน Tab ทั้งหมด)
+-- PART 2: TEST SCRIPT (ทดสอบทุกฟังก์ชัน)
 -- =====================================================================
 task.spawn(function()
     task.wait(0.5)
     
-    local UI = HelloHub.new({ Title = "HelloHub v6.1.0" })
+    local UI = HelloHub.new({ Title = "HelloHub - Test Suite" })
     UI:ConnectSearch()
 
-    -- สร้าง 3 แท็บเริ่มต้น
+    -- ============================================================
+    -- แท็บที่ 1: Main (ทดสอบ Component พื้นฐาน)
+    -- ============================================================
     local MainTab = UI:CreateTab({ Name = "Main" })
-    local VisualTab = UI:CreateTab({ Name = "Visual" })
-    local SettingTab = UI:CreateTab({ Name = "Settings" })
 
-    -- แท็บ Main
+    -- คอลัมน์ซ้าย
     MainTab:AddSection("👤", "Profile", { Column = "Left" })
-    MainTab:AddProfileCard({ Column = "Left", Rank = "Administrator" })
-    MainTab:AddStatus({ Column = "Left", Text = "ระบบทำงานปกติ", Color = Color3.fromRGB(0, 255, 0) })
-    
-    MainTab:AddSection("⚙️", "Controls", { Column = "Left" })
-    MainTab:AddToggle({ Name = "เปิดใช้งานสคริปต์", Column = "Left", Default = true })
-    
-    MainTab:AddSection("📝", "Commands", { Column = "Right" })
-    MainTab:AddCommandBox({ Column = "Right", Callback = function(cmd) UI:Notify({Title="Command", Content="รันคำสั่ง: "..cmd, Duration=2}) end })
-    MainTab:AddKeybind({ Name = "ปุ่มเปิดเมนู", Column = "Right", Default = "RightShift" })
+    MainTab:AddProfileCard({ Column = "Left", Rank = "Test Administrator" })
+    MainTab:AddStatus({ Column = "Left", Text = "ระบบทดสอบพร้อมทำงาน", Color = Color3.fromRGB(0, 255, 0) })
+    MainTab:AddInfoCard({ Column = "Left", Title = "ข้อมูลการทดสอบ", Desc = "แท็บนี้ใช้ทดสอบ Component พื้นฐานทั้งหมด", Icon = "ℹ️" })
 
-    -- แท็บ Visual
-    VisualTab:AddSection("✨", "เอฟเฟกต์ UI", { Column = "Left" })
-    local glowBtn = VisualTab:AddButton({ Name = "Glow Effect", Column = "Left", Callback = function() end })
+    MainTab:AddSection("⚙️", "Controls", { Column = "Left" })
+    MainTab:AddToggle({ Name = "ทดสอบ Toggle", Column = "Left", Default = true, Callback = function(state) UI:Notify({ Title = "Toggle", Content = "สถานะ: " .. tostring(state), Duration = 2 }) end })
+    MainTab:AddSlider({ Name = "ทดสอบ Slider", Column = "Left", Min = 0, Max = 100, Default = 50, Callback = function(value) print("[Test] Slider:", value) end })
+    MainTab:AddInput({ Name = "ทดสอบ Input", Column = "Left", Default = "HelloHub", Callback = function(text) UI:Notify({ Title = "Input", Content = "คุณพิมพ์: " .. text, Duration = 2 }) end })
+
+    -- คอลัมน์ขวา
+    MainTab:AddSection("📝", "Commands", { Column = "Right" })
+    MainTab:AddCommandBox({ Column = "Right", Callback = function(cmd) UI:Notify({ Title = "Command", Content = "รันคำสั่ง: " .. cmd, Duration = 2 }) end })
+    MainTab:AddKeybind({ Name = "ทดสอบ Keybind", Column = "Right", Default = "F", Callback = function(key) UI:Notify({ Title = "Keybind", Content = "คุณกดปุ่ม: " .. key, Duration = 2 }) end })
+    MainTab:AddDropdown({ Name = "ทดสอบ Dropdown", Column = "Right", Options = {"ตัวเลือก A", "ตัวเลือก B", "ตัวเลือก C"}, Callback = function(choice) UI:Notify({ Title = "Dropdown", Content = "เลือก: " .. choice, Duration = 2 }) end })
+    MainTab:AddColorPicker({ Name = "ทดสอบ Color Picker", Column = "Right", Default = Color3.fromRGB(255, 0, 0), Callback = function(color) UI:Notify({ Title = "Color Picker", Content = "เลือกสีใหม่", Duration = 2 }) end })
+    MainTab:AddButton({ Name = "ทดสอบ Button", Column = "Right", Callback = function() UI:Notify({ Title = "Button", Content = "คุณกดปุ่มทดสอบ!", Duration = 2 }) end })
+
+    -- ============================================================
+    -- แท็บที่ 2: Effects (ทดสอบ Effect ทั้ง 5 แบบ)
+    -- ============================================================
+    local EffectTab = UI:CreateTab({ Name = "Effects" })
+
+    EffectTab:AddSection("✨", "ทดสอบ Effect", { Column = "Left" })
+    local glowBtn = EffectTab:AddButton({ Name = "Glow Effect", Column = "Left", Callback = function() end })
     HelloHub.Effects.Glow(glowBtn.Instance.Parent, Color3.fromRGB(255, 0, 255))
 
-    -- แท็บ Settings
-    SettingTab:AddSection("🔧", "ระบบ", { Column = "Left" })
-    SettingTab:AddButton({ Name = "ปิด UI (Hide)", Column = "Left", Callback = function() UI:ToggleWindow(false) end })
+    local pulseBtn = EffectTab:AddButton({ Name = "Pulse Effect", Column = "Left", Callback = function() end })
+    HelloHub.Effects.Pulse(pulseBtn.Instance.Parent)
+
+    local shakeBtn = EffectTab:AddButton({ Name = "Shake Effect", Column = "Left", Callback = function() end })
+    shakeBtn.Instance.Activated:Connect(function() HelloHub.Effects.Shake(shakeBtn.Instance.Parent) end)
+
+    local rainbowBtn = EffectTab:AddButton({ Name = "Rainbow Effect", Column = "Left", Callback = function() end })
+    HelloHub.Effects.Rainbow(rainbowBtn.Instance.Parent, "BackgroundColor3", 0.5)
+
+    local fireCard = EffectTab:AddFeatureCard({ Column = "Left", Title = "Fire Effect", Desc = "เอฟเฟกต์เปลวไฟลอยขึ้น", Icon = "🔥", Callback = function() end })
+    HelloHub.Effects.Fire(fireCard)
+
+    -- ============================================================
+    -- แท็บที่ 3: Data (ทดสอบ Stat, Progress, Console, Text, Divider)
+    -- ============================================================
+    local DataTab = UI:CreateTab({ Name = "Data" })
+
+    DataTab:AddSection("📊", "ข้อมูล", { Column = "Left" })
+    DataTab:AddStat({ Name = "ผู้เล่นออนไลน์", Default = "24", Column = "Left" })
+    local progressBar = DataTab:AddProgress({ Name = "โหลดข้อมูล", Default = 50, Column = "Left" })
+    DataTab:AddText("ข้อความทดสอบ: นี่คือ Component Text ที่ไม่มีพื้นหลังการ์ด", { Column = "Left" })
+    DataTab:AddDivider({ Column = "Left" })
+    DataTab:AddSearchBox({ Column = "Left", Placeholder = "ค้นหาข้อมูล...", Callback = function(txt) print("[Test] Search:", txt) end })
+
+    DataTab:AddSection("📜", "Console", { Column = "Right" })
+    local consoleBox = DataTab:AddConsole({ Column = "Right", WelcomeText = "Console พร้อมใช้งาน..." })
+
+    -- จำลองการอัปเดตข้อมูล
+    task.spawn(function()
+        task.wait(2)
+        consoleBox:AddLine("กำลังเชื่อมต่อเซิร์ฟเวอร์...", Color3.fromRGB(255, 200, 0))
+        task.wait(1.5)
+        consoleBox:AddLine("เชื่อมต่อสำเร็จ!", Color3.fromRGB(0, 255, 0))
+        for i = 50, 100, 10 do
+            task.wait(0.3)
+            progressBar:Set(i)
+        end
+    end)
+
+    -- ============================================================
+    -- แท็บที่ 4: Settings (ทดสอบการควบคุมหน้าต่าง)
+    -- ============================================================
+    local SettingTab = UI:CreateTab({ Name = "Settings" })
+
+    SettingTab:AddSection("🔧", "ควบคุม UI", { Column = "Left" })
+    SettingTab:AddButton({ Name = "ซ่อน UI (Hide)", Column = "Left", Callback = function() UI:ToggleWindow(false) end })
     SettingTab:AddButton({ Name = "ทำลาย UI (Destroy)", Column = "Left", Callback = function() UI:Destroy() end })
 
-    UI:Notify({ Title = "HelloHub v6.1.0", Content = "กด RightShift เพื่อเปิด/ปิด หรือกด + เพื่อเพิ่มแท็บใหม่!", Duration = 5 })
+    -- ============================================================
+    -- แจ้งเตือนเริ่มต้น
+    -- ============================================================
+    UI:Notify({ Title = "HelloHub Test Suite", Content = "โหลดสำเร็จ! ทดสอบ Tab, ปุ่ม, Effect ทั้งหมดได้เลย", Duration = 6 })
 end)
-
-return HelloHub
