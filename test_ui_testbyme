@@ -1,15 +1,14 @@
 --[[
 ========================================================
- HELLOHUB | UI LIBRARY v6.0.0 (Ultimate Edition)
+ HELLOHUB | UI LIBRARY v6.1.0 (Fixed Tabs & Clipping)
  Runtime: Roblox Studio | Executor (loadstring)
 ========================================================
  Features:
- - Top Tabs (with + and X buttons)
- - Draggable Floating Button (Launcher)
- - Randomly Sized Stars (Twinkling & Rotating)
- - All Components (Toggle, Slider, Dropdown, etc.)
- - Effects (Glow, Pulse, Shake, Rainbow, Fire)
- - Keybind Toggle (RightShift to show/hide UI)
+ - Top Tabs (Fully functional + and X buttons)
+ - No UI Overflow (Strict Clipping)
+ - Draggable Floating Button
+ - Randomly Sized Stars (Inside UI only)
+ - All Components & Effects
 ========================================================
 ]]
 
@@ -31,13 +30,13 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 -- CONFIG
 local CONFIG = {
     Name = "HelloHub",
-    Version = "v6.0.0",
+    Version = "v6.1.0",
     Logo = "rbxassetid://75164736067854", 
     Window = { Width = 750, Height = 500, MinimumWidth = 500, MinimumHeight = 350, Margin = 20 },
     Animation = { Intro = 0.85, Normal = 0.22, Fast = 0.14 },
     Effects = {
         Stars = true,
-        StarCount = 40, -- จำนวนดาว
+        StarCount = 40,
         GlassTransparency = 0.4,
     },
     Theme = {
@@ -88,15 +87,13 @@ local function connect(owner, signal, callback)
     return connection
 end
 
--- STAR SYSTEM (Random Size & Twinkling)
+-- STAR SYSTEM (Clipped to UI)
 local function startStarSystem(container, isMainVisible)
     if not CONFIG.Effects.Stars then return end
-    
     task.spawn(function()
         while isAlive(container) do
             if isMainVisible() then
-                -- สร้างดาวสุ่มขนาดและตำแหน่ง
-                local size = math.random(4, 18) -- สุ่มขนาด 4px ถึง 18px
+                local size = math.random(4, 18)
                 local star = create("TextLabel", {
                     Size = UDim2.fromOffset(size, size),
                     Position = UDim2.new(math.random(), 0, math.random(), 0),
@@ -107,17 +104,15 @@ local function startStarSystem(container, isMainVisible)
                     Font = Enum.Font.GothamBold,
                     TextTransparency = math.random(30, 80) / 100,
                     Rotation = math.random(0, 360),
-                    ZIndex = 1,
+                    ZIndex = 2, -- ต่ำกว่า UI หลักเพื่อไม่ให้ทับปุ่ม
                 }, container)
                 
-                -- อนิเมชันดาวกระพริบและหมุน
                 local twinkle = TweenService:Create(star, TweenInfo.new(math.random(10, 25)/10, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
                     TextTransparency = 1,
                     Rotation = star.Rotation + math.random(-90, 90)
                 })
                 twinkle:Play()
                 
-                -- ลบดาวเมื่อเวลาผ่านไป
                 task.delay(math.random(5, 15), function()
                     if isAlive(star) then
                         local fadeOut = tween(star, 1, { TextTransparency = 1 })
@@ -125,7 +120,7 @@ local function startStarSystem(container, isMainVisible)
                     end
                 end)
             end
-            task.wait(math.random(1, 3) / 10) -- สุ่มเวลาสร้างดาว
+            task.wait(math.random(1, 3) / 10)
         end
     end)
 end
@@ -181,6 +176,7 @@ function HelloHub.new(options)
 
     create("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = "rbxassetid://13540752864", ImageTransparency = 0.5, ScaleType = Enum.ScaleType.Crop, ZIndex = 0 }, screen)
     
+    -- Main Window (Strict Clipping)
     local main = create("Frame", { Name = "Main", AnchorPoint = Vector2.zero, Position = self.NormalPosition, Size = self.NormalSize, BackgroundColor3 = Theme.Background, BackgroundTransparency = CONFIG.Effects.GlassTransparency, BorderSizePixel = 0, ClipsDescendants = true, Visible = false }, screen)
     self.Main = main
     corner(main, 16)
@@ -196,32 +192,31 @@ function HelloHub.new(options)
         end 
     end)
 
-    -- STAR SYSTEM LAYER
+    -- STAR LAYER (Inside main, strictly clipped)
     local starContainer = create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 1 }, main)
     startStarSystem(starContainer, function() return isAlive(main) and main.Visible and not self.Hidden and not self.Minimized end)
 
-    -- HEADER & CONTROLS
-    local header = create("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, BorderSizePixel = 0, ZIndex = 3 }, main)
-    create("TextLabel", { Name = "Title", Size = UDim2.new(0, 200, 1, 0), Position = UDim2.fromOffset(15, 0), BackgroundTransparency = 1, Text = options.Title or CONFIG.Name, TextColor3 = Theme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, header)
+    -- HEADER
+    local header = create("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, BorderSizePixel = 0, ZIndex = 5 }, main)
+    create("TextLabel", { Name = "Title", Size = UDim2.new(0, 200, 1, 0), Position = UDim2.fromOffset(15, 0), BackgroundTransparency = 1, Text = options.Title or CONFIG.Name, TextColor3 = Theme.Text, TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 }, header)
 
-    local minBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -80, 0, 0), BackgroundTransparency = 1, Text = "−", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 4 }, header)
+    local minBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -80, 0, 0), BackgroundTransparency = 1, Text = "−", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, header)
     connect(self, minBtn.MouseEnter, function() tween(minBtn, 0.1, { TextColor3 = Theme.Text }) end)
     connect(self, minBtn.MouseLeave, function() tween(minBtn, 0.1, { TextColor3 = Theme.SubText }) end)
     
-    local closeBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -40, 0, 0), BackgroundTransparency = 1, Text = "×", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 4 }, header)
+    local closeBtn = create("TextButton", { Size = UDim2.fromOffset(40, 40), Position = UDim2.new(1, -40, 0, 0), BackgroundTransparency = 1, Text = "×", TextColor3 = Theme.SubText, TextSize = 20, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, header)
     connect(self, closeBtn.MouseEnter, function() tween(closeBtn, 0.1, { TextColor3 = Theme.Text }) end)
     connect(self, closeBtn.MouseLeave, function() tween(closeBtn, 0.1, { TextColor3 = Theme.SubText }) end)
     connect(self, closeBtn.Activated, function() self:ToggleWindow(false) end)
 
-    -- TAB BAR (TOP)
-    local tabBar = create("Frame", { Name = "TabBar", Size = UDim2.new(1, 0, 0, 40), Position = UDim2.fromOffset(0, 40), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 3 }, main)
+    -- TAB BAR (Horizontal Scrolling enabled to prevent overflow)
+    local tabBar = create("ScrollingFrame", { Name = "TabBar", Size = UDim2.new(1, -50, 0, 40), Position = UDim2.fromOffset(0, 40), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 5, ScrollBarThickness = 0, CanvasSize = UDim2.new() }, main)
     self.TabHolder = tabBar
-    create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), VerticalAlignment = Enum.VerticalAlignment.Center }, tabBar)
-    padding(tabBar, 10, 50, 0, 0) -- เผื่อที่ให้ปุ่ม +
-    create("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = Theme.Stroke, BorderSizePixel = 0, ZIndex = 4 }, tabBar)
-
-    -- ปุ่ม + สำหรับเพิ่มแท็บ
-    local plusBtn = create("TextButton", { Name = "PlusButton", Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -38, 0.5, -14), BackgroundColor3 = Theme.CardBg, Text = "+", TextColor3 = Theme.Text, TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 4 }, tabBar)
+    create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }, tabBar)
+    padding(tabBar, 10, 10, 0, 0)
+    
+    -- ปุ่ม + สำหรับเพิ่มแท็บ (ลอยอยู่ขวาสุด)
+    local plusBtn = create("TextButton", { Name = "PlusButton", Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -38, 0, 46), BackgroundColor3 = Theme.CardBg, Text = "+", TextColor3 = Theme.Text, TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, main)
     corner(plusBtn, 6); stroke(plusBtn, Theme.Stroke, 0.8)
     connect(self, plusBtn.MouseEnter, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.Hover }) end)
     connect(self, plusBtn.MouseLeave, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.CardBg }) end)
@@ -231,7 +226,7 @@ function HelloHub.new(options)
         self:SelectTab(newTabName)
     end)
 
-    -- BODY
+    -- BODY (Strict Clipping)
     local body = create("Frame", { Name = "Body", Size = UDim2.new(1, 0, 1, -80), Position = UDim2.fromOffset(0, 80), BackgroundTransparency = 1, ZIndex = 3, ClipsDescendants = true }, main)
     self.Body = body
     
@@ -242,25 +237,19 @@ function HelloHub.new(options)
     self.PageHolder = create("Frame", { Name = "Pages", Size = UDim2.new(1, -20, 1, -50), Position = UDim2.fromOffset(10, 48), BackgroundTransparency = 1, ZIndex = 4, ClipsDescendants = true }, body)
     create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, self.PageHolder)
 
-    -- LAUNCHER (DRAGGABLE)
+    -- LAUNCHER (Floating, Draggable)
     local launcher = create("ImageButton", { Name = "Launcher", Size = UDim2.fromOffset(54, 54), AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 20, 1, -20), BackgroundColor3 = Theme.CardBg, Image = options.Logo or CONFIG.Logo, ScaleType = Enum.ScaleType.Crop, Visible = false, AutoButtonColor = false, ZIndex = 50 }, screen)
     self.Launcher = launcher
     corner(launcher, 100); stroke(launcher, Theme.Accent)
     connect(self, launcher.MouseEnter, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(60, 60) }, Enum.EasingStyle.Back) end)
     connect(self, launcher.MouseLeave, function() tween(launcher, 0.15, { Size = UDim2.fromOffset(54, 54) }, Enum.EasingStyle.Back) end)
     
-    -- Draggable Logic
-    local launcherDragging = false
-    local launcherDragStart = nil
-    local launcherStartPos = nil
-    local launcherMovedDist = 0
-
+    local launcherDragging, launcherDragStart, launcherStartPos, launcherMovedDist = false, nil, nil, 0
     connect(self, launcher.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             launcherDragging = true; launcherDragStart = input.Position; launcherStartPos = launcher.Position; launcherMovedDist = 0
         end
     end)
-
     connect(self, UserInputService.InputChanged, function(input)
         if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - launcherDragStart
@@ -274,7 +263,6 @@ function HelloHub.new(options)
             launcher.Position = UDim2.new(0, newX, 1, newY)
         end
     end)
-
     connect(self, UserInputService.InputEnded, function(input)
         if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
             launcherDragging = false
@@ -293,6 +281,7 @@ function HelloHub.new(options)
         self.Minimized = state
         body.Visible = not state
         tabBar.Visible = not state
+        plusBtn.Visible = not state
         if state then
             tween(main, 0.25, { Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset, 0, 40) })
             minBtn.Text = "+"
@@ -373,7 +362,7 @@ function HelloHub.new(options)
     return self
 end
 
--- TAB CLASS & COMPONENTS
+-- TAB SYSTEM (Fixed & Works perfectly)
 function Window:CreateTab(options)
     assert(not self.Destroyed, "Window destroyed")
     options = options or {}
@@ -382,15 +371,17 @@ function Window:CreateTab(options)
 
     local tab = setmetatable({ Window = self, Name = name, Connections = {}, Components = {} }, Tab)
     
-    tab.Page = create("Frame", { Name = "Page_" .. name, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false }, self.PageHolder)
+    -- Page Container (Strict clipping)
+    tab.Page = create("Frame", { Name = "Page_" .. name, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ClipsDescendants = true }, self.PageHolder)
     
-    tab.LeftCol = create("ScrollingFrame", { Name = "LeftCol", Size = UDim2.new(0.5, -5, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new() }, tab.Page)
+    tab.LeftCol = create("ScrollingFrame", { Name = "LeftCol", Size = UDim2.new(0.5, -5, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true }, tab.Page)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, tab.LeftCol)
 
-    tab.RightCol = create("ScrollingFrame", { Name = "RightCol", Size = UDim2.new(0.5, -5, 1, 0), Position = UDim2.new(0.5, 5, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new() }, tab.Page)
+    tab.RightCol = create("ScrollingFrame", { Name = "RightCol", Size = UDim2.new(0.5, -5, 1, 0), Position = UDim2.new(0.5, 5, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true }, tab.Page)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, tab.RightCol)
 
-    tab.Button = create("TextButton", { Name = "Tab_" .. name, Size = UDim2.new(0, 120, 0, 28), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, Text = "", AutoButtonColor = false, ZIndex = 4 }, self.TabHolder)
+    -- Tab Button
+    tab.Button = create("TextButton", { Name = "Tab_" .. name, Size = UDim2.new(0, 120, 0, 28), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, Text = "", AutoButtonColor = false, ZIndex = 5 }, self.TabHolder)
     corner(tab.Button, 6); stroke(tab.Button, Theme.Stroke, 0.8)
     
     create("TextLabel", { Size = UDim2.new(1, -30, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 }, tab.Button)
@@ -404,6 +395,17 @@ function Window:CreateTab(options)
     connect(tab, tab.Button.Activated, function() self:SelectTab(name) end)
     connect(tab, closeBtn.Activated, function() self:RemoveTab(name) end)
     if not self.ActiveTab then self:SelectTab(name) end
+    
+    -- อัปเดต CanvasSize ของ TabBar ให้สกรอลล์ได้หากมีแท็บเยอะ
+    task.defer(function()
+        if self.TabHolder then
+            local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout")
+            if layout then
+                self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0)
+            end
+        end
+    end)
+    
     return tab
 end
 
@@ -421,6 +423,14 @@ function Window:RemoveTab(name)
         self.ActiveTab = nil
         for tabName, _ in pairs(self.Tabs) do self:SelectTab(tabName); break end
     end
+    task.defer(function()
+        if self.TabHolder then
+            local layout = self.TabHolder:FindFirstChildOfClass("UIListLayout")
+            if layout then
+                self.TabHolder.CanvasSize = UDim2.new(0, layout.AbsoluteContentSize.X + 20, 0, 0)
+            end
+        end
+    end)
 end
 
 function Window:GetTabNames()
@@ -572,7 +582,7 @@ end
 function Tab:AddConsole(options)
     options = options or {}
     local card = self:CreateCard("Console", 120, options)
-    local scroll = create("ScrollingFrame", { Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromOffset(5, 5), BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, CanvasSize = UDim2.new() }, card)
+    local scroll = create("ScrollingFrame", { Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromOffset(5, 5), BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, CanvasSize = UDim2.new(), ClipsDescendants = true }, card)
     local layout = create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, scroll)
     local function addLine(text, color)
         local lbl = create("TextLabel", { Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = "> " .. tostring(text), TextColor3 = color or Theme.SubText, TextSize = 10, Font = Enum.Font.Code, TextXAlignment = Enum.TextXAlignment.Left }, scroll)
@@ -812,54 +822,42 @@ end
 HelloHub.Effects = Effects
 
 -- =====================================================================
--- DEMO SCRIPT (ลบส่วนนี้ทิ้งได้ถ้าจะเอาไปใช้เอง)
+-- DEMO SCRIPT (ทดสอบการใช้งาน Tab ทั้งหมด)
 -- =====================================================================
 task.spawn(function()
     task.wait(0.5)
     
-    local UI = HelloHub.new({ Title = "HelloHub v6.0.0" })
+    local UI = HelloHub.new({ Title = "HelloHub v6.1.0" })
     UI:ConnectSearch()
 
+    -- สร้าง 3 แท็บเริ่มต้น
     local MainTab = UI:CreateTab({ Name = "Main" })
-    local EffectTab = UI:CreateTab({ Name = "Effects" })
+    local VisualTab = UI:CreateTab({ Name = "Visual" })
     local SettingTab = UI:CreateTab({ Name = "Settings" })
 
-    -- Main Tab
+    -- แท็บ Main
     MainTab:AddSection("👤", "Profile", { Column = "Left" })
     MainTab:AddProfileCard({ Column = "Left", Rank = "Administrator" })
     MainTab:AddStatus({ Column = "Left", Text = "ระบบทำงานปกติ", Color = Color3.fromRGB(0, 255, 0) })
     
     MainTab:AddSection("⚙️", "Controls", { Column = "Left" })
     MainTab:AddToggle({ Name = "เปิดใช้งานสคริปต์", Column = "Left", Default = true })
-    MainTab:AddSlider({ Name = "ความเร็วเดิน", Column = "Left", Min = 16, Max = 200, Default = 16, Callback = function(v) 
-        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
-            Player.Character.Humanoid.WalkSpeed = v
-        end
-    end })
-    MainTab:AddInput({ Name = "จำนวนเงิน", Column = "Left", Default = "1000" })
-
+    
     MainTab:AddSection("📝", "Commands", { Column = "Right" })
     MainTab:AddCommandBox({ Column = "Right", Callback = function(cmd) UI:Notify({Title="Command", Content="รันคำสั่ง: "..cmd, Duration=2}) end })
-    MainTab:AddDropdown({ Name = "เลือกโหมด", Column = "Right", Options = {"โหมดปกติ", "โหมดเทพ", "โหมดทดสอบ"} })
-    MainTab:AddKeybind({ Name = "ปุ่มเปิดเมนู", Column = "Right", Default = "RightShift" }) -- ใช้ปุ่มนี้เปิด/ปิด
+    MainTab:AddKeybind({ Name = "ปุ่มเปิดเมนู", Column = "Right", Default = "RightShift" })
 
-    -- Effects Tab
-    EffectTab:AddSection("✨", "ทดสอบเอฟเฟกต์", { Column = "Left" })
-    local glowBtn = EffectTab:AddButton({ Name = "Glow Effect", Column = "Left", Callback = function() end })
+    -- แท็บ Visual
+    VisualTab:AddSection("✨", "เอฟเฟกต์ UI", { Column = "Left" })
+    local glowBtn = VisualTab:AddButton({ Name = "Glow Effect", Column = "Left", Callback = function() end })
     HelloHub.Effects.Glow(glowBtn.Instance.Parent, Color3.fromRGB(255, 0, 255))
 
-    local pulseBtn = EffectTab:AddButton({ Name = "Pulse Effect", Column = "Left", Callback = function() end })
-    HelloHub.Effects.Pulse(pulseBtn.Instance.Parent)
-
-    local rainbowBtn = EffectTab:AddButton({ Name = "Rainbow Effect", Column = "Left", Callback = function() end })
-    HelloHub.Effects.Rainbow(rainbowBtn.Instance.Parent, "BackgroundColor3", 0.5)
-
-    -- Settings Tab
+    -- แท็บ Settings
     SettingTab:AddSection("🔧", "ระบบ", { Column = "Left" })
     SettingTab:AddButton({ Name = "ปิด UI (Hide)", Column = "Left", Callback = function() UI:ToggleWindow(false) end })
     SettingTab:AddButton({ Name = "ทำลาย UI (Destroy)", Column = "Left", Callback = function() UI:Destroy() end })
 
-    UI:Notify({ Title = "HelloHub v6.0.0", Content = "กด RightShift เพื่อเปิด/ปิด UI หรือลากปุ่มมุมซ้ายล่าง!", Duration = 5 })
+    UI:Notify({ Title = "HelloHub v6.1.0", Content = "กด RightShift เพื่อเปิด/ปิด หรือกด + เพื่อเพิ่มแท็บใหม่!", Duration = 5 })
 end)
 
 return HelloHub
