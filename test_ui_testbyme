@@ -1,13 +1,15 @@
 --[[
 ========================================================
- HELLOHUB | UI LIBRARY v5.1.0 (All-in-One Edition)
+ HELLOHUB | UI LIBRARY v6.0.0 (Ultimate Edition)
  Runtime: Roblox Studio | Executor (loadstring)
 ========================================================
- Window: Notify, Minimize, Hide/Show, Destroy, Resize, Drag, Draggable Launcher
- Components: Button, Toggle, Slider, Dropdown, Input, Keybind, Color Picker, 
-             Stat, Progress, Console, Text, Divider, InfoCard, ProfileCard, 
-             Status, FeatureCard, SearchBox, CommandBox
- Effects: Glow, Pulse, Shake, Rainbow, Fire / Ember
+ Features:
+ - Top Tabs (with + and X buttons)
+ - Draggable Floating Button (Launcher)
+ - Randomly Sized Stars (Twinkling & Rotating)
+ - All Components (Toggle, Slider, Dropdown, etc.)
+ - Effects (Glow, Pulse, Shake, Rainbow, Fire)
+ - Keybind Toggle (RightShift to show/hide UI)
 ========================================================
 ]]
 
@@ -29,14 +31,13 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 -- CONFIG
 local CONFIG = {
     Name = "HelloHub",
-    Version = "v5.1.0",
+    Version = "v6.0.0",
     Logo = "rbxassetid://75164736067854", 
-    Window = { Width = 700, Height = 480, MinimumWidth = 500, MinimumHeight = 350, Margin = 20 },
+    Window = { Width = 750, Height = 500, MinimumWidth = 500, MinimumHeight = 350, Margin = 20 },
     Animation = { Intro = 0.85, Normal = 0.22, Fast = 0.14 },
     Effects = {
-        Leaves = true,
-        LeafSpawnInterval = 0.2, 
-        LeafSymbols = { "🍃", "🍂", "❀", "✿", "❋", "✦" },
+        Stars = true,
+        StarCount = 40, -- จำนวนดาว
         GlassTransparency = 0.4,
     },
     Theme = {
@@ -87,25 +88,44 @@ local function connect(owner, signal, callback)
     return connection
 end
 
--- LEAF SYSTEM
-local function startLeafSystem(container, isMainVisible)
-    if not CONFIG.Effects.Leaves then return end
-    local symbols = CONFIG.Effects.LeafSymbols
-    local palette = { Theme.Accent, Theme.Accent2, Theme.Text }
+-- STAR SYSTEM (Random Size & Twinkling)
+local function startStarSystem(container, isMainVisible)
+    if not CONFIG.Effects.Stars then return end
+    
     task.spawn(function()
         while isAlive(container) do
             if isMainVisible() then
-                local size = math.random(8, 14)
-                local startX = math.random() * 100 / 100
-                local leaf = create("TextLabel", { Size = UDim2.fromOffset(size, size), Position = UDim2.new(startX, 0, 0, -20), BackgroundTransparency = 1, Text = symbols[math.random(1, #symbols)], TextColor3 = palette[math.random(1, #palette)], TextSize = size, Font = Enum.Font.GothamBold, TextTransparency = math.random(30, 70) / 100, Rotation = math.random(-45, 45), ZIndex = 1 }, container)
-                local duration = math.random(400, 800) / 100
-                local drift = (math.random() - 0.5) * 0.2
-                local targetX = math.clamp(startX + drift, 0, 1)
-                local t = TweenService:Create(leaf, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Position = UDim2.new(targetX, 0, 1, 20), Rotation = leaf.Rotation + math.random(-180, 180), TextTransparency = 1 })
-                t:Play()
-                t.Completed:Connect(function() if isAlive(leaf) then leaf:Destroy() end end)
+                -- สร้างดาวสุ่มขนาดและตำแหน่ง
+                local size = math.random(4, 18) -- สุ่มขนาด 4px ถึง 18px
+                local star = create("TextLabel", {
+                    Size = UDim2.fromOffset(size, size),
+                    Position = UDim2.new(math.random(), 0, math.random(), 0),
+                    BackgroundTransparency = 1,
+                    Text = math.random(1, 2) == 1 and "✦" or "✧",
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    TextSize = size,
+                    Font = Enum.Font.GothamBold,
+                    TextTransparency = math.random(30, 80) / 100,
+                    Rotation = math.random(0, 360),
+                    ZIndex = 1,
+                }, container)
+                
+                -- อนิเมชันดาวกระพริบและหมุน
+                local twinkle = TweenService:Create(star, TweenInfo.new(math.random(10, 25)/10, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                    TextTransparency = 1,
+                    Rotation = star.Rotation + math.random(-90, 90)
+                })
+                twinkle:Play()
+                
+                -- ลบดาวเมื่อเวลาผ่านไป
+                task.delay(math.random(5, 15), function()
+                    if isAlive(star) then
+                        local fadeOut = tween(star, 1, { TextTransparency = 1 })
+                        if fadeOut then fadeOut.Completed:Wait(); star:Destroy() end
+                    end
+                end)
             end
-            task.wait(CONFIG.Effects.LeafSpawnInterval * (0.5 + math.random()))
+            task.wait(math.random(1, 3) / 10) -- สุ่มเวลาสร้างดาว
         end
     end)
 end
@@ -176,10 +196,9 @@ function HelloHub.new(options)
         end 
     end)
 
-    if CONFIG.Effects.Leaves then
-        local leafContainer = create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 1 }, main)
-        startLeafSystem(leafContainer, function() return isAlive(main) and main.Visible and not self.Hidden and not self.Minimized end)
-    end
+    -- STAR SYSTEM LAYER
+    local starContainer = create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 1 }, main)
+    startStarSystem(starContainer, function() return isAlive(main) and main.Visible and not self.Hidden and not self.Minimized end)
 
     -- HEADER & CONTROLS
     local header = create("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, BorderSizePixel = 0, ZIndex = 3 }, main)
@@ -194,12 +213,23 @@ function HelloHub.new(options)
     connect(self, closeBtn.MouseLeave, function() tween(closeBtn, 0.1, { TextColor3 = Theme.SubText }) end)
     connect(self, closeBtn.Activated, function() self:ToggleWindow(false) end)
 
-    -- TAB BAR
+    -- TAB BAR (TOP)
     local tabBar = create("Frame", { Name = "TabBar", Size = UDim2.new(1, 0, 0, 40), Position = UDim2.fromOffset(0, 40), BackgroundColor3 = Theme.Background, BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 3 }, main)
     self.TabHolder = tabBar
     create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), VerticalAlignment = Enum.VerticalAlignment.Center }, tabBar)
-    padding(tabBar, 10, 10, 0, 0)
+    padding(tabBar, 10, 50, 0, 0) -- เผื่อที่ให้ปุ่ม +
     create("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = Theme.Stroke, BorderSizePixel = 0, ZIndex = 4 }, tabBar)
+
+    -- ปุ่ม + สำหรับเพิ่มแท็บ
+    local plusBtn = create("TextButton", { Name = "PlusButton", Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -38, 0.5, -14), BackgroundColor3 = Theme.CardBg, Text = "+", TextColor3 = Theme.Text, TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 4 }, tabBar)
+    corner(plusBtn, 6); stroke(plusBtn, Theme.Stroke, 0.8)
+    connect(self, plusBtn.MouseEnter, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.Hover }) end)
+    connect(self, plusBtn.MouseLeave, function() tween(plusBtn, 0.1, { BackgroundColor3 = Theme.CardBg }) end)
+    connect(self, plusBtn.Activated, function()
+        local newTabName = "Tab " .. (#self:GetTabNames() + 1)
+        self:CreateTab({ Name = newTabName })
+        self:SelectTab(newTabName)
+    end)
 
     -- BODY
     local body = create("Frame", { Name = "Body", Size = UDim2.new(1, 0, 1, -80), Position = UDim2.fromOffset(0, 80), BackgroundTransparency = 1, ZIndex = 3, ClipsDescendants = true }, main)
@@ -235,16 +265,12 @@ function HelloHub.new(options)
         if launcherDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - launcherDragStart
             launcherMovedDist += math.abs(delta.X) + math.abs(delta.Y)
-            
             local viewport = workspace.CurrentCamera.ViewportSize
             local size = launcher.AbsoluteSize
-            
             local newX = launcherStartPos.X.Offset + delta.X
             local newY = launcherStartPos.Y.Offset + delta.Y
-            
             newX = math.clamp(newX, 0, viewport.X - size.X)
             newY = math.clamp(newY, -viewport.Y + size.Y, -10)
-            
             launcher.Position = UDim2.new(0, newX, 1, newY)
         end
     end)
@@ -333,15 +359,21 @@ function HelloHub.new(options)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false; resizing = false end
     end)
 
+    -- KEYBIND TOGGLE (RightShift)
+    connect(self, UserInputService.InputBegan, function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            self:ToggleWindow(self.Hidden)
+        end
+    end)
+
     function self:Notify(data) return Window.Notify(self, data) end
     function self:Destroy() return Window.Destroy(self) end
     function self:ConnectSearch() return Window.ConnectSearch(self) end
     return self
 end
 
--- =====================================================================
 -- TAB CLASS & COMPONENTS
--- =====================================================================
 function Window:CreateTab(options)
     assert(not self.Destroyed, "Window destroyed")
     options = options or {}
@@ -349,6 +381,7 @@ function Window:CreateTab(options)
     assert(not self.Tabs[name], "Tab already exists: " .. name)
 
     local tab = setmetatable({ Window = self, Name = name, Connections = {}, Components = {} }, Tab)
+    
     tab.Page = create("Frame", { Name = "Page_" .. name, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false }, self.PageHolder)
     
     tab.LeftCol = create("ScrollingFrame", { Name = "LeftCol", Size = UDim2.new(0.5, -5, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new() }, tab.Page)
@@ -357,15 +390,43 @@ function Window:CreateTab(options)
     tab.RightCol = create("ScrollingFrame", { Name = "RightCol", Size = UDim2.new(0.5, -5, 1, 0), Position = UDim2.new(0.5, 5, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = Theme.Accent, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new() }, tab.Page)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, tab.RightCol)
 
-    tab.Button = create("TextButton", { Name = "Tab_" .. name, Size = UDim2.new(0, 110, 0, 28), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, Text = "  " .. name .. "  ×", TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.GothamMedium, AutoButtonColor = false, ZIndex = 4 }, self.TabHolder)
-    corner(tab.Button, 8)
+    tab.Button = create("TextButton", { Name = "Tab_" .. name, Size = UDim2.new(0, 120, 0, 28), BackgroundColor3 = Theme.CardBg, BackgroundTransparency = 0.5, Text = "", AutoButtonColor = false, ZIndex = 4 }, self.TabHolder)
+    corner(tab.Button, 6); stroke(tab.Button, Theme.Stroke, 0.8)
+    
+    create("TextLabel", { Size = UDim2.new(1, -30, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Text = name, TextColor3 = Theme.SubText, TextSize = 11, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 }, tab.Button)
+
+    local closeBtn = create("TextButton", { Size = UDim2.fromOffset(20, 20), Position = UDim2.new(1, -24, 0.5, -10), BackgroundTransparency = 1, Text = "×", TextColor3 = Theme.SubText, TextSize = 14, Font = Enum.Font.GothamBold, AutoButtonColor = false, ZIndex = 5 }, tab.Button)
+    
     tab.Glow = create("Frame", { Size = UDim2.new(0.8, 0, 0, 2), Position = UDim2.new(0.5, 0, 1, 0), AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = Theme.Accent, BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 5 }, tab.Button)
     corner(tab.Glow, 2)
 
     self.Tabs[name] = tab
     connect(tab, tab.Button.Activated, function() self:SelectTab(name) end)
+    connect(tab, closeBtn.Activated, function() self:RemoveTab(name) end)
     if not self.ActiveTab then self:SelectTab(name) end
     return tab
+end
+
+function Window:RemoveTab(name)
+    if not self.Tabs[name] then return end
+    if #self:GetTabNames() <= 1 then
+        self:Notify({ Title = "Warning", Content = "ต้องมีอย่างน้อย 1 แท็บ", Duration = 2 })
+        return
+    end
+    local tab = self.Tabs[name]
+    for _, c in ipairs(tab.Connections) do c:Disconnect() end
+    tab.Page:Destroy(); tab.Button:Destroy()
+    self.Tabs[name] = nil
+    if self.ActiveTab == name then
+        self.ActiveTab = nil
+        for tabName, _ in pairs(self.Tabs) do self:SelectTab(tabName); break end
+    end
+end
+
+function Window:GetTabNames()
+    local names = {}
+    for name, _ in pairs(self.Tabs) do table.insert(names, name) end
+    return names
 end
 
 function Window:SelectTab(name)
@@ -374,7 +435,9 @@ function Window:SelectTab(name)
     for tabName, tab in pairs(self.Tabs) do
         local active = tabName == name
         tab.Page.Visible = active
-        tween(tab.Button, 0.2, { BackgroundTransparency = active and 0 or 0.5, BackgroundColor3 = active and Theme.Background or Theme.CardBg, TextColor3 = active and Theme.Text or Theme.SubText }, Enum.EasingStyle.Quint)
+        tween(tab.Button, 0.2, { BackgroundTransparency = active and 0 or 0.7, BackgroundColor3 = active and Theme.Background or Theme.CardBg, TextColor3 = active and Theme.Text or Theme.SubText }, Enum.EasingStyle.Quint)
+        local textLabel = tab.Button:FindFirstChildOfClass("TextLabel")
+        if textLabel then tween(textLabel, 0.2, { TextColor3 = active and Theme.Text or Theme.SubText }) end
         tween(tab.Glow, 0.2, { BackgroundTransparency = active and 0 or 1 })
     end
     return true
@@ -704,7 +767,7 @@ function Tab:SetSearch(query)
     end
 end
 
--- SYSTEM (Notify, Search, Destroy)
+-- SYSTEM
 function Window:Notify(options)
     if self.Destroyed then return end
     self.NotificationQueue[#self.NotificationQueue + 1] = options or {}
@@ -746,71 +809,57 @@ function Window:Destroy()
     if isAlive(self.Screen) then self.Screen:Destroy() end
 end
 
--- แนบ Effects
 HelloHub.Effects = Effects
 
 -- =====================================================================
--- ตัวอย่างการเรียกใช้งาน (DEMO)
+-- DEMO SCRIPT (ลบส่วนนี้ทิ้งได้ถ้าจะเอาไปใช้เอง)
 -- =====================================================================
 task.spawn(function()
-    task.wait(0.5) -- รอให้โหลดเสร็จ
+    task.wait(0.5)
     
-    local UI = HelloHub.new({ Title = "HelloHub v5.1.0 (Demo)" })
+    local UI = HelloHub.new({ Title = "HelloHub v6.0.0" })
     UI:ConnectSearch()
 
     local MainTab = UI:CreateTab({ Name = "Main" })
     local EffectTab = UI:CreateTab({ Name = "Effects" })
+    local SettingTab = UI:CreateTab({ Name = "Settings" })
 
-    -- ================= Main Tab =================
+    -- Main Tab
     MainTab:AddSection("👤", "Profile", { Column = "Left" })
     MainTab:AddProfileCard({ Column = "Left", Rank = "Administrator" })
-    MainTab:AddStatus({ Column = "Left", Text = "ระบบพร้อมทำงาน", Color = Color3.fromRGB(0, 255, 0) })
-    MainTab:AddInfoCard({ Column = "Left", Title = "ข้อมูล", Desc = "นี่คือตัวอย่าง UI ที่รวมทุกอย่างไว้ในไฟล์เดียว", Icon = "ℹ️" })
+    MainTab:AddStatus({ Column = "Left", Text = "ระบบทำงานปกติ", Color = Color3.fromRGB(0, 255, 0) })
     
     MainTab:AddSection("⚙️", "Controls", { Column = "Left" })
-    MainTab:AddToggle({ Name = "เปิดใช้งานระบบ", Column = "Left", Default = true, Callback = function(v) print("Toggle:", v) end })
-    MainTab:AddSlider({ Name = "ความเร็ว", Column = "Left", Min = 16, Max = 200, Default = 16, Callback = function(v) print("Speed:", v) end })
-    MainTab:AddInput({ Name = "ชื่อผู้เล่น", Column = "Left", Default = "Player", Callback = function(v) print("Input:", v) end })
+    MainTab:AddToggle({ Name = "เปิดใช้งานสคริปต์", Column = "Left", Default = true })
+    MainTab:AddSlider({ Name = "ความเร็วเดิน", Column = "Left", Min = 16, Max = 200, Default = 16, Callback = function(v) 
+        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+            Player.Character.Humanoid.WalkSpeed = v
+        end
+    end })
+    MainTab:AddInput({ Name = "จำนวนเงิน", Column = "Left", Default = "1000" })
 
     MainTab:AddSection("📝", "Commands", { Column = "Right" })
     MainTab:AddCommandBox({ Column = "Right", Callback = function(cmd) UI:Notify({Title="Command", Content="รันคำสั่ง: "..cmd, Duration=2}) end })
     MainTab:AddDropdown({ Name = "เลือกโหมด", Column = "Right", Options = {"โหมดปกติ", "โหมดเทพ", "โหมดทดสอบ"} })
-    MainTab:AddKeybind({ Name = "ปุ่มเปิดเมนู", Column = "Right", Default = "RightShift" })
-    MainTab:AddColorPicker({ Name = "สีหลัก", Column = "Right", Default = Color3.fromRGB(110, 160, 255) })
+    MainTab:AddKeybind({ Name = "ปุ่มเปิดเมนู", Column = "Right", Default = "RightShift" }) -- ใช้ปุ่มนี้เปิด/ปิด
 
-    -- ================= Effect Tab =================
+    -- Effects Tab
     EffectTab:AddSection("✨", "ทดสอบเอฟเฟกต์", { Column = "Left" })
-    
     local glowBtn = EffectTab:AddButton({ Name = "Glow Effect", Column = "Left", Callback = function() end })
     HelloHub.Effects.Glow(glowBtn.Instance.Parent, Color3.fromRGB(255, 0, 255))
 
     local pulseBtn = EffectTab:AddButton({ Name = "Pulse Effect", Column = "Left", Callback = function() end })
     HelloHub.Effects.Pulse(pulseBtn.Instance.Parent)
 
-    local shakeBtn = EffectTab:AddButton({ Name = "Shake Effect", Column = "Left", Callback = function() end })
-    shakeBtn.Instance.Activated:Connect(function() HelloHub.Effects.Shake(shakeBtn.Instance.Parent) end)
-
     local rainbowBtn = EffectTab:AddButton({ Name = "Rainbow Effect", Column = "Left", Callback = function() end })
     HelloHub.Effects.Rainbow(rainbowBtn.Instance.Parent, "BackgroundColor3", 0.5)
 
-    local fireCard = EffectTab:AddFeatureCard({ Column = "Left", Title = "Fire Particles", Desc = "เอฟเฟกต์ไฟลอยขึ้น", Icon = "🔥", Callback = function() end })
-    HelloHub.Effects.Fire(fireCard)
+    -- Settings Tab
+    SettingTab:AddSection("🔧", "ระบบ", { Column = "Left" })
+    SettingTab:AddButton({ Name = "ปิด UI (Hide)", Column = "Left", Callback = function() UI:ToggleWindow(false) end })
+    SettingTab:AddButton({ Name = "ทำลาย UI (Destroy)", Column = "Left", Callback = function() UI:Destroy() end })
 
-    EffectTab:AddSection("📊", "ข้อมูล", { Column = "Right" })
-    EffectTab:AddStat({ Name = "ผู้เล่นออนไลน์", Default = "24", Column = "Right" })
-    local progress = EffectTab:AddProgress({ Name = "โหลดข้อมูล", Default = 50, Column = "Right" })
-    local console = EffectTab:AddConsole({ Column = "Right", WelcomeText = "ระบบเริ่มต้น..." })
-    
-    -- อัปเดตข้อมูลจำลอง
-    task.spawn(function()
-        for i = 50, 100, 10 do
-            task.wait(0.5)
-            progress:Set(i)
-            if i == 100 then console:AddLine("โหลดเสร็จสิ้น!", Color3.fromRGB(0,255,0)) end
-        end
-    end)
-
-    UI:Notify({ Title = "HelloHub v5.1.0", Content = "ระบบลากปุ่มมุมซ้ายล่างพร้อมใช้งาน!", Duration = 5 })
+    UI:Notify({ Title = "HelloHub v6.0.0", Content = "กด RightShift เพื่อเปิด/ปิด UI หรือลากปุ่มมุมซ้ายล่าง!", Duration = 5 })
 end)
 
 return HelloHub
