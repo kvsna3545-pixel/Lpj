@@ -1,6 +1,6 @@
 --[[
 
- HELLOHUB | UI LIBRARY v9.2.0 PREMIUM EDITION
+ HELLOHUB | UI LIBRARY v9.2.1 PREMIUM EDITION
  Runtime: 【entity-Roblox Studio¦canonical_name=Roblox Studio】 | LocalScript / ModuleScript
 
  Features:
@@ -10,6 +10,7 @@
  - Ambient theme effects and particle bursts
  - Buttons, toggles, sliders, dropdowns, inputs, keybinds
  - Search, notifications, flags, connection cleanup
+ - Animated Toggle: Pop + Squash + Glow + Orbit Stars
  - ModuleScript-safe: returns HelloHub; no automatic demo
 
  Usage (LocalScript):
@@ -17,8 +18,6 @@
  local UI = HelloHub.new({Title = "My UI"})
  local Tab = UI:CreateTab({Name = "Main", Icon = "◆"})
  Tab:AddButton({Name = "Click", Callback = function() print("Clicked") end})
-
- For a ModuleScript, place this code in the ModuleScript.
 
 ]]
 
@@ -36,7 +35,7 @@ local RunService = game:GetService("RunService")
 
 local CONFIG = {
     Name = "HelloHub",
-    Version = "v9.2.0",
+    Version = "v9.2.1",
     Logo = "rbxassetid://75164736067854",
     Window = {Width = 720, Height = 460, MinWidth = 500, MinHeight = 350, Margin = 16},
     Anim = {Normal = 0.25, Fast = 0.15, Smooth = Enum.EasingStyle.Quint},
@@ -815,7 +814,7 @@ function Tab:AddButton(options)
 end
 
 -- ========================================================
--- AddToggle v9.2.0 | Animated Toggle + Random Orbit Stars
+-- AddToggle v9.2.1 | Animated Toggle + Pop + Squash + Orbit Stars
 -- ========================================================
 function Tab:AddToggle(options)
     options = options or {}
@@ -835,20 +834,24 @@ function Tab:AddToggle(options)
     }, card, {TextColor3 = "Text"})
     local switch = themed("Frame", {
         Size = UDim2.fromOffset(36, 20),
-        Position = UDim2.new(1, -48, 0.5, -10),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(1, -30, 0.5, 0),
         BackgroundColor3 = state and self.Window.Theme.Accent or self.Window.Theme.Stroke
     }, card, {BackgroundColor3 = state and "Accent" or "Stroke"})
     corner(switch, 20)
+    local switchScale = create("UIScale", {Scale = 1}, switch)
     local glowStroke = addStroke(switch, self.Window.Theme.Accent, 1, 2)
     glowStroke.Name = "ToggleGlow"
     setRole(glowStroke, "Color", "Accent")
     local knob = create("Frame", {
         Size = UDim2.fromOffset(16, 16),
-        Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.fromOffset(2, 2),
-        BackgroundColor3 = Color3.new(1,1,1),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = state and UDim2.new(1, -10, 0.5, 0) or UDim2.new(0, 10, 0.5, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0
     }, switch)
     corner(knob, 20)
+    local cardStroke = card:FindFirstChildOfClass("UIStroke")
     local orbitLayer = create("Frame", {
         Name = "OrbitLayer",
         Size = UDim2.fromOffset(72, 54),
@@ -886,7 +889,7 @@ function Tab:AddToggle(options)
         })
     end
     local hit = create("TextButton", {
-        Size = UDim2.fromScale(1,1),
+        Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         Text = "",
         ZIndex = 10
@@ -899,6 +902,9 @@ function Tab:AddToggle(options)
     local elapsed = math.random() * 10
     local switchTween = nil
     local knobTween = nil
+    local popTween = nil
+    local squashTween = nil
+    local cardFlashTween = nil
     local toggleConnections = {}
     local function addToggleConnection(conn)
         table.insert(toggleConnections, conn)
@@ -906,6 +912,29 @@ function Tab:AddToggle(options)
     end
     local function cancelTween(tw)
         if tw then pcall(function() tw:Cancel() end) end
+    end
+    local function animatePress()
+        if destroyed or not isAlive(switch) then return end
+        cancelTween(popTween)
+        popTween = tween(switchScale, 0.12, {Scale = 1.18}, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        task.delay(0.12, function()
+            if destroyed or not isAlive(switchScale) then return end
+            popTween = tween(switchScale, 0.28, {Scale = 1}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        end)
+        cancelTween(squashTween)
+        squashTween = tween(knob, 0.12, {Size = UDim2.fromOffset(13, 18)}, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        task.delay(0.12, function()
+            if destroyed or not isAlive(knob) then return end
+            squashTween = tween(knob, 0.28, {Size = UDim2.fromOffset(16, 16)}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        end)
+        if isAlive(cardStroke) then
+            cancelTween(cardFlashTween)
+            cardFlashTween = tween(cardStroke, 0.15, {Transparency = 0.05}, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            task.delay(0.18, function()
+                if destroyed or not isAlive(cardStroke) then return end
+                cardFlashTween = tween(cardStroke, 0.3, {Transparency = 0.68}, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            end)
+        end
     end
     local orbitConnection
     orbitConnection = RunService.RenderStepped:Connect(function(dt)
@@ -956,19 +985,20 @@ function Tab:AddToggle(options)
         self.Window.Flags[key] = state
         fadeTarget = state and 1 or 0
         glowTarget = state and 1 or 0
+        animatePress()
         setRole(switch, "BackgroundColor3", state and "Accent" or "Stroke")
         cancelTween(switchTween)
         cancelTween(knobTween)
-        switchTween = tween(switch, 0.28, {
+        switchTween = tween(switch, 0.30, {
             BackgroundColor3 = state and self.Window.Theme.Accent or self.Window.Theme.Stroke
         }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         if state then
-            knobTween = tween(knob, 0.32, {
-                Position = UDim2.new(1, -18, 0.5, -8)
+            knobTween = tween(knob, 0.35, {
+                Position = UDim2.new(1, -10, 0.5, 0)
             }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
         else
-            knobTween = tween(knob, 0.28, {
-                Position = UDim2.fromOffset(2, 2)
+            knobTween = tween(knob, 0.30, {
+                Position = UDim2.new(0, 10, 0.5, 0)
             }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         end
         if invoke ~= false then safeCallback(options.Callback, state) end
@@ -986,8 +1016,14 @@ function Tab:AddToggle(options)
         glowTarget = 0
         cancelTween(switchTween)
         cancelTween(knobTween)
+        cancelTween(popTween)
+        cancelTween(squashTween)
+        cancelTween(cardFlashTween)
         switchTween = nil
         knobTween = nil
+        popTween = nil
+        squashTween = nil
+        cardFlashTween = nil
         disconnectAll(toggleConnections)
         table.clear(stars)
         if isAlive(card) then card:Destroy() end
@@ -1454,7 +1490,7 @@ function HelloHub.GetThemes()
 end
 
 --========================================================
--- HELLOHUB v9.2.0 | SYSTEM TESTER (FIXED + EXTENDED)
+-- HELLOHUB v9.2.1 | SYSTEM TESTER (FIXED + EXTENDED)
 --========================================================
 
 function HelloHub.AddSystemTest(window)
@@ -1538,7 +1574,6 @@ function HelloHub.AddSystemTest(window)
                 assert(toggle:Get() == false)
                 toggle:Destroy()
             end)
-            -- NEW: Orbit Stars
             test("Toggle Orbit Stars", function()
                 local toggle = tab:AddToggle({
                     Name = "Orbit Test",
@@ -1565,7 +1600,6 @@ function HelloHub.AddSystemTest(window)
                 end
                 toggle:Destroy()
             end)
-            -- NEW: Glow Pulse
             test("Toggle Glow Pulse", function()
                 local toggle = tab:AddToggle({
                     Name = "Glow Test",
@@ -1591,7 +1625,6 @@ function HelloHub.AddSystemTest(window)
                 assert(glow.Transparency > 0.8, "Glow should fade when OFF")
                 toggle:Destroy()
             end)
-            -- NEW: Rapid Set
             test("Toggle Rapid Set / No Overlap", function()
                 local toggle = tab:AddToggle({
                     Name = "Rapid Test",
@@ -1608,7 +1641,6 @@ function HelloHub.AddSystemTest(window)
                 assert(toggle:Get() == false)
                 toggle:Destroy()
             end)
-            -- NEW: Destroy Cleanup
             test("Toggle Destroy Cleanup", function()
                 local toggle = tab:AddToggle({
                     Name = "Cleanup Test",
@@ -1625,7 +1657,6 @@ function HelloHub.AddSystemTest(window)
                 end)
                 assert(ok, "Destroy/Set after Destroy should not error")
             end)
-            -- NEW: Theme Compatibility
             test("Toggle Theme Compatibility", function()
                 local original = window.ThemeName
                 local toggle = tab:AddToggle({
@@ -1752,7 +1783,6 @@ function HelloHub.AddSystemTest(window)
             })
         end
     })
-    -- FIXED: เดิมเป็น Tab:AddDropdown (ตัวใหญ่) ทำให้ error ตอนสร้าง ตอนนี้แก้เป็น tab:AddDropdown แล้ว
     tab:AddDropdown({
         Name = "Select Option",
         Options = {"Option 1", "Option 2", "Option 3"},
