@@ -1947,182 +1947,26 @@ end
     end
 end)
 
-
 --[[ ========================================================
-    EVADE BHOP PATCH - วางต่อท้ายส่วน Main หรือก่อน Cleanup
-    วางทับในสคริป Evade ตัวเดิมได้เลย
+    วิธีแก้ : ในไฟล์ของนาย
+    1. เก็บ UI LIBRARY v9.2.2 ข้างบนไว้เหมือนเดิม
+    2. ลบทั้งหมดตั้งแต่บรรทัดนี้ทิ้ง
+       "--[[ EVADE BHOP PATCH"  -> จนจบไฟล์
+       (รวมเศษ ESP ลอยๆ + โหลด UI จาก GitHub ซ้ำ)
+    3. แปะท่อนข้างล่างนี้ต่อท้าย UI แทน
+       ไม่ต้อง loadstring GitHub ซ้ำ เพราะ UI อยู่ข้างบนแล้ว
 ======================================================== ]]
 
--- ============ BHOP STATE ============
-S.Bhop = false
-S.BhopMode = "Auto Hop" -- Auto Hop / Hold Space / Legit
-S.BhopSpeed = 42
-S.BhopBoost = 1.5 -- ยิ่งเยอะยิ่งพุ่ง
-S.BhopStrafe = true
-S.BhopAirControl = 0.85
-S.BhopKeepSpeed = true
-
--- ============ BHOP UI - ใส่ใน Main Tab ============
-Main:AddSection("🐰", "Bhop")
-local bhopTog
-bhopTog = Main:AddToggle({
-
-    Options = {"Auto Hop", "Hold Space", "Legit"},
-    Default = "Auto Hop",
-    Callback = function(v) S.BhopMode = v end
-})
-Main:AddSlider({
-    Name = "Bhop Speed",
-    Min = 16, Max = 90, Default = 42,
-    Callback = function(v)
-        S.BhopSpeed = v
-        if S.Bhop then local h = Hum() if h then h.WalkSpeed = v end end
-    end
-})
-Main:AddSlider({
-    Name = "Bhop Boost",
-    Min = 0, Max = 5, Default = 1.5,
-    Callback = function(v) S.BhopBoost = v end
-})
-Main:AddToggle({
-    Name = "Bhop Strafe Assist",
-    Default = true,
-    Flag = "Evade_BhopStrafe",
-    Callback = function(v) S.BhopStrafe = v end
-})
-Main:AddToggle({
-    Name = "Bhop Keep Speed (ไม่ตกสปีดตอนลง)",
-    Default = true,
-    Flag = "Evade_BhopKeep",
-    Callback = function(v) S.BhopKeepSpeed = v end
-})
-
--- ============ BHOP CORE ============
-local Bhop = {
-    Holding = false,
-    LastJump = 0,
-    AirTime = 0,
-    GroundSpeed = 0,
-}
-local function IsGrounded(h, hrp)
-    if not h or not hrp then return false end
-    local st = h:GetState()
-    return st == Enum.HumanoidStateType.Running
-        or st == Enum.HumanoidStateType.Landing
-        or h.FloorMaterial ~= Enum.Material.Air
-end
-
--- กด Space
-Conn(UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Space then Bhop.Holding = true end
-end))
-Conn(UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Space then Bhop.Holding = false end
-end))
-
--- Auto Jump + Speed Loop
-Conn(RunService.Heartbeat:Connect(function(dt)
-    if not S.Bhop then return end
-    local c = Char() local h = Hum() local hrp = HRP()
-    if not c or not h or not hrp or h.Health <= 0 then return end
-
-    local shouldHop = false
-    if S.BhopMode == "Auto Hop" then shouldHop = true
-    elseif S.BhopMode == "Hold Space" then shouldHop = Bhop.Holding end
-    -- Legit = ต้องกดเอง แต่ระบบช่วยเรื่องสปีดอย่างเดียว
-
-    -- 1. บังคับสปีดตอน Bhop
-    if S.BhopKeepSpeed then
-        -- ถ้าอยู่พื้น ให้ดัน WalkSpeed ไป BhopSpeed
-        -- ถ้าอยู่กลางอากาศ ให้รักษาความเร็วไม่ให้ตก
-        if h.WalkSpeed < S.BhopSpeed then
-            h.WalkSpeed = S.BhopSpeed
-        end
-    else
-        h.WalkSpeed = S.BhopSpeed
-    end
-
-    -- 2. Strafe Assist - เลี้ยวแล้วได้สปีดเพิ่ม
-    if S.BhopStrafe and h.FloorMaterial == Enum.Material.Air then
-        local move = h.MoveDirection
-        if move.Magnitude > 0 then
-            local look = Camera.CFrame.LookVector
-            local right = Camera.CFrame.RightVector
-            local wish = Vector3.zero
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then wish += look end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then wish -= look end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then wish -= right end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then wish += right end
-            if wish.Magnitude > 0 then
-                wish = Vector3.new(wish.X, 0, wish.Z).Unit
-                -- ดันไปตามทิศที่หัน + เก็บ momentum
-                hrp.AssemblyLinearVelocity = Vector3.new(
-                    hrp.AssemblyLinearVelocity.X + wish.X * S.BhopAirControl * S.BhopBoost,
-                    hrp.AssemblyLinearVelocity.Y,
-                    hrp.AssemblyLinearVelocity.Z + wish.Z * S.BhopAirControl * S.BhopBoost
-                )
-                -- กันสปีดเกินจนบิน
-                local flat = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z)
-                local maxFlat = S.BhopSpeed * 1.6
-                if flat.Magnitude > maxFlat then
-                    local clamped = flat.Unit * maxFlat
-                    hrp.AssemblyLinearVelocity = Vector3.new(clamped.X, hrp.AssemblyLinearVelocity.Y, clamped.Z)
-                end
-            end
-        end
-    end
-
-    -- 3. Auto Hop - แตะพื้นปุ๊บโดดปั๊บ
-    if shouldHop and IsGrounded(h, hrp) then
-        if tick() - Bhop.LastJump > 0.03 then
-            Bhop.LastJump = tick()
-            h:ChangeState(Enum.HumanoidStateType.Jumping)
-            -- Boost เล็กน้อยตอนกระโดด ให้รู้สึกพุ่ง
-            if S.BhopBoost > 0 then
-                local vel = hrp.AssemblyLinearVelocity
-                local flat = Vector3.new(vel.X, 0, vel.Z)
-                if flat.Magnitude > 1 then
-                    local add = flat.Unit * (S.BhopBoost * 1.2)
-                    hrp.AssemblyLinearVelocity = Vector3.new(vel.X + add.X, vel.Y, vel.Z + add.Z)
-                end
-            end
-        end
-    end
-end))
-
--- กัน WalkSpeed โดน Evade Speed ทับ: ถ้าเปิด Bhop ให้ Bhop ชนะ
-Conn(RunService.RenderStepped:Connect(function()
-    if S.Bhop and Alive() then
-        local h = Hum()
-        if h and h.WalkSpeed ~= S.BhopSpeed and S.BhopKeepSpeed then
-            h.WalkSpeed = S.BhopSpeed
-        end
-    end
-end))
-
---[[ ========================================================
-    EVADE | Project N.T.i.N v9.2.2 + BHOP - COMBINED
-    1 ไฟล์จบ: UI (【entity-GitHub¦canonical_name=GitHub】) + Evade + Bhop + เม็ดยาส้มข้างขวา
-    วางใน Executor แล้วกด Run ได้เลย
-    UI: RightShift / กดโลโก้
-    เม็ดยา: ลากย้ายได้ / กดค้าง 0.4 วิ = ซ่อน
-======================================================== ]]
-
+-- ============ EVADE + BHOP - FIXED TAIL ============
 -- กันรันซ้ำ
 if getgenv().EVADE_COMBINED then return end
 getgenv().EVADE_COMBINED = true
 if getgenv().EVADE_CLEANUP then pcall(getgenv().EVADE_CLEANUP) end
 
--- ============ LOAD UI จาก 【entity-GitHub¦canonical_name=GitHub】 ============
-local ProjectNTIN = loadstring(game:HttpGet("https://raw.githubusercontent.com/kvsna3545-pixel/Lpj/refs/heads/main/test_ui_testbyme"))()
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- ใช้ตัวแปรจาก UI ข้างบนได้เลย ไม่ต้องประกาศซ้ำ
+-- Players / UserInputService / RunService มีแล้วใน UI
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
-
 local LP = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
@@ -2131,10 +1975,10 @@ local S = {
     Speed=false, SpeedVal=32, NormalSpeed=16,
     Jump=false, JumpVal=75, NormalJump=50,
     AutoCarry=false, AutoRevive=false, AutoCoin=false,
-    ESP=false, ESPNextbot=true, ESPPlayer=true, ESPCoin=false,
+    ESP=false, ESPNextbot=true, ESPPlayer=true,
     NoClip=false, InfiniteJump=false, Fly=false, FlySpeed=60,
     AutoEmote=false, AntiAFK=true, FullBright=false,
-    NextbotFear=false, AutoDrink=false, ColaMode="All",
+    AutoDrink=false, ColaMode="All",
     RespawnPos=nil, LockedPill=false, PillVisible=true,
     CoinRange=25, ReviveRange=18, CarryRange=12, AutoFarmMode="Coin + Revive",
     -- BHOP
@@ -2147,7 +1991,8 @@ local function Char() return LP.Character end
 local function Hum() local c=Char() return c and c:FindFirstChildOfClass("Humanoid") end
 local function HRP() local c=Char() return c and c:FindFirstChild("HumanoidRootPart") end
 local function Alive() local h=Hum() return h and h.Health>0 end
-local function Notify(t,c) pcall(function() UI:Notify({Title=t,Content=c,Duration=2.5}) end) end
+local UI -- ประกาศก่อน Notify จะได้ไม่ nil
+local function Notify(t,c) pcall(function() if UI then UI:Notify({Title=t,Content=c,Duration=2.5}) end end) end
 local function GetDowned()
     local out={}
     for _,p in ipairs(Players:GetPlayers()) do
@@ -2163,7 +2008,7 @@ local function GetDowned()
 end
 
 -- ============ UI MAIN ============
-local UI = ProjectNTIN.new({Title="EVADE | the Project N.T.i.N", Theme="Hello", ToggleKey=Enum.KeyCode.RightShift})
+UI = ProjectNTIN.new({Title="EVADE | the Project N.T.i.N", Theme="Hello", ToggleKey=Enum.KeyCode.RightShift})
 pcall(function() ProjectNTIN.AddSystemTest(UI) end)
 
 local Main = UI:CreateTab({Name="Main", Icon="🏃"})
@@ -2173,9 +2018,9 @@ local Visual = UI:CreateTab({Name="Visual", Icon="👁"})
 local Misc = UI:CreateTab({Name="Misc", Icon="⚙"})
 local Setting = UI:CreateTab({Name="Setting", Icon="🎨"})
 
--- ---------- Main ----------
+-- ---------- Main : Movement ----------
 Main:AddSection("🏃", "Movement")
-local speedTog, jumpTog, bhopTog
+local speedTog, jumpTog, bhopTog, pillBhop
 speedTog = Main:AddToggle({Name="Speed", Default=false, Flag="Evade_Speed", Callback=function(v) S.Speed=v local h=Hum() if h then h.WalkSpeed = v and S.SpeedVal or (S.Bhop and S.BhopSpeed or S.NormalSpeed) end Notify("Speed", v and "ON - "..S.SpeedVal or "OFF") end})
 Main:AddSlider({Name="Speed Value", Min=16, Max=120, Default=32, Callback=function(v) S.SpeedVal=v if S.Speed then local h=Hum() if h then h.WalkSpeed=v end end end})
 jumpTog = Main:AddToggle({Name="Jump Power", Default=false, Flag="Evade_Jump", Callback=function(v) S.Jump=v local h=Hum() if h then h.JumpPower = v and S.JumpVal or S.NormalJump h.UseJumpPower=true end end})
@@ -2185,6 +2030,7 @@ Main:AddToggle({Name="NoClip", Default=false, Flag="Evade_NoClip", Callback=func
 Main:AddToggle({Name="Fly (WASD + Space ขึ้น / Shift ลง)", Default=false, Flag="Evade_Fly", Callback=function(v) S.Fly=v end})
 Main:AddSlider({Name="Fly Speed", Min=20, Max=150, Default=60, Callback=function(v) S.FlySpeed=v end})
 
+-- ---------- Main : Bhop [จุดที่พัง - แก้แล้ว] ----------
 Main:AddSection("🐰", "Bhop")
 bhopTog = Main:AddToggle({Name="Bhop", Default=false, Flag="Evade_Bhop", Callback=function(v)
     S.Bhop=v Notify("Bhop", v and "ON - กดค้าง Space แล้วโดดเลย" or "OFF")
@@ -2223,21 +2069,19 @@ Farm:AddSection("🥤", "Cola")
 Farm:AddDropdown({Name="เลือก Cola", Options={"Speed Cola","Jump Cola","Invisibility Cola","All"}, Default="All", Callback=function(v) S.ColaMode=v end})
 Farm:AddToggle({Name="Auto Drink Cola", Default=false, Flag="Evade_AutoDrink", Callback=function(v) S.AutoDrink=v end})
 
--- ---------- Player ----------
+-- ---------- Player / Visual / Misc / Setting ----------
 PlayerTab:AddSection("⚡", "Player")
 PlayerTab:AddToggle({Name="Anti AFK", Default=true, Flag="Evade_AntiAFK", Callback=function(v) S.AntiAFK=v end})
 PlayerTab:AddButton({Name="Reset Character", Callback=function() local h=Hum() if h then h.Health=0 end end})
 PlayerTab:AddButton({Name="Rejoin", Callback=function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end})
 PlayerTab:AddButton({Name="Copy JobId", Callback=function() setclipboard(game.JobId) Notify("Copied","JobId แล้ว") end})
 
--- ---------- Visual ----------
 Visual:AddSection("👁", "ESP")
 Visual:AddToggle({Name="ESP เปิด/ปิด", Default=false, Flag="Evade_ESP", Callback=function(v) S.ESP=v if not v then for _,o in ipairs(Workspace:GetDescendants()) do if o:IsA("BillboardGui") and o.Name=="EvadeESP" then o:Destroy() end end end end})
 Visual:AddToggle({Name="ESP Nextbot", Default=true, Flag="Evade_ESP_Next", Callback=function(v) S.ESPNextbot=v end})
 Visual:AddToggle({Name="ESP Player", Default=true, Flag="Evade_ESP_Player", Callback=function(v) S.ESPPlayer=v end})
 Visual:AddToggle({Name="FullBright", Default=false, Flag="Evade_FullBright", Callback=function(v) S.FullBright=v if v then Lighting.Brightness=2 Lighting.ClockTime=14 Lighting.FogEnd=100000 Lighting.GlobalShadows=false else Lighting.Brightness=1 Lighting.ClockTime=12 Lighting.FogEnd=1000 Lighting.GlobalShadows=true end end})
 
--- ---------- Misc / Setting ----------
 Misc:AddSection("⚙", "Misc")
 Misc:AddToggle({Name="Auto Emote", Default=false, Flag="Evade_Emote", Callback=function(v) S.AutoEmote=v end})
 Misc:AddButton({Name="ซ่อน / โชว์ เม็ดยาข้างขวา", Callback=function() S.PillVisible=not S.PillVisible if PillFrame then PillFrame.Visible=S.PillVisible end end})
@@ -2247,7 +2091,7 @@ Setting:AddDropdown({Name="Theme", Options=ProjectNTIN.GetThemes(), Default="Hel
 Setting:AddToggle({Name="ล็อกเม็ดยา (ไม่ให้ลาก)", Default=false, Flag="Evade_LockPill", Callback=function(v) S.LockedPill=v Notify("Lock Pill", v and "ล็อกแล้ว" or "ปลดล็อกแล้ว ลากได้") end})
 Setting:AddLabel("เม็ดยา: ลากย้ายได้ / กดค้าง 0.4 วิ = ซ่อน / กดใน Misc เพื่อโชว์อีกครั้ง")
 
--- ============ BHOP CORE ============
+-- ============ BHOP CORE [แก้แล้ว - ไม่ซ้ำ Connection] ============
 local Bhop = {Holding=false, LastJump=0}
 local function IsGrounded(h)
     if not h then return false end
@@ -2290,8 +2134,7 @@ end))
 Conn(RunService.Heartbeat:Connect(function()
     local c=Char() local h=Hum() local hrp=HRP()
     if not c or not h or not hrp then return end
-    if not S.Bhop and S.Speed then h.WalkSpeed=S.SpeedVal end
-    if S.Bhop then h.WalkSpeed=S.BhopSpeed end
+    if S.Bhop then h.WalkSpeed=S.BhopSpeed elseif S.Speed then h.WalkSpeed=S.SpeedVal end
     if S.Jump then h.JumpPower=S.JumpVal h.UseJumpPower=true end
     if S.NoClip then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end
     if S.Fly then
