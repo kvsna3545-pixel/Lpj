@@ -1,27 +1,28 @@
 --[[
 
- HELLOHUB | UI LIBRARY v9.2.1 PREMIUM EDITION
- Runtime: 【entity-Roblox Studio¦canonical_name=Roblox Studio】 | LocalScript / ModuleScript
+ the Project N.T.i.N | UI LIBRARY v9.2.2 PREMIUM EDITION
+ Runtime: Roblox Studio | LocalScript / ModuleScript
 
  Features:
  - Floating dropdown overlay with automatic up/down placement
  - Responsive window, draggable launcher and RightShift toggle
  - 11 themes with role-based live theme updates
+ - Theme Decorations: Valentine hearts, Halloween webs, etc.
  - Ambient theme effects and particle bursts
  - Buttons, toggles, sliders, dropdowns, inputs, keybinds
  - Search, notifications, flags, connection cleanup
  - Animated Toggle: Pop + Squash + Glow + Orbit Stars
- - ModuleScript-safe: returns HelloHub; no automatic demo
 
- Usage (LocalScript):
- local HelloHub = require(path.to.HelloHub)
- local UI = HelloHub.new({Title = "My UI"})
+ Usage:
+ local ProjectNTIN = require(path.to.HelloHub)
+ local UI = ProjectNTIN.new({Title = "the Project N.T.i.N"})
  local Tab = UI:CreateTab({Name = "Main", Icon = "◆"})
  Tab:AddButton({Name = "Click", Callback = function() print("Clicked") end})
 
 ]]
 
-local HelloHub = {}
+local ProjectNTIN = {}
+local HelloHub = ProjectNTIN
 local Effects = {}
 local Window = {}
 Window.__index = Window
@@ -34,8 +35,8 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local CONFIG = {
-    Name = "HelloHub",
-    Version = "v9.2.1",
+    Name = "the Project N.T.i.N",
+    Version = "v9.2.2",
     Logo = "rbxassetid://75164736067854",
     Window = {Width = 720, Height = 460, MinWidth = 500, MinHeight = 350, Margin = 16},
     Anim = {Normal = 0.25, Fast = 0.15, Smooth = Enum.EasingStyle.Quint},
@@ -109,7 +110,7 @@ local function safeCallback(callback, ...)
         callback(table.unpack(args, 1, args.n))
     end, debug.traceback)
     if not ok then
-        warn("[HelloHub] Callback error:\n" .. tostring(err))
+        warn("[the Project N.T.i.N] Callback error:\n" .. tostring(err))
     end
 end
 
@@ -252,11 +253,125 @@ local function spawnAmbient(container, effectName, theme)
     end
 end
 
-function HelloHub.new(options)
+-- ========================================================
+-- THEME DECORATIONS v9.2.2
+-- ========================================================
+local THEME_DECOR = {
+    Valentine = {Corner = "💖", Float = {"💖", "💕", "💘", "💓", "💗", "💞"}, Text = "มีแฟนแล้วนะ 💖"},
+    Halloween = {Corner = "🕸️", Float = {"🕷️", "👻", "🎃", "🦇", "💀"}, Text = "BOO! 👻"},
+    Christmas = {Corner = "🎄", Float = {"❄️", "🎄", "🎅", "⛄", "🎁"}, Text = "Merry Christmas 🎄"},
+    Ocean = {Corner = "🐠", Float = {"🐠", "🐳", "🫧", "🐚"}, Text = ""},
+    Mint = {Corner = "🍃", Float = {"✧", "🍃", "🌿"}, Text = ""},
+    Sunset = {Corner = "🍁", Float = {"🍁", "🍂", "🌇"}, Text = ""},
+    Autumn = {Corner = "🍂", Float = {"🍁", "🍂", "🍄"}, Text = ""},
+    Summer = {Corner = "☀️", Float = {"☀️", "🌴", "✨"}, Text = ""},
+    Cyberpunk = {Corner = "💜", Float = {"0", "1", "◇", "💜"}, Text = ""},
+    Hello = {Corner = "✦", Float = {"✦", "✧", "⭐"}, Text = ""},
+    Dark = {Corner = "🌙", Float = {"✦", "🌙", "⭐"}, Text = ""},
+}
+
+local function buildThemeDecor(main, themeName, theme)
+    local old = main:FindFirstChild("ThemeDecor")
+    if old then old:Destroy() end
+    local decor = create("Frame", {
+        Name = "ThemeDecor",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 2
+    }, main)
+    local info = THEME_DECOR[themeName] or THEME_DECOR.Hello
+    create("TextLabel", {
+        Size = UDim2.fromOffset(70, 70),
+        Position = UDim2.fromOffset(2, 52),
+        BackgroundTransparency = 1,
+        Text = info.Corner,
+        TextSize = themeName == "Halloween" and 45 or 32,
+        TextTransparency = 0.15,
+        ZIndex = 2
+    }, decor)
+    create("TextLabel", {
+        Size = UDim2.fromOffset(70, 70),
+        Position = UDim2.new(1, -72, 0, 52),
+        BackgroundTransparency = 1,
+        Text = info.Corner,
+        TextSize = themeName == "Halloween" and 45 or 32,
+        TextTransparency = 0.15,
+        ZIndex = 2
+    }, decor)
+    if themeName == "Halloween" then
+        create("TextLabel", {Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(18, 95), BackgroundTransparency = 1, Text = "🕷️", TextSize = 28, ZIndex = 3}, decor)
+        create("TextLabel", {Size = UDim2.fromOffset(50, 50), Position = UDim2.new(1, -60, 0, 110), BackgroundTransparency = 1, Text = "👻", TextSize = 30, TextTransparency = 0.1, ZIndex = 3}, decor)
+        create("TextLabel", {Size = UDim2.fromOffset(60, 60), Position = UDim2.new(0, 5, 1, -65), BackgroundTransparency = 1, Text = "🎃", TextSize = 32, TextTransparency = 0.15, ZIndex = 2}, decor)
+        create("TextLabel", {Size = UDim2.fromOffset(60, 60), Position = UDim2.new(1, -65, 1, -65), BackgroundTransparency = 1, Text = "🦇", TextSize = 30, TextTransparency = 0.15, ZIndex = 2}, decor)
+    end
+    if themeName == "Valentine" then
+        create("TextLabel", {Size = UDim2.fromOffset(60, 60), Position = UDim2.new(0, 5, 1, -65), BackgroundTransparency = 1, Text = "💕", TextSize = 30, TextTransparency = 0.15, ZIndex = 2}, decor)
+        create("TextLabel", {Size = UDim2.fromOffset(60, 60), Position = UDim2.new(1, -65, 1, -65), BackgroundTransparency = 1, Text = "💘", TextSize = 30, TextTransparency = 0.15, ZIndex = 2}, decor)
+        create("TextLabel", {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 1, -22), BackgroundTransparency = 1, Text = "มีแฟนแล้วนะ 💖", TextColor3 = Color3.fromRGB(255, 150, 200), TextSize = 11, Font = Enum.Font.GothamBold, TextTransparency = 0.25, ZIndex = 2}, decor)
+    end
+    if themeName == "Christmas" then
+        create("TextLabel", {Size = UDim2.fromOffset(60, 60), Position = UDim2.new(1, -65, 1, -65), BackgroundTransparency = 1, Text = "🎄", TextSize = 32, TextTransparency = 0.15, ZIndex = 2}, decor)
+    end
+    return decor
+end
+
+local function spawnAmbientNew(container, effectName, themeName, theme)
+    if not isAlive(container) then return end
+    local info = THEME_DECOR[themeName] or THEME_DECOR.Hello
+    local list = info.Float
+    local symbol = list[math.random(1, #list)]
+    local x = math.random()
+    if themeName == "Valentine" then
+        local item = create("TextLabel", {
+            Size = UDim2.fromOffset(20, 20),
+            Position = UDim2.new(x, 0, 1.05, 0),
+            BackgroundTransparency = 1,
+            Text = symbol,
+            TextColor3 = Color3.fromRGB(255, 120, 180),
+            TextSize = math.random(14, 22),
+            Font = Enum.Font.GothamBold,
+            ZIndex = 2
+        }, container)
+        tween(item, math.random(4, 6), {
+            Position = UDim2.new(math.clamp(x + math.random(-10, 10) / 100, 0, 1), 0, -0.1, 0),
+            TextTransparency = 1,
+            Rotation = math.random(-40, 40)
+        }, Enum.EasingStyle.Linear)
+        task.delay(6.1, function()
+            if isAlive(item) then item:Destroy() end
+        end)
+        return
+    end
+    if themeName == "Halloween" then
+        local item = create("TextLabel", {
+            Size = UDim2.fromOffset(22, 22),
+            Position = UDim2.new(x, 0, -0.08, 0),
+            BackgroundTransparency = 1,
+            Text = symbol,
+            TextColor3 = theme.Accent2,
+            TextSize = math.random(16, 24),
+            Font = Enum.Font.GothamBold,
+            ZIndex = 2
+        }, container)
+        tween(item, math.random(4, 6), {
+            Position = UDim2.new(math.clamp(x + math.random(-20, 20) / 100, 0, 1), 0, 1.05, 0),
+            TextTransparency = 1,
+            Rotation = math.random(-180, 180)
+        }, Enum.EasingStyle.Linear)
+        task.delay(6.1, function()
+            if isAlive(item) then item:Destroy() end
+        end)
+        return
+    end
+    spawnAmbient(container, effectName, theme)
+end
+
+function ProjectNTIN.new(options)
     options = options or {}
     local player = Players.LocalPlayer
     if not player then
-        error("[HelloHub] This UI must be created on the client.")
+        error("[the Project N.T.i.N] This UI must be created on the client.")
     end
     local playerGui = player:WaitForChild("PlayerGui")
     local self = setmetatable({}, Window)
@@ -283,7 +398,7 @@ function HelloHub.new(options)
         return math.clamp(math.min(size.X / 900, size.Y / 650), 0.58, 1)
     end
     local screen = create("ScreenGui", {
-        Name = "HelloHub_Premium",
+        Name = "ProjectNTIN_Premium",
         ResetOnSpawn = false,
         IgnoreGuiInset = true,
         DisplayOrder = options.DisplayOrder or 100,
@@ -315,14 +430,15 @@ function HelloHub.new(options)
         ClipsDescendants = true,
         ZIndex = 1
     }, main)
+    buildThemeDecor(main, self.ThemeName, self.Theme)
     task.spawn(function()
         while not self.Destroyed and isAlive(main) do
             if main.Visible and not self.Hidden and not self.Minimized then
                 local effect = self.Theme.Effect
                 if effect then
-                    spawnAmbient(self.AmbientContainer, effect, self.Theme)
+                    spawnAmbientNew(self.AmbientContainer, effect, self.ThemeName, self.Theme)
                     if math.random() > 0.65 then
-                        spawnAmbient(self.AmbientContainer, effect, self.Theme)
+                        spawnAmbientNew(self.AmbientContainer, effect, self.ThemeName, self.Theme)
                     end
                 end
             end
@@ -622,7 +738,7 @@ function Window:CreateTab(options)
     options = options or {}
     local name = options.Name or ("Tab" .. tostring(#self.Tabs + 1))
     if self.Tabs[name] then
-        warn("[HelloHub] Duplicate tab name: " .. tostring(name))
+        warn("[the Project N.T.i.N] Duplicate tab name: " .. tostring(name))
         return self.Tabs[name]
     end
     local tab = setmetatable({
@@ -1377,6 +1493,7 @@ function Window:SetTheme(name)
     self.ThemeName = name
     self.Theme = table.clone(CONFIG.Themes[name])
     Theme = self.Theme
+    buildThemeDecor(self.Main, name, self.Theme)
     for _, object in ipairs(self.Screen:GetDescendants()) do
         local property = object:GetAttribute("HHThemeProperty")
         local role = object:GetAttribute("HHThemeRole")
@@ -1476,11 +1593,11 @@ function Window:Destroy()
     if self.Screen then self.Screen:Destroy() end
 end
 
-HelloHub.Effects = Effects
-HelloHub.Config = CONFIG
-HelloHub.Version = CONFIG.Version
+ProjectNTIN.Effects = Effects
+ProjectNTIN.Config = CONFIG
+ProjectNTIN.Version = CONFIG.Version
 
-function HelloHub.GetThemes()
+function ProjectNTIN.GetThemes()
     local names = {}
     for name in pairs(CONFIG.Themes) do
         table.insert(names, name)
@@ -1490,12 +1607,12 @@ function HelloHub.GetThemes()
 end
 
 --========================================================
--- HELLOHUB v9.2.1 | SYSTEM TESTER (FIXED + EXTENDED)
+-- SYSTEM TESTER v9.2.2 (FIXED + EXTENDED)
 --========================================================
 
-function HelloHub.AddSystemTest(window)
-    assert(window, "[HelloHub] Window is required")
-    assert(not window.Destroyed, "[HelloHub] Window is destroyed")
+function ProjectNTIN.AddSystemTest(window)
+    assert(window, "[the Project N.T.i.N] Window is required")
+    assert(not window.Destroyed, "[the Project N.T.i.N] Window is destroyed")
     local tab = window:CreateTab({
         Name = "System Test",
         Icon = "🧪"
@@ -1524,7 +1641,7 @@ function HelloHub.AddSystemTest(window)
             " | Last: " .. name
         )
         if not ok then
-            warn("[HelloHub Test] " .. name .. ": " .. tostring(detail))
+            warn("[ProjectNTIN Test] " .. name .. ": " .. tostring(detail))
         end
     end
     local function test(name, callback)
@@ -1540,10 +1657,10 @@ function HelloHub.AddSystemTest(window)
             failed = 0
             table.clear(results)
             status:Set("SYSTEM TESTER | Running...")
-            report:Set("Testing HelloHub components...")
+            report:Set("Testing components...")
             test("Theme Configuration", function()
-                assert(type(HelloHub.Config.Themes) == "table")
-                assert(#HelloHub.GetThemes() == 11)
+                assert(type(ProjectNTIN.Config.Themes) == "table")
+                assert(#ProjectNTIN.GetThemes() == 11)
             end)
             test("Window API", function()
                 assert(type(window.CreateTab) == "function")
@@ -1761,7 +1878,7 @@ function HelloHub.AddSystemTest(window)
                 Content = passed .. "/" .. total .. " tests passed.",
                 Duration = 4
             })
-            print("========== HELLOHUB TEST REPORT ==========")
+            print("========== PROJECT N.T.i.N TEST REPORT ==========")
             for _, result in ipairs(results) do
                 print(
                     (result.Passed and "[PASS] " or "[FAIL] ") ..
@@ -1777,7 +1894,7 @@ function HelloHub.AddSystemTest(window)
         Name = "Test Notification",
         Callback = function()
             window:Notify({
-                Title = "HelloHub",
+                Title = "the Project N.T.i.N",
                 Content = "Notification system is working!",
                 Duration = 3
             })
@@ -1794,7 +1911,7 @@ function HelloHub.AddSystemTest(window)
     tab:AddButton({
         Name = "Test Theme",
         Callback = function()
-            local themes = HelloHub.GetThemes()
+            local themes = ProjectNTIN.GetThemes()
             local index = table.find(themes, window.ThemeName) or 0
             local nextIndex = (index % #themes) + 1
             window:SetTheme(themes[nextIndex])
@@ -1819,4 +1936,4 @@ function HelloHub.AddSystemTest(window)
     }
 end
 
-return HelloHub
+return ProjectNTIN
