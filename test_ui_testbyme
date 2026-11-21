@@ -1621,7 +1621,7 @@ function HelloHub.AddSystemTest(window)
         end
     })
 
-    MainTab:AddDropdown({
+    Tab:AddDropdown({
     Name = "Select Option",
     Options = {"Option 1", "Option 2", "Option 3"},
     Default = "Option 1",
