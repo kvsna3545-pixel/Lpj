@@ -1788,5 +1788,275 @@ function HelloHub.AddSystemTest(window)
         end
     }
 end
+--[[ ========================================================
+    EVADE x HELLOHUB v9.2.0 - TAIL ต่อท้าย LIBRARY
+    วิธีแปะ :
+    1. เอาไฟล์ UI v9.2.0 ของนายไว้ข้างบนเหมือนเดิม
+    2. ลบบรรทัดสุดท้ายทิ้ง 1 บรรทัด : return HelloHub
+    3. แปะโค้ดข้างล่างนี้ต่อท้ายแทน
+    ห้าม loadstring 【entity-GitHub¦canonical_name=GitHub】 ซ้ำ เพราะ HelloHub อยู่ข้างบนแล้ว
+    API ที่ใช้ : HelloHub.new / CreateTab / AddToggle / AddSlider
+                 AddDropdown / AddButton / AddInput / AddLabel
+                 AddSection / GetThemes / AddSystemTest / SetTheme
+                 Notify / ToggleWindow / Destroy / Screen
+======================================================== ]]
 
+-- กันรันซ้ำ
+if getgenv().EVADE_COMBINED then
+    if getgenv().EVADE_CLEANUP then pcall(getgenv().EVADE_CLEANUP) end
+    getgenv().EVADE_COMBINED = false
+    task.wait(0.2)
+end
+getgenv().EVADE_COMBINED = true
+
+-- ใช้ตัวแปรจาก Library ข้างบนได้เลย ไม่ประกาศซ้ำ
+-- Players / UserInputService / RunService มีแล้ว
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local LP = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- ============ STATE ============
+local S = {
+    Speed=false, SpeedVal=32, NormalSpeed=16,
+    Jump=false, JumpVal=75, NormalJump=50,
+    AutoCarry=false, AutoRevive=false, AutoCoin=false,
+    ESP=false, ESPNextbot=true, ESPPlayer=true,
+    NoClip=false, InfiniteJump=false, Fly=false, FlySpeed=60,
+    AutoEmote=false, AntiAFK=true, FullBright=false,
+    AutoDrink=false, ColaMode="All",
+    RespawnPos=nil, LockedPill=false, PillVisible=true,
+    CoinRange=25, ReviveRange=18, CarryRange=12, AutoFarmMode="Coin + Revive",
+    Bhop=false, BhopMode="Auto Hop", BhopSpeed=42, BhopBoost=1.5,
+    BhopStrafe=true, BhopAirControl=0.85, BhopKeepSpeed=true,
+}
+local Conns = {}
+local function Conn(c) table.insert(Conns,c) return c end
+local function Char() return LP.Character end
+local function Hum() local c=Char() return c and c:FindFirstChildOfClass("Humanoid") end
+local function HRP() local c=Char() return c and c:FindFirstChild("HumanoidRootPart") end
+local function Alive() local h=Hum() return h and h.Health>0 end
+local UI
+local PillFrame
+local function Notify(t,c) pcall(function() if UI then UI:Notify({Title=t,Content=c,Duration=2.5}) end end) end
+local function GetDowned()
+    local out={}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=LP and p.Character then
+            local h=p.Character:FindFirstChildOfClass("Humanoid")
+            local hrp=p.Character:FindFirstChild("HumanoidRootPart")
+            if h and hrp and h.Health>0 and (h:GetState()==Enum.HumanoidStateType.Seated or p.Character:FindFirstChild("Downed") or p.Character:GetAttribute("Downed")) then
+                table.insert(out,{Player=p,HRP=hrp,Hum=h})
+            end
+        end
+    end
+    return out
+end
+
+-- ============ UI MAIN - ตาม API v9.2.0 ============
+UI = HelloHub.new({Title="EVADE | HelloHub", Theme="Hello", ToggleKey=Enum.KeyCode.RightShift})
+pcall(function() HelloHub.AddSystemTest(UI) end)
+
+local Main = UI:CreateTab({Name="Main", Icon="🏃"})
+local Farm = UI:CreateTab({Name="Auto Farm", Icon="💰"})
+local PlayerTab = UI:CreateTab({Name="Player", Icon="⚡"})
+local Visual = UI:CreateTab({Name="Visual", Icon="👁"})
+local Misc = UI:CreateTab({Name="Misc", Icon="⚙"})
+local Setting = UI:CreateTab({Name="Setting", Icon="🎨"})
+
+-- ---------- Main : Movement ----------
+Main:AddSection("🏃", "Movement")
+local speedTog, bhopTog, pillBhop
+speedTog = Main:AddToggle({Name="Speed", Default=false, Flag="Evade_Speed", Callback=function(v)
+    S.Speed=v local h=Hum() if h then h.WalkSpeed = v and S.SpeedVal or (S.Bhop and S.BhopSpeed or S.NormalSpeed) end
+    Notify("Speed", v and "ON - "..S.SpeedVal or "OFF")
+end})
+Main:AddSlider({Name="Speed Value", Min=16, Max=120, Default=32, Callback=function(v) S.SpeedVal=v if S.Speed then local h=Hum() if h then h.WalkSpeed=v end end end})
+Main:AddToggle({Name="Jump Power", Default=false, Flag="Evade_Jump", Callback=function(v) S.Jump=v local h=Hum() if h then h.JumpPower = v and S.JumpVal or S.NormalJump h.UseJumpPower=true end end})
+Main:AddSlider({Name="Jump Value", Min=50, Max=200, Default=75, Callback=function(v) S.JumpVal=v if S.Jump then local h=Hum() if h then h.JumpPower=v end end end})
+Main:AddToggle({Name="Infinite Jump", Default=false, Flag="Evade_InfJump", Callback=function(v) S.InfiniteJump=v end})
+Main:AddToggle({Name="NoClip", Default=false, Flag="Evade_NoClip", Callback=function(v) S.NoClip=v end})
+Main:AddToggle({Name="Fly (WASD + Space ขึ้น / Shift ลง)", Default=false, Flag="Evade_Fly", Callback=function(v) S.Fly=v end})
+Main:AddSlider({Name="Fly Speed", Min=20, Max=150, Default=60, Callback=function(v) S.FlySpeed=v end})
+
+-- ---------- Main : Bhop ----------
+Main:AddSection("🐰", "Bhop")
+bhopTog = Main:AddToggle({Name="Bhop", Default=false, Flag="Evade_Bhop", Callback=function(v)
+    S.Bhop=v Notify("Bhop", v and "ON - กดค้าง Space แล้วโดดเลย" or "OFF")
+    if pillBhop then pillBhop.BackgroundColor3 = v and Color3.fromRGB(0,200,90) or Color3.fromRGB(255,122,0) pillBhop.Text = v and "🐰 Bhop ON" or "🐰 Bhop" end
+end})
+Main:AddDropdown({Name="Bhop Mode", Options={"Auto Hop","Hold Space","Legit"}, Default="Auto Hop", Callback=function(v) S.BhopMode=v end})
+Main:AddSlider({Name="Bhop Speed", Min=16, Max=90, Default=42, Callback=function(v) S.BhopSpeed=v if S.Bhop then local h=Hum() if h then h.WalkSpeed=v end end end})
+Main:AddSlider({Name="Bhop Boost", Min=0, Max=5, Default=1.5, Callback=function(v) S.BhopBoost=v end})
+Main:AddToggle({Name="Bhop Strafe Assist", Default=true, Flag="Evade_BhopStrafe", Callback=function(v) S.BhopStrafe=v end})
+Main:AddToggle({Name="Bhop Keep Speed", Default=true, Flag="Evade_BhopKeep", Callback=function(v) S.BhopKeepSpeed=v end})
+
+-- ---------- Main : Save ----------
+Main:AddSection("🆘", "Save / Carry")
+Main:AddToggle({Name="Auto Revive (ใกล้ตัว)", Default=false, Flag="Evade_AutoRevive", Callback=function(v) S.AutoRevive=v Notify("Auto Revive", v and "ON" or "OFF") end})
+Main:AddToggle({Name="Auto Carry", Default=false, Flag="Evade_AutoCarry", Callback=function(v) S.AutoCarry=v end})
+Main:AddButton({Name="Revive ทุกคนใกล้ตัว ตอนนี้", Callback=function()
+    local me=HRP() if not me then return end
+    for _,d in ipairs(GetDowned()) do
+        if (d.HRP.Position-me.Position).Magnitude <= S.ReviveRange+8 then
+            pcall(function() firetouchinterest(me,d.HRP,0) task.wait(0.05) firetouchinterest(me,d.HRP,1) end)
+        end
+    end
+    Notify("Revive","ลองชุบคนที่ล้มใกล้ตัวแล้ว")
+end})
+Main:AddButton({Name="Save จุดเกิด", Callback=function() local hrp=HRP() if hrp then S.RespawnPos=hrp.CFrame Notify("Saved","เซฟจุดเกิดแล้ว") end end})
+Main:AddButton({Name="วาร์ปกลับจุดที่เซฟ", Callback=function() local hrp=HRP() if hrp and S.RespawnPos then hrp.CFrame=S.RespawnPos end end})
+
+-- ---------- Farm ----------
+Farm:AddSection("💰", "Auto Farm")
+Farm:AddToggle({Name="Auto Coin", Default=false, Flag="Evade_AutoCoin", Callback=function(v) S.AutoCoin=v end})
+Farm:AddSlider({Name="Coin Range", Min=5, Max=80, Default=25, Callback=function(v) S.CoinRange=v end})
+Farm:AddDropdown({Name="Auto Farm Mode", Options={"Coin + Revive","Coin Only","Revive Only"}, Default="Coin + Revive", Callback=function(v) S.AutoFarmMode=v end})
+Farm:AddToggle({Name="Auto Revive ใน Farm", Default=false, Flag="Evade_FarmRevive", Callback=function(v) S.AutoRevive=v end})
+Farm:AddSlider({Name="Revive Range", Min=5, Max=50, Default=18, Callback=function(v) S.ReviveRange=v end})
+Farm:AddLabel("Farm จะวิ่งเก็บเหรียญ + ชุบเพื่อนเอง ไม่ต้องกดอะไร")
+Farm:AddSection("🥤", "Cola")
+Farm:AddDropdown({Name="เลือก Cola", Options={"Speed Cola","Jump Cola","Invisibility Cola","All"}, Default="All", Callback=function(v) S.ColaMode=v end})
+Farm:AddToggle({Name="Auto Drink Cola", Default=false, Flag="Evade_AutoDrink", Callback=function(v) S.AutoDrink=v end})
+
+-- ---------- Player / Visual / Misc / Setting ----------
+PlayerTab:AddSection("⚡", "Player")
+PlayerTab:AddToggle({Name="Anti AFK", Default=true, Flag="Evade_AntiAFK", Callback=function(v) S.AntiAFK=v end})
+PlayerTab:AddButton({Name="Reset Character", Callback=function() local h=Hum() if h then h.Health=0 end end})
+PlayerTab:AddButton({Name="Rejoin", Callback=function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end})
+PlayerTab:AddButton({Name="Copy JobId", Callback=function() setclipboard(game.JobId) Notify("Copied","JobId แล้ว") end})
+
+Visual:AddSection("👁", "ESP")
+Visual:AddToggle({Name="ESP เปิด/ปิด", Default=false, Flag="Evade_ESP", Callback=function(v) S.ESP=v if not v then for _,o in ipairs(Workspace:GetDescendants()) do if o:IsA("BillboardGui") and o.Name=="EvadeESP" then o:Destroy() end end end end})
+Visual:AddToggle({Name="ESP Nextbot", Default=true, Flag="Evade_ESP_Next", Callback=function(v) S.ESPNextbot=v end})
+Visual:AddToggle({Name="ESP Player", Default=true, Flag="Evade_ESP_Player", Callback=function(v) S.ESPPlayer=v end})
+Visual:AddToggle({Name="FullBright", Default=false, Flag="Evade_FullBright", Callback=function(v) S.FullBright=v if v then Lighting.Brightness=2 Lighting.ClockTime=14 Lighting.FogEnd=100000 Lighting.GlobalShadows=false else Lighting.Brightness=1 Lighting.ClockTime=12 Lighting.FogEnd=1000 Lighting.GlobalShadows=true end end})
+
+Misc:AddSection("⚙", "Misc")
+Misc:AddToggle({Name="Auto Emote", Default=false, Flag="Evade_Emote", Callback=function(v) S.AutoEmote=v end})
+Misc:AddButton({Name="ซ่อน / โชว์ เม็ดยาข้างขวา", Callback=function() S.PillVisible=not S.PillVisible if PillFrame then PillFrame.Visible=S.PillVisible end end})
+Misc:AddButton({Name="Destroy UI", Callback=function() if getgenv().EVADE_CLEANUP then pcall(getgenv().EVADE_CLEANUP) end UI:Destroy() end})
+Setting:AddSection("🎨", "Theme")
+Setting:AddDropdown({Name="Theme", Options=HelloHub.GetThemes(), Default="Hello", Callback=function(v) UI:SetTheme(v) end})
+Setting:AddToggle({Name="ล็อกเม็ดยา (ไม่ให้ลาก)", Default=false, Flag="Evade_LockPill", Callback=function(v) S.LockedPill=v Notify("Lock Pill", v and "ล็อกแล้ว" or "ปลดล็อกแล้ว ลากได้") end})
+Setting:AddLabel("เม็ดยา: ลากย้ายได้ / กดค้าง 0.4 วิ = ซ่อน / กดใน Misc เพื่อโชว์อีกครั้ง")
+
+-- ============ BHOP CORE ============
+local Bhop = {Holding=false, LastJump=0}
+local function IsGrounded(h)
+    if not h then return false end
+    local st=h:GetState()
+    return st==Enum.HumanoidStateType.Running or st==Enum.HumanoidStateType.Landing or h.FloorMaterial~=Enum.Material.Air
+end
+Conn(UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==Enum.KeyCode.Space then Bhop.Holding=true end end))
+Conn(UserInputService.InputEnded:Connect(function(i) if i.KeyCode==Enum.KeyCode.Space then Bhop.Holding=false end end))
+Conn(RunService.Heartbeat:Connect(function()
+    if not S.Bhop then return end
+    local h=Hum() local hrp=HRP()
+    if not h or not hrp or h.Health<=0 then return end
+    local shouldHop = S.BhopMode=="Auto Hop" and true or (S.BhopMode=="Hold Space" and Bhop.Holding) or false
+    if S.BhopKeepSpeed and h.WalkSpeed < S.BhopSpeed then h.WalkSpeed=S.BhopSpeed end
+    if S.BhopStrafe and h.FloorMaterial==Enum.Material.Air then
+        local wish=Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then wish+=Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then wish-=Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then wish-=Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then wish+=Camera.CFrame.RightVector end
+        if wish.Magnitude>0 then
+            wish=Vector3.new(wish.X,0,wish.Z).Unit
+            hrp.AssemblyLinearVelocity=Vector3.new(hrp.AssemblyLinearVelocity.X + wish.X*S.BhopAirControl*S.BhopBoost, hrp.AssemblyLinearVelocity.Y, hrp.AssemblyLinearVelocity.Z + wish.Z*S.BhopAirControl*S.BhopBoost)
+            local flat=Vector3.new(hrp.AssemblyLinearVelocity.X,0,hrp.AssemblyLinearVelocity.Z)
+            local maxFlat=S.BhopSpeed*1.6
+            if flat.Magnitude>maxFlat then local cl=flat.Unit*maxFlat hrp.AssemblyLinearVelocity=Vector3.new(cl.X,hrp.AssemblyLinearVelocity.Y,cl.Z) end
+        end
+    end
+    if shouldHop and IsGrounded(h) and tick()-Bhop.LastJump>0.03 then
+        Bhop.LastJump=tick()
+        h:ChangeState(Enum.HumanoidStateType.Jumping)
+        if S.BhopBoost>0 then
+            local vel=hrp.AssemblyLinearVelocity local flat=Vector3.new(vel.X,0,vel.Z)
+            if flat.Magnitude>1 then local add=flat.Unit*(S.BhopBoost*1.2) hrp.AssemblyLinearVelocity=Vector3.new(vel.X+add.X,vel.Y,vel.Z+add.Z) end
+        end
+    end
+end))
+
+-- ============ MAIN LOOPS ============
+Conn(RunService.Heartbeat:Connect(function()
+    local c=Char() local h=Hum() local hrp=HRP()
+    if not c or not h or not hrp then return end
+    if S.Bhop then h.WalkSpeed=S.BhopSpeed elseif S.Speed then h.WalkSpeed=S.SpeedVal end
+    if S.Jump then h.JumpPower=S.JumpVal h.UseJumpPower=true end
+    if S.NoClip then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end
+    if S.Fly then
+        local bv=hrp:FindFirstChild("EvadeFly") or Instance.new("BodyVelocity")
+        bv.Name="EvadeFly" bv.MaxForce=Vector3.new(1e5,1e5,1e5) bv.Velocity=Vector3.zero bv.Parent=hrp
+        local dir=Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir+=Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir-=Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir-=Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir+=Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir+=Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir-=Vector3.new(0,1,0) end
+        bv.Velocity = dir.Magnitude>0 and dir.Unit*S.FlySpeed or Vector3.zero
+    else local bv=hrp:FindFirstChild("EvadeFly") if bv then bv:Destroy() end end
+end))
+Conn(RunService.Heartbeat:Connect(function()
+    if not Alive() then return end
+    local me=HRP() if not me then return end
+    if S.AutoCoin and (S.AutoFarmMode=="Coin + Revive" or S.AutoFarmMode=="Coin Only") then
+        for _,o in ipairs(Workspace:GetDescendants()) do
+            if o.Name=="Coin" or o.Name:find("Coin") then
+                local part=o:IsA("BasePart") and o or o:FindFirstChildOfClass("BasePart")
+                if part and (part.Position-me.Position).Magnitude<=S.CoinRange then pcall(function() firetouchinterest(me,part,0) task.wait() firetouchinterest(me,part,1) end) end
+            end
+        end
+    end
+    if S.AutoRevive then
+        for _,d in ipairs(GetDowned()) do
+            if (d.HRP.Position-me.Position).Magnitude<=S.ReviveRange then
+                pcall(function() firetouchinterest(me,d.HRP,0) task.wait(0.05) firetouchinterest(me,d.HRP,1) end)
+                local pp=d.Player.Character:FindFirstChildOfClass("ProximityPrompt",true)
+                if pp then pcall(function() fireproximityprompt(pp) end) end
+            end
+        end
+    end
+end))
+Conn(UserInputService.JumpRequest:Connect(function() if S.InfiniteJump and Alive() then local h=Hum() if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end))
+Conn(Players.Idled:Connect(function() if S.AntiAFK then local vu=game:GetService("VirtualUser") vu:Button2Down(Vector2.new(0,0),Workspace.CurrentCamera.CFrame) task.wait(0.2) vu:Button2Up(Vector2.new(0,0),Workspace.CurrentCamera.CFrame) end end))
+task.spawn(function() while getgenv().EVADE_COMBINED do if S.AutoDrink and Alive() then local bp=LP:FindFirstChild("Backpack") if bp then for _,t in ipairs(bp:GetChildren()) do if t:IsA("Tool") and t.Name:find("Cola") then pcall(function() t.Parent=Char() t:Activate() end) end end end end task.wait(1.2) end end)
+task.spawn(function()
+    local function makeESP(obj,text,color) if obj:FindFirstChild("EvadeESP") then return end local bg=Instance.new("BillboardGui") bg.Name="EvadeESP" bg.Size=UDim2.fromOffset(120,22) bg.AlwaysOnTop=true bg.Parent=obj local lb=Instance.new("TextLabel") lb.Size=UDim2.fromScale(1,1) lb.BackgroundTransparency=1 lb.Text=text lb.TextColor3=color lb.TextSize=12 lb.Font=Enum.Font.GothamBold lb.TextStrokeTransparency=0.2 lb.Parent=bg end
+    while getgenv().EVADE_COMBINED do
+        if S.ESP then
+            for _,p in ipairs(Players:GetPlayers()) do if S.ESPPlayer and p~=LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then makeESP(p.Character.HumanoidRootPart,"👤 "..p.Name,Color3.fromRGB(0,255,170)) end end
+            if S.ESPNextbot then for _,o in ipairs(Workspace:GetDescendants()) do if o:IsA("Model") and (o.Name:find("Nextbot") or o.Name:find("Munci") or o.Name:find("Jard") or o.Name:find("Angry")) then local hrp=o:FindFirstChild("HumanoidRootPart") or o:FindFirstChildWhichIsA("BasePart") if hrp then makeESP(hrp,"⚠ NEXTBOT",Color3.fromRGB(255,60,60)) end end end end
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- ============ เม็ดยาส้มข้างขวา ============
+local Screen = UI.Screen
+PillFrame = Instance.new("Frame")
+PillFrame.Name="EvadePills" PillFrame.Size=UDim2.fromOffset(112,214) PillFrame.Position=UDim2.new(1,-128,0.5,-107) PillFrame.BackgroundTransparency=1 PillFrame.ZIndex=400 PillFrame.Parent=Screen
+local function MakePill(y,text,color,onClick)
+    local b=Instance.new("TextButton") b.Size=UDim2.fromOffset(112,34) b.Position=UDim2.fromOffset(0,y) b.BackgroundColor3=color b.Text=text b.TextColor3=Color3.new(1,1,1) b.TextSize=13 b.Font=Enum.Font.GothamBold b.AutoButtonColor=false b.ZIndex=401 b.Parent=PillFrame
+    local c=Instance.new("UICorner") c.CornerRadius=UDim.new(0,17) c.Parent=b
+    local s=Instance.new("UIStroke") s.Color=Color3.fromRGB(255,255,255) s.Transparency=0.65 s.Thickness=1 s.Parent=b
+    local dragging,startPos,startInput,moved,hold=false,nil,nil,0,false
+    b.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then if not S.LockedPill then dragging=true startInput=input.Position startPos=PillFrame.Position moved=0 end hold=true task.delay(0.4,function() if hold and moved<8 then PillFrame.Visible=false S.PillVisible=false Notify("Pills","ซ่อนเม็ดยาแล้ว เปิดใน Misc") end end) end end)
+    b.InputEnded:Connect(function() hold=false dragging=false end)
+    UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then local d=input.Position-startInput moved+=math.abs(d.X)+math.abs(d.Y) local vs=Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720) PillFrame.Position=UDim2.new(0,math.clamp(startPos.X.Offset+d.X,0,vs.X-112),0,math.clamp(startPos.Y.Offset+d.Y,0,vs.Y-214)) end end)
+    b.Activated:Connect(function() if moved<12 then onClick() end moved=0 end)
+    return b
+end
+local pillSpeed,pillRevive,pillCoin,pillUI
+pillSpeed=MakePill(0,"⚡ Speed",Color3.fromRGB(255,122,0),function() S.Speed=not S.Speed speedTog:Set(S.Speed) pillSpeed.Text=S.Speed and "⚡ Speed ON" or "⚡ Speed" pillSpeed.BackgroundColor3=S.Speed and Color3.fromRGB(0,200,90) or Color3.fromRGB(255,122,0) end)
+pillRevive=MakePill(42,"🆘 Revive",Color3.fromRGB(255,122,0),function() S.AutoRevive=not S.AutoRevive pillRevive.BackgroundColor3=S.AutoRevive and Color3.fromRGB(0,200,90) or Color3.fromRGB(255,122,0) Notify("Auto Revive",S.AutoRevive and "ON" or "OFF") end)
+pillCoin=MakePill(84,"💰 Coin",Color3.fromRGB(255,122,0),function() S.AutoCoin=not S.AutoCoin pillCoin.BackgroundColor3=S.AutoCoin and Color3.fromRGB(0,200,90) or Color3.fromRGB(255,122,0) Notify("Auto Coin",S.AutoCoin and "ON" or "OFF") end)
+pillUI=MakePill(126,"👁 UI",Color3.fromRGB(40,40,50),function() UI:ToggleWindow(UI.Hidden) end)
+pillBhop=MakePill(168,"🐰 Bhop",Color3.fromRGB(255,122,0),function() S.Bhop=not S.Bhop bhopTog:Set(S.Bhop) end)
+
+getgenv().EVADE_CLEANUP=function() getgenv().EVADE_COMBINED=false for _,c in ipairs(Conns) do pcall(function() c:Disconnect() end) end if PillFrame then PillFrame:Destroy() end end
+UI:Notify({Title="EVADE Loaded", Content="HelloHub v9.2.0 + Evade + Bhop + เม็ดยาข้างขวา พร้อมแล้ว", Duration=3})
 return HelloHub
