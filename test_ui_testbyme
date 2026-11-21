@@ -1,8 +1,8 @@
 --[[
-========================================================
+
  HELLOHUB | UI LIBRARY v9.2.0 PREMIUM EDITION
- Runtime: Roblox Studio | LocalScript / ModuleScript
-========================================================
+ Runtime: 【entity-Roblox Studio¦canonical_name=Roblox Studio】 | LocalScript / ModuleScript
+
  Features:
  - Floating dropdown overlay with automatic up/down placement
  - Responsive window, draggable launcher and RightShift toggle
@@ -11,7 +11,7 @@
  - Buttons, toggles, sliders, dropdowns, inputs, keybinds
  - Search, notifications, flags, connection cleanup
  - ModuleScript-safe: returns HelloHub; no automatic demo
-========================================================
+
  Usage (LocalScript):
  local HelloHub = require(path.to.HelloHub)
  local UI = HelloHub.new({Title = "My UI"})
@@ -19,7 +19,7 @@
  Tab:AddButton({Name = "Click", Callback = function() print("Clicked") end})
 
  For a ModuleScript, place this code in the ModuleScript.
-========================================================
+
 ]]
 
 local HelloHub = {}
@@ -187,7 +187,6 @@ local function spawnAmbient(container, effectName, theme)
     if not isAlive(container) then return end
     local x = math.random()
     local item
-
     if effectName == "Stars" or effectName == "Sparkles" then
         item = create("TextLabel", {
             Size = UDim2.fromOffset(14, 14),
@@ -205,14 +204,12 @@ local function spawnAmbient(container, effectName, theme)
         end)
         return
     end
-
     local symbols = {
         Leaves = {"🍁", "🍂"},
         Hearts = {"♥"},
         Pumpkins = {"🎃"},
         Matrix = {"0", "1", "◇"}
     }
-
     if symbols[effectName] then
         local list = symbols[effectName]
         item = create("TextLabel", {
@@ -237,18 +234,16 @@ local function spawnAmbient(container, effectName, theme)
         corner(item, 100)
         if effectName == "Bubbles" then addStroke(item, theme.Accent2, 0.25, 1) end
     end
-
     local duration = math.random(4, 7)
     local targetY = (effectName == "Bubbles") and -0.1 or 1.08
-    local targetTransparency = 1
     local target = {
         Position = UDim2.new(math.clamp(x + math.random(-10, 10) / 100, 0, 1), 0, targetY, 0),
         Rotation = math.random(-180, 180)
     }
     if item:IsA("TextLabel") then
-        target.TextTransparency = targetTransparency
+        target.TextTransparency = 1
     else
-        target.BackgroundTransparency = targetTransparency
+        target.BackgroundTransparency = 1
     end
     local animation = tween(item, duration, target, Enum.EasingStyle.Linear)
     if animation then
@@ -264,7 +259,6 @@ function HelloHub.new(options)
     if not player then
         error("[HelloHub] This UI must be created on the client.")
     end
-
     local playerGui = player:WaitForChild("PlayerGui")
     local self = setmetatable({}, Window)
     self.Connections = {}
@@ -281,17 +275,14 @@ function HelloHub.new(options)
     self.ComponentObjects = {}
     self.OpenDropdown = nil
     Theme = self.Theme
-
     local function viewport()
         local camera = workspace.CurrentCamera
         return camera and camera.ViewportSize or Vector2.new(1280, 720)
     end
-
     local function getScale()
         local size = viewport()
         return math.clamp(math.min(size.X / 900, size.Y / 650), 0.58, 1)
     end
-
     local screen = create("ScreenGui", {
         Name = "HelloHub_Premium",
         ResetOnSpawn = false,
@@ -300,7 +291,6 @@ function HelloHub.new(options)
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     }, playerGui)
     self.Screen = screen
-
     local main = create("Frame", {
         Name = "Main",
         Position = self.NormalPos,
@@ -319,7 +309,6 @@ function HelloHub.new(options)
     setRole(main, "BackgroundColor3", "Bg")
     setRole(mainStroke, "Color", "Stroke")
     self.UIScale = create("UIScale", {Scale = getScale()}, main)
-
     self.AmbientContainer = create("Frame", {
         Name = "Ambient",
         Size = UDim2.fromScale(1, 1),
@@ -327,7 +316,6 @@ function HelloHub.new(options)
         ClipsDescendants = true,
         ZIndex = 1
     }, main)
-
     task.spawn(function()
         while not self.Destroyed and isAlive(main) do
             if main.Visible and not self.Hidden and not self.Minimized then
@@ -342,7 +330,6 @@ function HelloHub.new(options)
             task.wait(0.35)
         end
     end)
-
     local topBar = themed("Frame", {
         Name = "TopBar",
         Size = UDim2.new(1, 0, 0, 50),
@@ -391,7 +378,6 @@ function HelloHub.new(options)
         AutoButtonColor = false,
         ZIndex = 11
     }, topBar, {TextColor3 = "SubText"})
-
     addConnection(self, closeButton.Activated:Connect(function()
         self:ToggleWindow(false)
     end))
@@ -403,7 +389,6 @@ function HelloHub.new(options)
             Size = self.Minimized and UDim2.new(self.NormalSize.X.Scale, self.NormalSize.X.Offset, 0, 50) or self.NormalSize
         })
     end))
-
     local sidebar = themed("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, 160, 1, -50),
@@ -436,7 +421,6 @@ function HelloHub.new(options)
         SortOrder = Enum.SortOrder.LayoutOrder
     }, self.TabHolder)
     addPadding(self.TabHolder, 10, 10, 10, 10)
-
     local content = create("Frame", {
         Name = "Content",
         Size = UDim2.new(1, -160, 1, -50),
@@ -482,7 +466,6 @@ function HelloHub.new(options)
         BackgroundTransparency = 1,
         ZIndex = 6
     }, content)
-
     local launcher = themed("ImageButton", {
         Name = "Launcher",
         Size = UDim2.fromOffset(50, 50),
@@ -498,7 +481,6 @@ function HelloHub.new(options)
     self.Launcher = launcher
     corner(launcher, 100)
     local launcherStroke = addStroke(launcher, Color3.new(1,1,1), 0.45, 2)
-
     local launcherDragging, launcherStart, launcherPosition, moved = false, nil, nil, 0
     addConnection(self, launcher.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -525,7 +507,6 @@ function HelloHub.new(options)
             if moved < 10 then self:ToggleWindow(self.Hidden) end
         end
     end))
-
     function self:ToggleWindow(show)
         if self.Destroyed then return end
         show = show == true
@@ -556,7 +537,6 @@ function HelloHub.new(options)
             end
         end
     end
-
     addConnection(self, minButton.MouseEnter:Connect(function()
         tween(minButton, 0.1, {TextColor3 = self.Theme.Text})
     end))
@@ -569,7 +549,6 @@ function HelloHub.new(options)
     addConnection(self, closeButton.MouseLeave:Connect(function()
         tween(closeButton, 0.1, {TextColor3 = self.Theme.SubText})
     end))
-
     local dragging, dragStart, windowStart = false, nil, nil
     addConnection(self, topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -599,7 +578,6 @@ function HelloHub.new(options)
             self:ToggleWindow(self.Hidden)
         end
     end))
-
     local function updateViewport()
         if self.Destroyed then return end
         local size = viewport()
@@ -611,7 +589,6 @@ function HelloHub.new(options)
         self.NormalPos = UDim2.fromOffset(px, py)
         if not dragging then main.Position = self.NormalPos end
     end
-
     local cameraConnection
     local function bindCamera()
         if cameraConnection then cameraConnection:Disconnect() end
@@ -623,7 +600,6 @@ function HelloHub.new(options)
     end
     bindCamera()
     addConnection(self, workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera))
-
     self:ConnectSearch()
     task.delay(0.35, function()
         if self.Destroyed then return end
@@ -633,7 +609,6 @@ function HelloHub.new(options)
             if not self.Destroyed then self:ToggleWindow(true) end
         end)
     end)
-
     return self
 end
 
@@ -651,7 +626,6 @@ function Window:CreateTab(options)
         warn("[HelloHub] Duplicate tab name: " .. tostring(name))
         return self.Tabs[name]
     end
-
     local tab = setmetatable({
         Window = self,
         Name = name,
@@ -659,7 +633,6 @@ function Window:CreateTab(options)
         Components = {},
         ComponentOrder = 0
     }, Tab)
-
     tab.Button = themed("TextButton", {
         Size = UDim2.new(1, 0, 0, 35),
         BackgroundColor3 = self.Theme.Panel,
@@ -688,13 +661,11 @@ function Window:CreateTab(options)
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 8
     }, tab.Button, {TextColor3 = "SubText"})
-
     tab.Page = create("Frame", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         Visible = false
     }, self.PageHolder)
-
     tab.LeftCol = create("ScrollingFrame", {
         Name = "LeftColumn",
         Size = UDim2.new(0.5, -5, 1, 0),
@@ -718,7 +689,6 @@ function Window:CreateTab(options)
         CanvasSize = UDim2.new()
     }, tab.Page)
     create("UIListLayout", {Padding=UDim.new(0,8), SortOrder=Enum.SortOrder.LayoutOrder}, tab.RightCol)
-
     self.Tabs[name] = tab
     addConnection(tab, tab.Button.Activated:Connect(function()
         self:SelectTab(name)
@@ -844,6 +814,9 @@ function Tab:AddButton(options)
     }
 end
 
+-- ========================================================
+-- AddToggle v9.2.0 | Animated Toggle + Random Orbit Stars
+-- ========================================================
 function Tab:AddToggle(options)
     options = options or {}
     local key = options.Flag or options.Name or "Toggle"
@@ -866,6 +839,9 @@ function Tab:AddToggle(options)
         BackgroundColor3 = state and self.Window.Theme.Accent or self.Window.Theme.Stroke
     }, card, {BackgroundColor3 = state and "Accent" or "Stroke"})
     corner(switch, 20)
+    local glowStroke = addStroke(switch, self.Window.Theme.Accent, 1, 2)
+    glowStroke.Name = "ToggleGlow"
+    setRole(glowStroke, "Color", "Accent")
     local knob = create("Frame", {
         Size = UDim2.fromOffset(16, 16),
         Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.fromOffset(2, 2),
@@ -873,27 +849,154 @@ function Tab:AddToggle(options)
         BorderSizePixel = 0
     }, switch)
     corner(knob, 20)
+    local orbitLayer = create("Frame", {
+        Name = "OrbitLayer",
+        Size = UDim2.fromOffset(72, 54),
+        Position = UDim2.new(1, -66, 0.5, -27),
+        BackgroundTransparency = 1,
+        ClipsDescendants = false,
+        ZIndex = 5
+    }, card)
+    local ORBIT_CENTER = Vector2.new(36, 27)
+    local STAR_COUNT = 8
+    local stars = {}
+    for i = 1, STAR_COUNT do
+        local size = math.random(2, 5)
+        local useAccent2 = math.random() > 0.5
+        local star = create("Frame", {
+            Name = "OrbitStar" .. tostring(i),
+            Size = UDim2.fromOffset(size, size),
+            Position = UDim2.fromOffset(ORBIT_CENTER.X, ORBIT_CENTER.Y),
+            BackgroundColor3 = useAccent2 and self.Window.Theme.Accent2 or self.Window.Theme.Accent,
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = 6
+        }, orbitLayer)
+        corner(star, 100)
+        setRole(star, "BackgroundColor3", useAccent2 and "Accent2" or "Accent")
+        table.insert(stars, {
+            Frame = star,
+            Size = size,
+            RadiusX = math.random(24, 33),
+            RadiusY = math.random(15, 22),
+            Speed = (math.random(80, 220) / 100) * (math.random() > 0.5 and 1 or -1),
+            Phase = math.random() * math.pi * 2,
+            TwinkleSpeed = math.random(150, 350) / 100,
+            TwinklePhase = math.random() * math.pi * 2
+        })
+    end
     local hit = create("TextButton", {
         Size = UDim2.fromScale(1,1),
         BackgroundTransparency = 1,
-        Text = ""
+        Text = "",
+        ZIndex = 10
     }, card)
-
+    local destroyed = false
+    local fadeAlpha = 0
+    local glowAlpha = 0
+    local fadeTarget = state and 1 or 0
+    local glowTarget = state and 1 or 0
+    local elapsed = math.random() * 10
+    local switchTween = nil
+    local knobTween = nil
+    local toggleConnections = {}
+    local function addToggleConnection(conn)
+        table.insert(toggleConnections, conn)
+        return conn
+    end
+    local function cancelTween(tw)
+        if tw then pcall(function() tw:Cancel() end) end
+    end
+    local orbitConnection
+    orbitConnection = RunService.RenderStepped:Connect(function(dt)
+        if destroyed then return end
+        if not isAlive(card) then return end
+        if self.Window.Destroyed or self.Window.Hidden then return end
+        dt = math.min(dt, 0.05)
+        elapsed += dt
+        local lerpFactor = 1 - math.exp(-6 * dt)
+        fadeAlpha += (fadeTarget - fadeAlpha) * lerpFactor
+        if math.abs(fadeTarget - fadeAlpha) < 0.01 then fadeAlpha = fadeTarget end
+        glowAlpha += (glowTarget - glowAlpha) * lerpFactor
+        if math.abs(glowTarget - glowAlpha) < 0.01 then glowAlpha = glowTarget end
+        if isAlive(glowStroke) then
+            if glowAlpha <= 0.01 then
+                glowStroke.Transparency = 1
+            else
+                local pulse = 0.55 + 0.25 * math.sin(elapsed * 4.2)
+                glowStroke.Transparency = math.clamp(1 - glowAlpha * pulse, 0, 1)
+            end
+        end
+        if fadeAlpha <= 0.01 then
+            orbitLayer.Visible = false
+            for _, s in ipairs(stars) do
+                if isAlive(s.Frame) then s.Frame.Visible = false end
+            end
+            return
+        end
+        orbitLayer.Visible = true
+        for _, s in ipairs(stars) do
+            local f = s.Frame
+            if isAlive(f) then
+                f.Visible = true
+                local angle = s.Phase + elapsed * s.Speed
+                local x = ORBIT_CENTER.X + math.cos(angle) * s.RadiusX
+                local y = ORBIT_CENTER.Y + math.sin(angle) * s.RadiusY
+                f.Position = UDim2.fromOffset(x - s.Size / 2, y - s.Size / 2)
+                local twinkle = 0.55 + 0.45 * math.sin(elapsed * s.TwinkleSpeed + s.TwinklePhase)
+                f.BackgroundTransparency = math.clamp(1 - fadeAlpha * (0.35 + 0.65 * twinkle), 0, 1)
+            end
+        end
+    end)
+    addToggleConnection(orbitConnection)
+    addConnection(self, orbitConnection)
     local function set(value, invoke)
+        if destroyed then return end
         state = value == true
         self.Window.Flags[key] = state
-        tween(switch, 0.18, {BackgroundColor3 = state and self.Window.Theme.Accent or self.Window.Theme.Stroke})
-        tween(knob, 0.18, {
-            Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.fromOffset(2, 2)
-        }, Enum.EasingStyle.Back)
+        fadeTarget = state and 1 or 0
+        glowTarget = state and 1 or 0
+        setRole(switch, "BackgroundColor3", state and "Accent" or "Stroke")
+        cancelTween(switchTween)
+        cancelTween(knobTween)
+        switchTween = tween(switch, 0.28, {
+            BackgroundColor3 = state and self.Window.Theme.Accent or self.Window.Theme.Stroke
+        }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        if state then
+            knobTween = tween(knob, 0.32, {
+                Position = UDim2.new(1, -18, 0.5, -8)
+            }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        else
+            knobTween = tween(knob, 0.28, {
+                Position = UDim2.fromOffset(2, 2)
+            }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+        end
         if invoke ~= false then safeCallback(options.Callback, state) end
     end
-    addConnection(self, hit.Activated:Connect(function() set(not state) end))
+    local hitConnection = hit.Activated:Connect(function()
+        set(not state)
+    end)
+    addToggleConnection(hitConnection)
+    addConnection(self, hitConnection)
     self.Window.Flags[key] = state
+    local function destroyToggle()
+        if destroyed then return end
+        destroyed = true
+        fadeTarget = 0
+        glowTarget = 0
+        cancelTween(switchTween)
+        cancelTween(knobTween)
+        switchTween = nil
+        knobTween = nil
+        disconnectAll(toggleConnections)
+        table.clear(stars)
+        if isAlive(card) then card:Destroy() end
+    end
     return {
         Get = function() return state end,
         Set = function(_, value) set(value, true) end,
-        Destroy = function() if isAlive(card) then card:Destroy() end end
+        Destroy = destroyToggle,
+        Instance = card
     }
 end
 
@@ -947,7 +1050,6 @@ function Tab:AddSlider(options)
         BackgroundTransparency = 1,
         Text = ""
     }, bar)
-
     local dragging = false
     local function updateFromPercent(pct, invoke)
         pct = math.clamp(pct, 0, 1)
@@ -1023,7 +1125,6 @@ function Tab:AddDropdown(options)
     local opened = false
     local overlay, menu
     local menuConnections = {}
-
     local function close()
         if not opened then return end
         opened = false
@@ -1034,7 +1135,6 @@ function Tab:AddDropdown(options)
         arrow.Text = "⌄"
         if self.Window.OpenDropdown == close then self.Window.OpenDropdown = nil end
     end
-
     addConnection(self, hit.Activated:Connect(function()
         if opened then close(); return end
         if #choices == 0 or self.Window.Destroyed then return end
@@ -1042,7 +1142,6 @@ function Tab:AddDropdown(options)
         opened = true
         self.Window.OpenDropdown = close
         arrow.Text = "⌃"
-
         local screen = self.Window.Screen
         local viewport = screen.AbsoluteSize
         local itemHeight = 30
@@ -1054,7 +1153,6 @@ function Tab:AddDropdown(options)
             y = anchorPos.Y - menuHeight - 4
         end
         y = math.clamp(y, 4, math.max(4, viewport.Y - menuHeight - 4))
-
         overlay = create("TextButton", {
             Name = "DropdownDismiss",
             Size = UDim2.fromScale(1,1),
@@ -1064,7 +1162,6 @@ function Tab:AddDropdown(options)
             ZIndex = 200
         }, screen)
         table.insert(menuConnections, overlay.Activated:Connect(close))
-
         menu = create("ScrollingFrame", {
             Name = "DropdownMenu",
             Size = UDim2.fromOffset(anchorSize.X, menuHeight),
@@ -1079,7 +1176,6 @@ function Tab:AddDropdown(options)
         }, screen)
         corner(menu, 8)
         addStroke(menu, self.Window.Theme.Accent, 0.25, 1.5)
-
         for index, choice in ipairs(choices) do
             local optionButton = themed("TextButton", {
                 Size = UDim2.new(1, -4, 0, itemHeight),
@@ -1107,7 +1203,6 @@ function Tab:AddDropdown(options)
             end))
         end
     end))
-
     return {
         Get = function() return selected end,
         Set = function(_, value)
@@ -1205,7 +1300,6 @@ function Tab:AddKeybind(options)
     setRole(outline, "Color", "Stroke")
     local listening = false
     local listenConnection
-
     local function stopListening()
         listening = false
         if listenConnection then
@@ -1214,7 +1308,6 @@ function Tab:AddKeybind(options)
         end
         if isAlive(button) then button.Text = tostring(key) end
     end
-
     addConnection(self, button.Activated:Connect(function()
         if listening then return end
         listening = true
@@ -1248,7 +1341,6 @@ function Window:SetTheme(name)
     self.ThemeName = name
     self.Theme = table.clone(CONFIG.Themes[name])
     Theme = self.Theme
-
     for _, object in ipairs(self.Screen:GetDescendants()) do
         local property = object:GetAttribute("HHThemeProperty")
         local role = object:GetAttribute("HHThemeRole")
@@ -1259,7 +1351,6 @@ function Window:SetTheme(name)
             object.ScrollBarImageColor3 = self.Theme.Accent
         end
     end
-
     if self.AmbientContainer then
         for _, child in ipairs(self.AmbientContainer:GetChildren()) do child:Destroy() end
     end
@@ -1362,40 +1453,33 @@ function HelloHub.GetThemes()
     return names
 end
 
-
 --========================================================
--- HELLOHUB v9.2.0 | SYSTEM TESTER
+-- HELLOHUB v9.2.0 | SYSTEM TESTER (FIXED + EXTENDED)
 --========================================================
 
 function HelloHub.AddSystemTest(window)
     assert(window, "[HelloHub] Window is required")
     assert(not window.Destroyed, "[HelloHub] Window is destroyed")
-
     local tab = window:CreateTab({
         Name = "System Test",
         Icon = "🧪"
     })
-
     local status = tab:AddLabel("SYSTEM TESTER | Ready")
     local report = tab:AddLabel("No tests have been run.")
-
     local results = {}
     local passed = 0
     local failed = 0
-
     local function log(name, ok, detail)
         table.insert(results, {
             Name = name,
             Passed = ok,
             Detail = tostring(detail or "")
         })
-
         if ok then
             passed += 1
         else
             failed += 1
         end
-
         local resultText = ok and "PASS" or "FAIL"
         status:Set("[" .. resultText .. "] " .. name)
         report:Set(
@@ -1403,56 +1487,42 @@ function HelloHub.AddSystemTest(window)
             " | Failed: " .. failed ..
             " | Last: " .. name
         )
-
         if not ok then
             warn("[HelloHub Test] " .. name .. ": " .. tostring(detail))
         end
     end
-
     local function test(name, callback)
         local ok, result = pcall(callback)
         log(name, ok, ok and "OK" or result)
         return ok
     end
-
     tab:AddSection("🧪", "Automatic Tests")
-
     local runButton = tab:AddButton({
         Name = "Run All Tests",
         Callback = function()
             passed = 0
             failed = 0
             table.clear(results)
-
             status:Set("SYSTEM TESTER | Running...")
             report:Set("Testing HelloHub components...")
-
-            -- 1. Theme configuration
             test("Theme Configuration", function()
                 assert(type(HelloHub.Config.Themes) == "table")
                 assert(#HelloHub.GetThemes() == 11)
             end)
-
-            -- 2. Window API
             test("Window API", function()
                 assert(type(window.CreateTab) == "function")
                 assert(type(window.SetTheme) == "function")
                 assert(type(window.Notify) == "function")
                 assert(type(window.Destroy) == "function")
             end)
-
-            -- 3. Theme switching
             test("Theme Switching", function()
                 local original = window.ThemeName
                 assert(window:SetTheme("Ocean") == true)
                 assert(window.ThemeName == "Ocean")
                 assert(window:SetTheme(original) == true)
             end)
-
-            -- 4. Toggle
             test("Toggle Get / Set", function()
                 local callbackValue
-
                 local toggle = tab:AddToggle({
                     Name = "Internal Toggle Test",
                     Default = false,
@@ -1461,21 +1531,117 @@ function HelloHub.AddSystemTest(window)
                         callbackValue = value
                     end
                 })
-
                 toggle:Set(true)
                 assert(toggle:Get() == true)
                 assert(callbackValue == true)
-
                 toggle:Set(false)
                 assert(toggle:Get() == false)
-
                 toggle:Destroy()
             end)
-
-            -- 5. Slider
+            -- NEW: Orbit Stars
+            test("Toggle Orbit Stars", function()
+                local toggle = tab:AddToggle({
+                    Name = "Orbit Test",
+                    Default = true,
+                    Flag = "HH_Orbit_Test_Toggle"
+                })
+                local card = toggle.Instance
+                assert(card ~= nil, "Toggle Instance missing")
+                local orbitLayer = card:FindFirstChild("OrbitLayer")
+                assert(orbitLayer ~= nil, "OrbitLayer missing")
+                local stars = {}
+                for _, child in ipairs(orbitLayer:GetChildren()) do
+                    if string.find(child.Name, "OrbitStar") then
+                        table.insert(stars, child)
+                    end
+                end
+                assert(#stars == 8, "Expected 8 stars, got " .. tostring(#stars))
+                assert(#orbitLayer:GetChildren() == 8, "OrbitLayer should contain only stars, no lines")
+                for _, star in ipairs(stars) do
+                    local sz = star.Size.X.Offset
+                    assert(sz >= 2 and sz <= 5, "Star size out of range 2-5, got " .. tostring(sz))
+                    local role = star:GetAttribute("HHThemeRole")
+                    assert(role == "Accent" or role == "Accent2", "Star role must be Accent/Accent2")
+                end
+                toggle:Destroy()
+            end)
+            -- NEW: Glow Pulse
+            test("Toggle Glow Pulse", function()
+                local toggle = tab:AddToggle({
+                    Name = "Glow Test",
+                    Default = false,
+                    Flag = "HH_Glow_Test_Toggle"
+                })
+                local card = toggle.Instance
+                local switch = nil
+                for _, child in ipairs(card:GetChildren()) do
+                    if child:FindFirstChild("ToggleGlow") then
+                        switch = child
+                        break
+                    end
+                end
+                assert(switch ~= nil, "Switch with ToggleGlow not found")
+                local glow = switch:FindFirstChild("ToggleGlow")
+                assert(glow ~= nil and glow:IsA("UIStroke"), "ToggleGlow UIStroke missing")
+                toggle:Set(true)
+                task.wait(0.4)
+                assert(glow.Transparency < 0.99, "Glow should be visible when ON")
+                toggle:Set(false)
+                task.wait(0.6)
+                assert(glow.Transparency > 0.8, "Glow should fade when OFF")
+                toggle:Destroy()
+            end)
+            -- NEW: Rapid Set
+            test("Toggle Rapid Set / No Overlap", function()
+                local toggle = tab:AddToggle({
+                    Name = "Rapid Test",
+                    Default = false,
+                    Flag = "HH_Rapid_Test_Toggle"
+                })
+                for _ = 1, 5 do
+                    toggle:Set(true)
+                    toggle:Set(false)
+                end
+                toggle:Set(true)
+                assert(toggle:Get() == true)
+                toggle:Set(false)
+                assert(toggle:Get() == false)
+                toggle:Destroy()
+            end)
+            -- NEW: Destroy Cleanup
+            test("Toggle Destroy Cleanup", function()
+                local toggle = tab:AddToggle({
+                    Name = "Cleanup Test",
+                    Default = true,
+                    Flag = "HH_Cleanup_Test_Toggle"
+                })
+                local card = toggle.Instance
+                assert(card ~= nil and card.Parent ~= nil)
+                toggle:Destroy()
+                assert(card.Parent == nil, "Card should be destroyed")
+                local ok = pcall(function()
+                    toggle:Destroy()
+                    toggle:Set(true)
+                end)
+                assert(ok, "Destroy/Set after Destroy should not error")
+            end)
+            -- NEW: Theme Compatibility
+            test("Toggle Theme Compatibility", function()
+                local original = window.ThemeName
+                local toggle = tab:AddToggle({
+                    Name = "Theme Toggle Test",
+                    Default = true,
+                    Flag = "HH_Theme_Toggle_Test"
+                })
+                assert(window:SetTheme("Cyberpunk") == true)
+                assert(toggle.Instance ~= nil and toggle.Instance.Parent ~= nil)
+                local orbitLayer = toggle.Instance:FindFirstChild("OrbitLayer")
+                assert(orbitLayer ~= nil, "OrbitLayer should survive theme change")
+                assert(window:SetTheme(original) == true)
+                toggle:Destroy()
+            end)
             test("Slider Get / Set", function()
                 local callbackValue
-
                 local slider = tab:AddSlider({
                     Name = "Internal Slider Test",
                     Min = 0,
@@ -1485,21 +1651,15 @@ function HelloHub.AddSystemTest(window)
                         callbackValue = value
                     end
                 })
-
                 slider:Set(75)
                 assert(slider:Get() == 75)
                 assert(callbackValue == 75)
-
                 slider:Set(500)
                 assert(slider:Get() == 100)
-
                 slider:Destroy()
             end)
-
-            -- 6. Dropdown
             test("Dropdown Get / Set", function()
                 local callbackValue
-
                 local dropdown = tab:AddDropdown({
                     Name = "Internal Dropdown Test",
                     Options = {"A", "B", "C"},
@@ -1508,31 +1668,22 @@ function HelloHub.AddSystemTest(window)
                         callbackValue = value
                     end
                 })
-
                 dropdown:Set("B")
                 assert(dropdown:Get() == "B")
                 assert(callbackValue == "B")
-
                 dropdown:Destroy()
             end)
-
-            -- 7. Input
             test("Input Get / Set", function()
                 local input = tab:AddInput({
                     Name = "Internal Input Test",
                     Default = "Hello"
                 })
-
                 input:Set("HelloHub")
                 assert(input:Get() == "HelloHub")
-
                 input:Destroy()
             end)
-
-            -- 8. Keybind
             test("Keybind Get / Set", function()
                 local callbackValue
-
                 local keybind = tab:AddKeybind({
                     Name = "Internal Keybind Test",
                     Default = "K",
@@ -1540,62 +1691,46 @@ function HelloHub.AddSystemTest(window)
                         callbackValue = value
                     end
                 })
-
                 keybind:Set("J")
                 assert(keybind:Get() == "J")
                 assert(callbackValue == "J")
-
                 keybind:Destroy()
             end)
-
-            -- 9. Button creation
             test("Button Creation", function()
                 local button = tab:AddButton({
                     Name = "Internal Button Test",
                     Callback = function() end
                 })
-
                 assert(button.Instance ~= nil)
                 assert(button.Instance:IsA("TextButton"))
-
                 button:Destroy()
             end)
-
-            -- 10. Notification
             test("Notification Creation", function()
                 local notification = window:Notify({
                     Title = "System Test",
                     Content = "Notification test passed.",
                     Duration = 1
                 })
-
                 assert(notification ~= nil)
                 assert(notification.Parent == window.Screen)
             end)
-
-            -- Final result
             local total = passed + failed
-
             status:Set(
                 failed == 0 and
                 "SYSTEM TEST | ALL PASSED" or
                 "SYSTEM TEST | ERRORS FOUND"
             )
-
             report:Set(
                 "Completed: " .. total ..
                 " | PASS: " .. passed ..
                 " | FAIL: " .. failed
             )
-
             window:Notify({
                 Title = "System Test Completed",
                 Content = passed .. "/" .. total .. " tests passed.",
                 Duration = 4
             })
-
             print("========== HELLOHUB TEST REPORT ==========")
-
             for _, result in ipairs(results) do
                 print(
                     (result.Passed and "[PASS] " or "[FAIL] ") ..
@@ -1603,13 +1738,10 @@ function HelloHub.AddSystemTest(window)
                     " | " .. result.Detail
                 )
             end
-
             print("==========================================")
         end
     })
-
     tab:AddSection("🔔", "Manual Tests")
-
     tab:AddButton({
         Name = "Test Notification",
         Callback = function()
@@ -1620,39 +1752,34 @@ function HelloHub.AddSystemTest(window)
             })
         end
     })
-
-    Tab:AddDropdown({
-    Name = "Select Option",
-    Options = {"Option 1", "Option 2", "Option 3"},
-    Default = "Option 1",
-    Callback = function(value)
-        print(value)
-    end
-})
-
+    -- FIXED: เดิมเป็น Tab:AddDropdown (ตัวใหญ่) ทำให้ error ตอนสร้าง ตอนนี้แก้เป็น tab:AddDropdown แล้ว
+    tab:AddDropdown({
+        Name = "Select Option",
+        Options = {"Option 1", "Option 2", "Option 3"},
+        Default = "Option 1",
+        Callback = function(value)
+            print(value)
+        end
+    })
     tab:AddButton({
         Name = "Test Theme",
         Callback = function()
             local themes = HelloHub.GetThemes()
             local index = table.find(themes, window.ThemeName) or 0
             local nextIndex = (index % #themes) + 1
-
             window:SetTheme(themes[nextIndex])
         end
     })
-
     tab:AddButton({
         Name = "Clear Test Report",
         Callback = function()
             passed = 0
             failed = 0
             table.clear(results)
-
             status:Set("SYSTEM TESTER | Ready")
             report:Set("Report cleared.")
         end
     })
-
     return {
         Tab = tab,
         Results = results,
@@ -1661,6 +1788,5 @@ function HelloHub.AddSystemTest(window)
         end
     }
 end
-
 
 return HelloHub
