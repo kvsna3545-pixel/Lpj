@@ -1362,4 +1362,307 @@ function HelloHub.GetThemes()
     return names
 end
 
+
+--========================================================
+-- HELLOHUB v9.2.0 | SYSTEM TESTER
+--========================================================
+
+function HelloHub.AddSystemTest(window)
+    assert(window, "[HelloHub] Window is required")
+    assert(not window.Destroyed, "[HelloHub] Window is destroyed")
+
+    local tab = window:CreateTab({
+        Name = "System Test",
+        Icon = "🧪"
+    })
+
+    local status = tab:AddLabel("SYSTEM TESTER | Ready")
+    local report = tab:AddLabel("No tests have been run.")
+
+    local results = {}
+    local passed = 0
+    local failed = 0
+
+    local function log(name, ok, detail)
+        table.insert(results, {
+            Name = name,
+            Passed = ok,
+            Detail = tostring(detail or "")
+        })
+
+        if ok then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        local resultText = ok and "PASS" or "FAIL"
+        status:Set("[" .. resultText .. "] " .. name)
+        report:Set(
+            "Passed: " .. passed ..
+            " | Failed: " .. failed ..
+            " | Last: " .. name
+        )
+
+        if not ok then
+            warn("[HelloHub Test] " .. name .. ": " .. tostring(detail))
+        end
+    end
+
+    local function test(name, callback)
+        local ok, result = pcall(callback)
+        log(name, ok, ok and "OK" or result)
+        return ok
+    end
+
+    tab:AddSection("🧪", "Automatic Tests")
+
+    local runButton = tab:AddButton({
+        Name = "Run All Tests",
+        Callback = function()
+            passed = 0
+            failed = 0
+            table.clear(results)
+
+            status:Set("SYSTEM TESTER | Running...")
+            report:Set("Testing HelloHub components...")
+
+            -- 1. Theme configuration
+            test("Theme Configuration", function()
+                assert(type(HelloHub.Config.Themes) == "table")
+                assert(#HelloHub.GetThemes() == 11)
+            end)
+
+            -- 2. Window API
+            test("Window API", function()
+                assert(type(window.CreateTab) == "function")
+                assert(type(window.SetTheme) == "function")
+                assert(type(window.Notify) == "function")
+                assert(type(window.Destroy) == "function")
+            end)
+
+            -- 3. Theme switching
+            test("Theme Switching", function()
+                local original = window.ThemeName
+                assert(window:SetTheme("Ocean") == true)
+                assert(window.ThemeName == "Ocean")
+                assert(window:SetTheme(original) == true)
+            end)
+
+            -- 4. Toggle
+            test("Toggle Get / Set", function()
+                local callbackValue
+
+                local toggle = tab:AddToggle({
+                    Name = "Internal Toggle Test",
+                    Default = false,
+                    Flag = "HH_Internal_Test_Toggle",
+                    Callback = function(value)
+                        callbackValue = value
+                    end
+                })
+
+                toggle:Set(true)
+                assert(toggle:Get() == true)
+                assert(callbackValue == true)
+
+                toggle:Set(false)
+                assert(toggle:Get() == false)
+
+                toggle:Destroy()
+            end)
+
+            -- 5. Slider
+            test("Slider Get / Set", function()
+                local callbackValue
+
+                local slider = tab:AddSlider({
+                    Name = "Internal Slider Test",
+                    Min = 0,
+                    Max = 100,
+                    Default = 25,
+                    Callback = function(value)
+                        callbackValue = value
+                    end
+                })
+
+                slider:Set(75)
+                assert(slider:Get() == 75)
+                assert(callbackValue == 75)
+
+                slider:Set(500)
+                assert(slider:Get() == 100)
+
+                slider:Destroy()
+            end)
+
+            -- 6. Dropdown
+            test("Dropdown Get / Set", function()
+                local callbackValue
+
+                local dropdown = tab:AddDropdown({
+                    Name = "Internal Dropdown Test",
+                    Options = {"A", "B", "C"},
+                    Default = "A",
+                    Callback = function(value)
+                        callbackValue = value
+                    end
+                })
+
+                dropdown:Set("B")
+                assert(dropdown:Get() == "B")
+                assert(callbackValue == "B")
+
+                dropdown:Destroy()
+            end)
+
+            -- 7. Input
+            test("Input Get / Set", function()
+                local input = tab:AddInput({
+                    Name = "Internal Input Test",
+                    Default = "Hello"
+                })
+
+                input:Set("HelloHub")
+                assert(input:Get() == "HelloHub")
+
+                input:Destroy()
+            end)
+
+            -- 8. Keybind
+            test("Keybind Get / Set", function()
+                local callbackValue
+
+                local keybind = tab:AddKeybind({
+                    Name = "Internal Keybind Test",
+                    Default = "K",
+                    Callback = function(value)
+                        callbackValue = value
+                    end
+                })
+
+                keybind:Set("J")
+                assert(keybind:Get() == "J")
+                assert(callbackValue == "J")
+
+                keybind:Destroy()
+            end)
+
+            -- 9. Button creation
+            test("Button Creation", function()
+                local button = tab:AddButton({
+                    Name = "Internal Button Test",
+                    Callback = function() end
+                })
+
+                assert(button.Instance ~= nil)
+                assert(button.Instance:IsA("TextButton"))
+
+                button:Destroy()
+            end)
+
+            -- 10. Notification
+            test("Notification Creation", function()
+                local notification = window:Notify({
+                    Title = "System Test",
+                    Content = "Notification test passed.",
+                    Duration = 1
+                })
+
+                assert(notification ~= nil)
+                assert(notification.Parent == window.Screen)
+            end)
+
+            -- Final result
+            local total = passed + failed
+
+            status:Set(
+                failed == 0 and
+                "SYSTEM TEST | ALL PASSED" or
+                "SYSTEM TEST | ERRORS FOUND"
+            )
+
+            report:Set(
+                "Completed: " .. total ..
+                " | PASS: " .. passed ..
+                " | FAIL: " .. failed
+            )
+
+            window:Notify({
+                Title = "System Test Completed",
+                Content = passed .. "/" .. total .. " tests passed.",
+                Duration = 4
+            })
+
+            print("========== HELLOHUB TEST REPORT ==========")
+
+            for _, result in ipairs(results) do
+                print(
+                    (result.Passed and "[PASS] " or "[FAIL] ") ..
+                    result.Name ..
+                    " | " .. result.Detail
+                )
+            end
+
+            print("==========================================")
+        end
+    })
+
+    tab:AddSection("🔔", "Manual Tests")
+
+    tab:AddButton({
+        Name = "Test Notification",
+        Callback = function()
+            window:Notify({
+                Title = "HelloHub",
+                Content = "Notification system is working!",
+                Duration = 3
+            })
+        end
+    })
+
+    tab:AddButton({
+        Name = "Test Dropdown",
+        Callback = function()
+            window:Notify({
+                Title = "Dropdown",
+                Content = "Use the dropdown component to test its menu.",
+                Duration = 3
+            })
+        end
+    })
+
+    tab:AddButton({
+        Name = "Test Theme",
+        Callback = function()
+            local themes = HelloHub.GetThemes()
+            local index = table.find(themes, window.ThemeName) or 0
+            local nextIndex = (index % #themes) + 1
+
+            window:SetTheme(themes[nextIndex])
+        end
+    })
+
+    tab:AddButton({
+        Name = "Clear Test Report",
+        Callback = function()
+            passed = 0
+            failed = 0
+            table.clear(results)
+
+            status:Set("SYSTEM TESTER | Ready")
+            report:Set("Report cleared.")
+        end
+    })
+
+    return {
+        Tab = tab,
+        Results = results,
+        Run = function()
+            runButton.Instance:Activate()
+        end
+    }
+end
+
+
 return HelloHub
