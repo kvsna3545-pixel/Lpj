@@ -2233,6 +2233,181 @@ pillCoin = MakePill(84, "💰 Coin", Color3.fromRGB(255,122,0), function()
 end)
 pillUI = MakePill(126, "👁 UI", Color3.fromRGB(40,40,50), function() UI:ToggleWindow(UI.Hidden) end)
 
+--[[ ========================================================
+    EVADE BHOP PATCH - วางต่อท้ายส่วน Main หรือก่อน Cleanup
+    วางทับในสคริป Evade ตัวเดิมได้เลย
+======================================================== ]]
+
+-- ============ BHOP STATE ============
+S.Bhop = false
+S.BhopMode = "Auto Hop" -- Auto Hop / Hold Space / Legit
+S.BhopSpeed = 42
+S.BhopBoost = 1.5 -- ยิ่งเยอะยิ่งพุ่ง
+S.BhopStrafe = true
+S.BhopAirControl = 0.85
+S.BhopKeepSpeed = true
+
+-- ============ BHOP UI - ใส่ใน Main Tab ============
+Main:AddSection("🐰", "Bhop")
+local bhopTog
+bhopTog = Main:AddToggle({
+    Name = "Bhop",
+    Default = false,
+    Flag = "Evade_Bhop",
+    Callback = function(v)
+        S.Bhop = v
+        Notify("Bhop", v and "ON - กดค้าง Space แล้วโดดเลย" or "OFF")
+        if pillBhop then
+            pillBhop.BackgroundColor3 = v and Color3.fromRGB(0,200,90) or Color3.fromRGB(255,122,0)
+            pillBhop.Text = v and "🐰 Bhop ON" or "🐰 Bhop"
+        end
+    end
+})
+Main:AddDropdown({
+    Name = "Bhop Mode",
+    Options = {"Auto Hop", "Hold Space", "Legit"},
+    Default = "Auto Hop",
+    Callback = function(v) S.BhopMode = v end
+})
+Main:AddSlider({
+    Name = "Bhop Speed",
+    Min = 16, Max = 90, Default = 42,
+    Callback = function(v)
+        S.BhopSpeed = v
+        if S.Bhop then local h = Hum() if h then h.WalkSpeed = v end end
+    end
+})
+Main:AddSlider({
+    Name = "Bhop Boost",
+    Min = 0, Max = 5, Default = 1.5,
+    Callback = function(v) S.BhopBoost = v end
+})
+Main:AddToggle({
+    Name = "Bhop Strafe Assist",
+    Default = true,
+    Flag = "Evade_BhopStrafe",
+    Callback = function(v) S.BhopStrafe = v end
+})
+Main:AddToggle({
+    Name = "Bhop Keep Speed (ไม่ตกสปีดตอนลง)",
+    Default = true,
+    Flag = "Evade_BhopKeep",
+    Callback = function(v) S.BhopKeepSpeed = v end
+})
+
+-- ============ BHOP CORE ============
+local Bhop = {
+    Holding = false,
+    LastJump = 0,
+    AirTime = 0,
+    GroundSpeed = 0,
+}
+local function IsGrounded(h, hrp)
+    if not h or not hrp then return false end
+    local st = h:GetState()
+    return st == Enum.HumanoidStateType.Running
+        or st == Enum.HumanoidStateType.Landing
+        or h.FloorMaterial ~= Enum.Material.Air
+end
+
+-- กด Space
+Conn(UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.Space then Bhop.Holding = true end
+end))
+Conn(UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then Bhop.Holding = false end
+end))
+
+-- Auto Jump + Speed Loop
+Conn(RunService.Heartbeat:Connect(function(dt)
+    if not S.Bhop then return end
+    local c = Char() local h = Hum() local hrp = HRP()
+    if not c or not h or not hrp or h.Health <= 0 then return end
+
+    local shouldHop = false
+    if S.BhopMode == "Auto Hop" then shouldHop = true
+    elseif S.BhopMode == "Hold Space" then shouldHop = Bhop.Holding end
+    -- Legit = ต้องกดเอง แต่ระบบช่วยเรื่องสปีดอย่างเดียว
+
+    -- 1. บังคับสปีดตอน Bhop
+    if S.BhopKeepSpeed then
+        -- ถ้าอยู่พื้น ให้ดัน WalkSpeed ไป BhopSpeed
+        -- ถ้าอยู่กลางอากาศ ให้รักษาความเร็วไม่ให้ตก
+        if h.WalkSpeed < S.BhopSpeed then
+            h.WalkSpeed = S.BhopSpeed
+        end
+    else
+        h.WalkSpeed = S.BhopSpeed
+    end
+
+    -- 2. Strafe Assist - เลี้ยวแล้วได้สปีดเพิ่ม
+    if S.BhopStrafe and h.FloorMaterial == Enum.Material.Air then
+        local move = h.MoveDirection
+        if move.Magnitude > 0 then
+            local look = Camera.CFrame.LookVector
+            local right = Camera.CFrame.RightVector
+            local wish = Vector3.zero
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then wish += look end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then wish -= look end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then wish -= right end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then wish += right end
+            if wish.Magnitude > 0 then
+                wish = Vector3.new(wish.X, 0, wish.Z).Unit
+                -- ดันไปตามทิศที่หัน + เก็บ momentum
+                hrp.AssemblyLinearVelocity = Vector3.new(
+                    hrp.AssemblyLinearVelocity.X + wish.X * S.BhopAirControl * S.BhopBoost,
+                    hrp.AssemblyLinearVelocity.Y,
+                    hrp.AssemblyLinearVelocity.Z + wish.Z * S.BhopAirControl * S.BhopBoost
+                )
+                -- กันสปีดเกินจนบิน
+                local flat = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z)
+                local maxFlat = S.BhopSpeed * 1.6
+                if flat.Magnitude > maxFlat then
+                    local clamped = flat.Unit * maxFlat
+                    hrp.AssemblyLinearVelocity = Vector3.new(clamped.X, hrp.AssemblyLinearVelocity.Y, clamped.Z)
+                end
+            end
+        end
+    end
+
+    -- 3. Auto Hop - แตะพื้นปุ๊บโดดปั๊บ
+    if shouldHop and IsGrounded(h, hrp) then
+        if tick() - Bhop.LastJump > 0.03 then
+            Bhop.LastJump = tick()
+            h:ChangeState(Enum.HumanoidStateType.Jumping)
+            -- Boost เล็กน้อยตอนกระโดด ให้รู้สึกพุ่ง
+            if S.BhopBoost > 0 then
+                local vel = hrp.AssemblyLinearVelocity
+                local flat = Vector3.new(vel.X, 0, vel.Z)
+                if flat.Magnitude > 1 then
+                    local add = flat.Unit * (S.BhopBoost * 1.2)
+                    hrp.AssemblyLinearVelocity = Vector3.new(vel.X + add.X, vel.Y, vel.Z + add.Z)
+                end
+            end
+        end
+    end
+end))
+
+-- กัน WalkSpeed โดน Evade Speed ทับ: ถ้าเปิด Bhop ให้ Bhop ชนะ
+Conn(RunService.RenderStepped:Connect(function()
+    if S.Bhop and Alive() then
+        local h = Hum()
+        if h and h.WalkSpeed ~= S.BhopSpeed and S.BhopKeepSpeed then
+            h.WalkSpeed = S.BhopSpeed
+        end
+    end
+end))
+
+-- ============ BHOP PILL - เม็ดยาเพิ่ม ============
+-- วางต่อจาก pillUI ในส่วนเม็ดยาข้างขวา
+pillBhop = MakePill(168, "🐰 Bhop", Color3.fromRGB(255,122,0), function()
+    S.Bhop = not S.Bhop
+    bhopTog:Set(S.Bhop)
+end)
+-- ขยับ PillFrame ให้สูงขึ้นกันล้นจอ
+PillFrame.Size = UDim2.fromOffset(112, 214)
+
 -- Cleanup
 getgenv().EVADE_NTIN_CLEANUP = function()
     getgenv().EVADE_NTIN_LOADED = false
